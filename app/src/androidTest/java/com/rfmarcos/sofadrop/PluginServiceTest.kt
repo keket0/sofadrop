@@ -150,6 +150,48 @@ class PluginServiceTest {
         }
     }
 
+    /**
+     * Paramount+'s "Continue watching" cards are named "Series - Episode", with its own image (2026-11): the
+     * series is found by the name before " - ". A movie card isn't searched so: its subtitles follow a " - " too.
+     */
+    @Test
+    fun paramountCardsFindTheirSeries() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
+        FocusedLog.clear(context)
+        try {
+            val service = bind()
+            val skyMed = Event.ProgramCardFocused(title = "SkyMed - Frau im Cockpit", type = 3, iconUri = "https://thumbnails.cbsig.net/example.jpg")
+            val wallpapers = answer(service, skyMed)
+            Log.i(TAG, "SkyMed: ${wallpapers.map { it.uri }} · ${FocusedLog.read(context)}")
+            assertEquals(1, wallpapers.size)
+            val bitmap = context.contentResolver.openInputStream(Uri.parse(wallpapers[0].uri)).use { BitmapFactory.decodeStream(it) }
+            assertNotNull(bitmap)
+            assertTrue(FocusedLog.read(context).any { "tv/133908 SkyMed" in it && "by series name" in it })
+
+            val movie = Event.ProgramCardFocused(title = "Mission: Impossible - Kein solcher Film", type = 0, iconUri = "https://thumbnails.cbsig.net/example.jpg")
+            answer(service, movie)
+            Log.i(TAG, "Movie: ${FocusedLog.read(context)}")
+            assertTrue(FocusedLog.read(context).any { "Kein solcher Film" in it && "nothing named so" in it })
+            assertFalse(FocusedLog.read(context).any { "Kein solcher Film" in it && "by series name" in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
+    /** What the service answers [event] with once the card is drawn, or found to be nothing (asked again as Projectivy does). */
+    private fun answer(service: IWallpaperProviderService, event: Event.ProgramCardFocused): List<tv.projectivy.plugin.wallpaperprovider.api.Wallpaper> {
+        val card = FocusedWallpapers.card(event.title, event.type, event.iconUri)!!
+        val deadline = System.currentTimeMillis() + 90_000
+        while (System.currentTimeMillis() < deadline) {
+            val wallpapers = service.getWallpapers(event)
+            if (wallpapers.isNotEmpty() || FocusedWallpapers.matchesNothing(card)) return wallpapers
+            Thread.sleep(1000)
+        }
+        return emptyList()
+    }
+
     private fun bind(): IWallpaperProviderService {
         val latch = CountDownLatch(1)
         var binder: IBinder? = null
