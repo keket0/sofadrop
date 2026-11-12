@@ -63,6 +63,15 @@ class FocusedWallpapersTest {
     }
 
     @Test
+    fun paramountCardsNameTheSeriesFirst() {
+        assertEquals("Marshals", FocusedWallpapers.seriesNameOf("Marshals - Mehr Schein als Sein"))
+        assertEquals("SkyMed", FocusedWallpapers.seriesNameOf("SkyMed – Frau im Cockpit"))
+        assertNull(FocusedWallpapers.seriesNameOf("Spider-Man: No Way Home"))
+        assertNull(FocusedWallpapers.seriesNameOf("Slow Horses"))
+        assertNull(FocusedWallpapers.seriesNameOf(" - Pilot"))
+    }
+
+    @Test
     fun episodeCodesInTheWallpaperLanguage() {
         assertEquals("T2E3", Languages.episodeCode("es-ES", 2, 3))
         assertEquals("S2E3", Languages.episodeCode("en-US", 2, 3))

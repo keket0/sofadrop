@@ -69,6 +69,8 @@ object FocusedWallpapers {
     private val stillPattern = Regex("""^https://image\.tmdb\.org/t/p/[a-z0-9]+(/[A-Za-z0-9]+\.jpg)$""")
     private val marks = Regex("""\p{M}+""")
     private val notAlphanumeric = Regex("""[^\p{L}\p{N}]+""")
+    /** Between a series and its episode in a card's title: a spaced hyphen or dash. */
+    private val seriesSeparator = Regex("""\s[-–—]\s""")
 
     /** What each card is, by [FocusedCard.key]. */
     private val found = ConcurrentHashMap<String, Match>()
@@ -269,20 +271,34 @@ object FocusedWallpapers {
      * Without one, the first results instead ("Lucky Hank (2023), …"), for the log.
      */
     private fun findTitle(client: TmdbClient, card: FocusedCard): Pair<Match?, String> {
-        val target = normalized(card.title)
-        val path = card.media.path
-        val name = if (card.media == MediaType.MOVIE) "title" else "name"
+        val (match, closest) = findNamed(client, card.title, card.media, "name")
+        if (match != null) return match to closest
+        // Paramount+ names its series' cards after the series and the episode: the series alone. Not for movies,
+        // whose subtitles follow a " - " too ("Mission: Impossible - Dead Reckoning" isn't the 1966 series)
+        if (card.media != MediaType.TV) return null to closest
+        val series = seriesNameOf(card.title) ?: return null to closest
+        return findNamed(client, series, MediaType.TV, "series name").first to closest
+    }
+
+    /** "Marshals" for "Marshals - Mehr Schein als Sein"; null for a title without " - ". */
+    fun seriesNameOf(title: String): String? =
+        seriesSeparator.find(title)?.let { title.substring(0, it.range.first).trim() }?.takeIf { it.isNotEmpty() }
+
+    private fun findNamed(client: TmdbClient, title: String, media: MediaType, how: String): Pair<Match?, String> {
+        val target = normalized(title)
+        val path = media.path
+        val name = if (media == MediaType.MOVIE) "title" else "name"
         val original = "original_$name"
         var closest = ""
         for (language in listOf(Locale.getDefault().toLanguageTag(), Settings.language).distinct()) {
-            val results = client.get("search/$path?query=${URLEncoder.encode(card.title, "UTF-8")}&language=$language")
+            val results = client.get("search/$path?query=${URLEncoder.encode(title, "UTF-8")}&language=$language")
                 ?.objects("results").orEmpty()
             if (closest.isEmpty()) closest = results.take(CLOSEST_LOGGED).joinToString(", ") { "${it.str(name).orEmpty()} (${yearOf(it)})" }
             val exact = results.filter { result -> listOf(name, original).any { normalized(result.str(it).orEmpty()) == target } }
             val first = exact.firstOrNull() ?: continue
             val id = first.int("id") ?: continue
             val others = if (exact.size > 1) " · ${exact.size} named so" else ""
-            return Match(TitleRef(card.media, id), null, "$path/$id ${first.str(name).orEmpty()} (${yearOf(first)}) by name $language$others") to closest
+            return Match(TitleRef(media, id), null, "$path/$id ${first.str(name).orEmpty()} (${yearOf(first)}) by $how $language$others") to closest
         }
         return null to closest
     }
