@@ -98,6 +98,7 @@ object Settings {
     private const val KEY_SCREENSAVER_WEATHER = "screensaver_weather"
     private const val KEY_WEATHER_PLACE = "weather_place"
     private const val KEY_WEATHER_COORDINATES = "weather_coordinates"
+    private const val KEY_WEATHER_UNIT = "weather_unit"
     private const val KEY_TRAILER_LANGUAGE = "trailer_language"
     private const val KEY_TRAILER_FALLBACK = "trailer_fallback"
     private const val KEY_TMDB_SESSION = "_tmdb_session_id"
@@ -656,6 +657,16 @@ object Settings {
     var screensaverWeather: Boolean
         get() = preferences.getBoolean(KEY_SCREENSAVER_WEATHER, false)
         set(value) = preferences.edit { putBoolean(KEY_SCREENSAVER_WEATHER, value) }
+
+    const val UNIT_AUTO = "auto"
+    const val UNIT_CELSIUS = "celsius"
+    const val UNIT_FAHRENHEIT = "fahrenheit"
+    val WEATHER_UNITS = listOf(UNIT_AUTO, UNIT_CELSIUS, UNIT_FAHRENHEIT)
+
+    /** °C or °F for the weather; [UNIT_AUTO] follows the TV (see [Weather.regionFahrenheit]). */
+    var weatherUnit: String
+        get() = preferences.getString(KEY_WEATHER_UNIT, null)?.takeIf { it in WEATHER_UNITS } ?: UNIT_AUTO
+        set(value) = preferences.edit { putString(KEY_WEATHER_UNIT, value) }
 
     /** "Amsterdam, North Holland": the place found for the location the user typed; empty when not set. */
     val weatherPlace: String get() = preferences.getString(KEY_WEATHER_PLACE, null).orEmpty()

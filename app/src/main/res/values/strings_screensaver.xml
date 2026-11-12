@@ -53,6 +53,8 @@
     <string name="screensaver_brightness_title">Brightness</string>
     <string name="screensaver_brightness">%1$d%%</string>
     <string name="screensaver_weather_title">Weather</string>
+    <string name="screensaver_weather_unit_title">Temperature</string>
+    <string name="screensaver_weather_unit_auto">Automatic (%1$s)</string>
     <string name="screensaver_weather_no_place">Type a location first</string>
     <string name="screensaver_weather_explain">The temperature and the weather under the clock, from Open-Meteo (free, no account), checked every 30 minutes. Type a town or city; leave it empty to remove it.</string>
     <string name="screensaver_location_title">Weather location</string>

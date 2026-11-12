@@ -52,6 +52,8 @@
     <string name="screensaver_brightness_title">Brillo</string>
     <string name="screensaver_brightness">%1$d%%</string>
     <string name="screensaver_weather_title">El tiempo</string>
+    <string name="screensaver_weather_unit_title">Temperatura</string>
+    <string name="screensaver_weather_unit_auto">Automática (%1$s)</string>
     <string name="screensaver_weather_no_place">Escribe antes una ubicación</string>
     <string name="screensaver_weather_explain">La temperatura y el tiempo bajo el reloj, de Open-Meteo (gratis, sin cuenta), consultados cada 30 minutos. Escribe una ciudad o un pueblo; déjalo vacío para quitarla.</string>
     <string name="screensaver_location_title">Ubicación para el tiempo</string>

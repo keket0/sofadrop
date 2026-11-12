@@ -217,6 +217,8 @@ class ScreensaverFragment : OutputFragment() {
                 Settings.weatherPlace.ifEmpty { getString(R.string.screensaver_weather_no_place) })
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID).checked(Settings.screensaverWeather)
                 .enabled(clockOn && Settings.weatherPlace.isNotEmpty()).build(),
+            choice(ID_UNIT, R.drawable.ic_act_weather, R.string.screensaver_weather_unit_title, unitLabel(context, Settings.weatherUnit),
+                Settings.WEATHER_UNITS.map { unitLabel(context, it) }).also { it.isEnabled = clockOn && Settings.screensaverWeather },
             editable(ID_LOCATION, R.drawable.ic_act_search, getString(R.string.screensaver_location_title), Settings.weatherPlace,
                 Settings.weatherPlace.ifEmpty { getString(R.string.not_set) }).also { it.isEnabled = clockOn },
         )
@@ -255,6 +257,7 @@ class ScreensaverFragment : OutputFragment() {
             ID_WEATHER -> {
                 Settings.screensaverWeather = action.isChecked
                 showClock()
+                refresh() // the unit's row follows the weather
             }
             ID_COLOR -> if (colorsLocked && supporterState != Supporter.State.PENDING) supporter?.buy(requireActivity())
             else -> super.onGuidedActionClicked(action)
@@ -301,6 +304,10 @@ class ScreensaverFragment : OutputFragment() {
             ID_FORMAT -> Settings.screensaverClockFormat = Settings.CLOCK_FORMATS[index]
             ID_COLOR -> Settings.screensaverClockColor = Settings.CLOCK_COLORS.keys.elementAt(index)
             ID_BRIGHTNESS -> Settings.screensaverBrightness = Settings.SCREENSAVER_BRIGHTNESS_OPTIONS[index]
+            ID_UNIT -> {
+                Settings.weatherUnit = Settings.WEATHER_UNITS[index]
+                showClock()
+            }
             else -> return super.onSubGuidedActionClicked(action)
         }
         refresh() // the clock's rows follow the clock
@@ -323,10 +330,18 @@ class ScreensaverFragment : OutputFragment() {
         private const val ID_WEATHER = 20L
         private const val ID_LOCATION = 21L
         private const val ID_COLOR = 22L
+        private const val ID_UNIT = 23L
         private const val TRANSITION_HOLD_MILLIS = 1500L
 
         /** "com.rfmarcos.sofadrop/com.rfmarcos.sofadrop.SofascreenService", for the adb command. */
         fun component(context: Context) = "${context.packageName}/${SofascreenService::class.java.name}"
+
+        /** "°C", "°F", or "Automatic (°F)" with the unit it gives now. */
+        fun unitLabel(context: Context, unit: String) = when (unit) {
+            Settings.UNIT_CELSIUS -> "°C"
+            Settings.UNIT_FAHRENHEIT -> "°F"
+            else -> context.getString(R.string.screensaver_weather_unit_auto, if (Weather.regionFahrenheit) "°F" else "°C")
+        }
 
         fun secondsLabel(context: Context, seconds: Int) =
             if (seconds < 60) context.getString(R.string.screensaver_seconds, seconds)

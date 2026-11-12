@@ -52,6 +52,8 @@
     <string name="screensaver_brightness_title">Helderheid</string>
     <string name="screensaver_brightness">%1$d%%</string>
     <string name="screensaver_weather_title">Weer</string>
+    <string name="screensaver_weather_unit_title">Temperatuur</string>
+    <string name="screensaver_weather_unit_auto">Automatisch (%1$s)</string>
     <string name="screensaver_weather_no_place">Vul eerst een locatie in</string>
     <string name="screensaver_weather_explain">De temperatuur en het weer onder de klok, van Open-Meteo (gratis, geen account), elke 30 minuten opgehaald. Vul een stad of dorp in; laat het leeg om de locatie te verwijderen.</string>
     <string name="screensaver_location_title">Locatie voor het weer</string>

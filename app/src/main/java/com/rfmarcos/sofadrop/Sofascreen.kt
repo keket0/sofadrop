@@ -474,7 +474,7 @@ class SofascreenClock(private val context: Context) {
             handler.post {
                 val line = weather ?: return@post
                 line.visibility = if (now == null) View.GONE else View.VISIBLE
-                if (now != null) line.text = "${now.temperature}°  ·  ${context.getString(Weather.description(now.code))}"
+                if (now != null) line.text = "${Weather.degrees(now)}  ·${context.getString(Weather.description(now.code))}"
             }
         }
     }
