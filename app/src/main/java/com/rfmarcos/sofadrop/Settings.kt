@@ -665,7 +665,7 @@ object Settings {
     /** Minutes without a button pressed in Sofadrop's settings before Sofascreen starts; 0 never. */
     val SCREENSAVER_IDLE_OPTIONS = listOf(0, 1, 2, 5, 10)
     var screensaverIdleMinutes: Int
-        get() = preferences.getInt(KEY_SCREENSAVER_IDLE, 0).takeIf { it in SCREENSAVER_IDLE_OPTIONS } ?: 0
+        get() = preferences.getInt(KEY_SCREENSAVER_IDLE, 5).takeIf { it in SCREENSAVER_IDLE_OPTIONS } ?: 5
         set(value) = preferences.edit { putInt(KEY_SCREENSAVER_IDLE, value) }
 
     // How Sofascreen shows the set (see SofascreenView), after PR #13 by schumi2004
