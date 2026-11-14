@@ -93,10 +93,11 @@ class WallpaperProviderService : Service() {
             store.markServed()
             val apps = ClickTargets.Apps(this@WallpaperProviderService)
             return (if (Profile.WALLPAPER.mixed) current.shuffled() else current).mapNotNull { wallpaper ->
-                val uri = store.uriOf(wallpaper) ?: return@mapNotNull null
+                val video = store.videoUriOf(wallpaper)
+                val uri = video ?: store.uriOf(wallpaper) ?: return@mapNotNull null
                 Wallpaper(
                     uri = uri.toString(),
-                    type = WallpaperType.IMAGE,
+                    type = if (video != null) WallpaperType.VIDEO else WallpaperType.IMAGE,
                     displayMode = WallpaperDisplayMode.CROP,
                     title = wallpaper.title,
                     source = "https://www.themoviedb.org/${wallpaper.type}/${wallpaper.tmdbId}",

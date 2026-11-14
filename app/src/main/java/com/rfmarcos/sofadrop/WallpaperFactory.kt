@@ -136,7 +136,9 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
      * titles; decoding and drawing go one at a time: in the background Android runs the app on a single
      * core of the TV.
      */
-    fun render(info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0)): Bitmap {
+    fun render(
+        info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0), onScroll: ((ScrollingSynopsis) -> Unit)? = null,
+    ): Bitmap {
         // Previews are 1280 px wide: TMDB's 1280 size instead of decoding the (often 4K) original
         val backdropBytes = client.image(info.backdropPath, if (width <= 1280) "w1280" else "original")
         val logoBytes = info.logoPath?.let { client.image(it, if (width > 1920) "original" else "w500") }
@@ -164,7 +166,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
                 providerBytes.mapNotNullTo(providers) { decode(it) }
                 val faceSize = WallpaperRenderer.castPhotoSize(width)
                 faceBytes.mapTo(faces) { bytes -> bytes?.let { decode(it, faceSize, faceSize) } }
-                return renderer(width, position).render(info, backdrop, logo, providers, faces)
+                return renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
             } finally {
                 backdrop?.recycle()
                 logo?.recycle()

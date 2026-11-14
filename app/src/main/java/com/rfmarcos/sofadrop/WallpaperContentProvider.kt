@@ -11,8 +11,8 @@ import java.io.FileNotFoundException
 /**
  * Serves the generated wallpapers to Projectivy, read-only and without per-URI grants: Android drops
  * those grants whenever Sofadrop is updated or force-stopped, and Projectivy then shows its own
- * wallpaper until it next asks for the list. Only JPEGs under files/wallpapers are reachable, and they
- * are public movie and TV art.
+ * wallpaper until it next asks for the list. Only JPEGs and MP4s under files/wallpapers are reachable,
+ * and they are public movie and TV art.
  */
 class WallpaperContentProvider : ContentProvider() {
 
@@ -25,7 +25,7 @@ class WallpaperContentProvider : ContentProvider() {
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
-    override fun getType(uri: Uri) = "image/jpeg"
+    override fun getType(uri: Uri) = if (uri.path.orEmpty().endsWith(".mp4")) "video/mp4" else "image/jpeg"
 
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? = null
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
@@ -33,11 +33,14 @@ class WallpaperContentProvider : ContentProvider() {
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
 
     companion object {
+        /** The wallpapers, and the videos of those whose synopsis scrolls. */
+        private val SERVED = setOf("jpg", "mp4")
+
         /** The wallpaper [path] points to inside [root]; null for anything else (other files, "..", folders). */
         fun resolve(root: File, path: String): File? {
             val base = root.canonicalFile
             val file = File(base, path.removePrefix("/")).canonicalFile
-            return file.takeIf { it.path.startsWith(base.path + File.separator) && it.extension == "jpg" && it.isFile }
+            return file.takeIf { it.path.startsWith(base.path + File.separator) && it.extension in SERVED && it.isFile }
         }
     }
 }

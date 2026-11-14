@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -187,12 +189,17 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             val exists = file?.isFile == true
             // Errors too (out of memory): a wallpaper that can't be read mustn't stop the screensaver
             val bitmap = if (exists) runCatching { decode(file!!.path, width) }.getOrNull() else null
+            // A synopsis that scrolls: the image goes with it, or it shows still if its files can't be read
+            val image = bitmap?.let { image ->
+                val box = wallpaper.scroll ?: return@let null
+                runCatching { ScrollingSynopsis.load(file!!.parentFile!!, box) }.getOrNull()?.let { ScrollingWallpaper(image, it, box.imageWidth) }
+            } ?: bitmap?.let { BitmapDrawable(resources, it) }
             handler.post {
                 if (!running) return@post
                 when {
-                    bitmap != null -> {
+                    image != null -> {
                         shown = wallpaper
-                        show(bitmap, transition)
+                        show(image, transition)
                     }
                     // Removed by a newer set: start the round again from that one
                     !exists -> {
@@ -206,12 +213,15 @@ class SofascreenView(context: Context) : FrameLayout(context) {
         }
     }
 
-    private fun show(bitmap: Bitmap, duration: Long) {
+    private fun show(image: Drawable, duration: Long) {
         settle?.run()
         val incoming = back
         val outgoing = front
         reset(incoming)
-        incoming.setImageBitmap(bitmap)
+        incoming.setImageDrawable(image)
+        // Long enough to read a scrolling synopsis to its end
+        val scrolling = image as? ScrollingWallpaper
+        val showFor = maxOf(Settings.screensaverSeconds * 1000L, scrolling?.synopsis?.durationMillis ?: 0L)
         // The incoming image goes on top of the outgoing one, under the dimming and the clock
         removeView(incoming)
         addView(incoming, indexOfChild(outgoing) + 1)
@@ -223,20 +233,21 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             reset(incoming)
             reset(outgoing)
             outgoing.setImageDrawable(null)
-            slowZoom(incoming)
+            slowZoom(incoming, showFor)
+            scrolling?.start()
         }
         settle = done
         shown?.position?.let(clock::moveAwayFrom)
         if (duration == 0L) done.run() else playTransition(incoming, outgoing, duration, width.toFloat(), done)
         handler.removeCallbacks(next)
-        handler.postDelayed(next, Settings.screensaverSeconds * 1000L + duration)
+        handler.postDelayed(next, showFor + duration)
     }
 
     /**
      * Zoom in slowly while the wallpaper is shown, anchored at the side and height of its text (see
      * [Settings.POSITIONS]) so its logo and text stay in view.
      */
-    private fun slowZoom(view: ImageView) {
+    private fun slowZoom(view: ImageView, millis: Long) {
         if (!Settings.screensaverZoom) return
         val screen = (if (height > 0) height else resources.displayMetrics.heightPixels).toFloat()
         val place = shown?.position ?: blockPosition
@@ -246,7 +257,7 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             place.startsWith("top") -> 0f
             else -> screen / 2f
         }
-        view.animate().scaleX(SLOW_ZOOM).scaleY(SLOW_ZOOM).setDuration(Settings.screensaverSeconds * 1000L)
+        view.animate().scaleX(SLOW_ZOOM).scaleY(SLOW_ZOOM).setDuration(millis)
             .setInterpolator(LinearInterpolator()).start()
     }
 

@@ -220,7 +220,11 @@ class ParsingTest {
         val image = java.io.File(gen, "movie-1.jpg").apply { writeText("x") }
         java.io.File(gen, "index.json").writeText("[]")
         java.io.File(parent, "secret.jpg").writeText("x")
+        val video = java.io.File(gen, "movie-1.mp4").apply { writeText("x") }
+        java.io.File(gen, "movie-1-strip.png").writeText("x")
         assertEquals(image.canonicalFile, WallpaperContentProvider.resolve(root, "/gen-1/movie-1.jpg"))
+        assertEquals(video.canonicalFile, WallpaperContentProvider.resolve(root, "/gen-1/movie-1.mp4"))
+        assertNull(WallpaperContentProvider.resolve(root, "/gen-1/movie-1-strip.png"))
         assertNull(WallpaperContentProvider.resolve(root, "/gen-1/index.json"))
         assertNull(WallpaperContentProvider.resolve(root, "/../secret.jpg"))
         assertNull(WallpaperContentProvider.resolve(root, "/gen-1/missing.jpg"))

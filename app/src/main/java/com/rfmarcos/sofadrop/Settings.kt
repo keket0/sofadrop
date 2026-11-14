@@ -549,7 +549,12 @@ object Settings {
 
     // --- Selection and watched content ---
 
-    val OVERVIEW_OPTIONS = listOf(4, 2, 0)
+    /**
+     * The whole synopsis in a 4-line window that scrolls by itself when it doesn't fit (see
+     * [ScrollingSynopsis]): Projectivy gets those wallpapers as videos, Sofascreen scrolls them live.
+     */
+    const val OVERVIEW_SCROLL = 99
+    val OVERVIEW_OPTIONS = listOf(4, 2, OVERVIEW_SCROLL, 0)
 
     /** Last time Projectivy asked for wallpapers (0 = never: Sofadrop isn't its wallpaper yet). */
     var projectivyAskedAt: Long

@@ -326,8 +326,11 @@
     <string name="synopsis_title">Synopsis</string>
     <string name="synopsis_full">Full (4 lines)</string>
     <string name="synopsis_short">Short (2 lines)</string>
+    <string name="synopsis_scroll">All of it, scrolling</string>
+    <string name="synopsis_scroll_desc">Long ones scroll by themselves. In Projectivy they\'re videos: 1–3 MB each, slower to make.</string>
     <string name="synopsis_hidden">Hidden</string>
     <string name="synopsis_summary_short">short synopsis</string>
+    <string name="synopsis_summary_scroll">scrolling synopsis</string>
     <string name="synopsis_summary_hidden">no synopsis</string>
     <string name="cast_title">Cast</string>
     <string name="cast_hidden">Hidden</string>

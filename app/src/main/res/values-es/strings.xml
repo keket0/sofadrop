@@ -308,8 +308,11 @@
     <string name="synopsis_title">Sinopsis</string>
     <string name="synopsis_full">Completa (4 líneas)</string>
     <string name="synopsis_short">Corta (2 líneas)</string>
+    <string name="synopsis_scroll">Entera, desplazándose</string>
+    <string name="synopsis_scroll_desc">Las largas se desplazan solas. En Projectivy son vídeos: 1–3 MB cada uno, tardan más en generarse.</string>
     <string name="synopsis_hidden">Oculta</string>
     <string name="synopsis_summary_short">sinopsis corta</string>
+    <string name="synopsis_summary_scroll">sinopsis desplazándose</string>
     <string name="synopsis_summary_hidden">sin sinopsis</string>
     <string name="cast_title">Reparto</string>
     <string name="cast_hidden">Oculto</string>

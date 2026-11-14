@@ -316,8 +316,11 @@
     <string name="synopsis_title">Samenvatting</string>
     <string name="synopsis_full">Volledig (4 regels)</string>
     <string name="synopsis_short">Kort (2 regels)</string>
+    <string name="synopsis_scroll">Helemaal, scrollend</string>
+    <string name="synopsis_scroll_desc">Lange scrollen vanzelf. In Projectivy zijn het video\'s: 1–3 MB per stuk, het maken duurt langer.</string>
     <string name="synopsis_hidden">Verborgen</string>
     <string name="synopsis_summary_short">korte samenvatting</string>
+    <string name="synopsis_summary_scroll">scrollende samenvatting</string>
     <string name="synopsis_summary_hidden">geen samenvatting</string>
     <string name="cast_title">Cast</string>
     <string name="cast_hidden">Verborgen</string>

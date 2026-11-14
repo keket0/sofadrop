@@ -23,8 +23,9 @@ class SynopsisCastFragment : PreviewSettingsFragment() {
     private fun rows(): List<GuidedAction> {
         val context = requireContext()
         return listOf(
-            choice(ID_SYNOPSIS, R.drawable.ic_act_count, R.string.synopsis_title, synopsisLabel(context, profile.overviewLines),
-                Settings.OVERVIEW_OPTIONS.map { synopsisLabel(context, it) }),
+            action(ID_SYNOPSIS, R.drawable.ic_act_count, getString(R.string.synopsis_title), synopsisLabel(context, profile.overviewLines))
+                .subActions(options(ID_SYNOPSIS, Settings.OVERVIEW_OPTIONS.map { synopsisLabel(context, it) }, synopsisLabel(context, profile.overviewLines),
+                    Settings.OVERVIEW_OPTIONS.map { if (it == Settings.OVERVIEW_SCROLL) getString(R.string.synopsis_scroll_desc) else null })).build(),
             action(ID_CAST, R.drawable.ic_act_account, getString(R.string.cast_title), castLabel(context, profile.showCast))
                 .subActions(options(ID_CAST, listOf(false, true).map { castLabel(context, it) }, castLabel(context, profile.showCast),
                     listOf(null, getString(R.string.cast_shown_desc)))).build(),
@@ -73,6 +74,7 @@ class SynopsisCastFragment : PreviewSettingsFragment() {
             when (lines) {
                 0 -> R.string.synopsis_hidden
                 2 -> R.string.synopsis_short
+                Settings.OVERVIEW_SCROLL -> R.string.synopsis_scroll
                 else -> R.string.synopsis_full
             }
         )
