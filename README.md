@@ -100,7 +100,7 @@ The left side of the settings shows a **live preview** of a wallpaper with your 
 * **Wallpapers**, for the home screen of Projectivy Launcher (wallpaper plugins are a Premium feature there) or of another launcher through a folder. Inside: *Use in Projectivy* opens its settings to pick Sofadrop, *View wallpapers*, *Focused card*, *Save in a folder*, and each of the settings below, shared or customized.
   * **Focused card** (beta, Projectivy only): while you're on a movie, series or episode in one of Projectivy's channels, the wallpaper becomes that title, found on TMDB by the card's name (*Episode when known* or always the *Series or movie*). The first time on a card takes a few seconds. If a card shows the wrong title, the *Card log* shows what Sofadrop made of the last cards, to send in an [issue](../../issues).
   * <a id="folder"></a>**Save in a folder** copies each new set into the TV's *Pictures/Sofadrop* folder, for launchers that show the images of a folder (Monet Launcher…): pick that folder in the launcher's wallpaper settings. There a wallpaper is only an image: it doesn't open its title.
-* **Screensaver** says whether it's the TV's screensaver. Inside: *Start screensaver* (now, with no setup), *Use as the TV's screensaver*, each of the settings below, shared or customized; then the slideshow (time per wallpaper, transition, slow zoom, brightness) and the clock (style, date, time format, position and the weather). See [Screensaver](#screensaver).
+* **Screensaver** says whether it's the TV's screensaver. Inside: *Start screensaver* (now, with no setup), *Start when Sofadrop is left open* (after 1 to 10 minutes without pressing anything in its settings), *Use as the TV's screensaver*, each of the settings below, shared or customized; then the slideshow (time per wallpaper, transition, slow zoom, brightness) and the clock (style, date, time format, position and the weather). See [Screensaver](#screensaver).
 * **Shared settings**, what Wallpapers and Screensaver use unless you customize them. Custom lists or wallpaper details make a second set of wallpapers, with about the same space and time again.
 * **Update now** also shows the status: how many wallpapers you have, when they were updated, or the progress while generating.
 * **View wallpapers**, inside *Wallpapers*, shows the current set full screen (◀ ▶ to browse, **OK** to open the title, ▲ to use it in the preview, ▼ to block it).
@@ -131,7 +131,7 @@ Sofadrop includes **Sofascreen**, a screensaver that shows your wallpapers full 
 
 If you use Projectivy and the screensaver doesn't start: in Projectivy, turn off Settings › Appearance › Launcher Idle Mode › Prevent system screensaver, then restart the TV.
 
-*Start screensaver* also works as a poster mode where the screensaver can't be switched on: it stays on until you press a button, with no setup. Launchers can start it too.
+*Start screensaver* also works as a poster mode where the screensaver can't be switched on: it stays on until you press a button, with no setup. Launchers can start it too. And with *Start when Sofadrop is left open*, leaving Sofadrop's settings on screen starts it by itself after the time you choose.
 
 To make it the TV's screensaver, choose *Screensaver → Use as the TV's screensaver*:
 

@@ -3,6 +3,9 @@ package com.rfmarcos.sofadrop
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.widget.EditText
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.GuidedStepSupportFragment
@@ -53,8 +56,38 @@ class SettingsActivity : FragmentActivity() {
         else -> null
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+    private val idle = Runnable { startScreensaver() }
+
+    override fun onResume() {
+        super.onResume()
+        waitIdle()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        waitIdle()
+    }
+
+    /**
+     * Sofascreen starts once nothing was pressed for [Settings.screensaverIdleMinutes], when chosen. Also called
+     * when that's chosen: the button that chose it was pressed before.
+     */
+    fun waitIdle() {
+        handler.removeCallbacks(idle)
+        val minutes = Settings.screensaverIdleMinutes
+        if (minutes > 0) handler.postDelayed(idle, minutes * 60_000L)
+    }
+
+    private fun startScreensaver() {
+        // Not over a dialog (a QR code being scanned) or the keyboard: their buttons don't reach the activity
+        if (!hasWindowFocus() || currentFocus is EditText) return waitIdle()
+        if (ScreensaverFragment.canStart(this)) startActivity(Intent(this, SofascreenActivity::class.java))
+    }
+
     override fun onPause() {
         super.onPause()
+        handler.removeCallbacks(idle)
         // Leaving the settings applies what changed instead of waiting for the next scheduled update
         if (!isFinishing) return
         for (profile in listOf(Profile.WALLPAPER, Profile.SCREENSAVER).filter { it.source == it }) {

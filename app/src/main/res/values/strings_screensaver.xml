@@ -7,6 +7,10 @@
     <string name="screensaver_empty">No wallpapers yet: choose your lists in Sofadrop</string>
     <string name="screensaver_preparing">Preparing the first wallpapers…</string>
     <string name="sofascreen_start">Start screensaver</string>
+    <string name="screensaver_idle_title">Start when Sofadrop is left open</string>
+    <string name="screensaver_idle_off">Off</string>
+    <string name="screensaver_idle_minutes">After %1$d min</string>
+    <string name="screensaver_idle_explain">While Sofadrop\'s settings are open and no button is pressed, the screensaver starts after this time. Handy where it can\'t be the TV\'s screensaver. Closing it brings you back here.</string>
     <string name="sofascreen_switch_on">Use as the TV\'s screensaver</string>
     <string name="screensaver_try_desc">OK opens the title, ◀ ▶ go to the previous or next wallpaper, any other button closes it</string>
     <string name="screensaver_system_off">Not on yet</string>

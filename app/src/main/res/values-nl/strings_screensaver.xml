@@ -6,6 +6,10 @@
     <string name="screensaver_empty">Nog geen achtergronden: kies je lijsten in Sofadrop</string>
     <string name="screensaver_preparing">De eerste achtergronden worden voorbereid…</string>
     <string name="sofascreen_start">Screensaver starten</string>
+    <string name="screensaver_idle_title">Starten als Sofadrop open blijft</string>
+    <string name="screensaver_idle_off">Uit</string>
+    <string name="screensaver_idle_minutes">Na %1$d min</string>
+    <string name="screensaver_idle_explain">Als de instellingen van Sofadrop open staan en er geen knop wordt ingedrukt, start de screensaver na deze tijd. Handig waar hij niet de screensaver van de tv kan zijn. Als je hem sluit, kom je hier terug.</string>
     <string name="sofascreen_switch_on">Als screensaver van de tv gebruiken</string>
     <string name="screensaver_try_desc">OK opent de titel, ◀ ▶ gaan naar de vorige of volgende achtergrond, elke andere knop sluit hem</string>
     <string name="screensaver_system_off">Nog niet aan</string>

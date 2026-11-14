@@ -174,7 +174,8 @@ class ScreensaverFragment : OutputFragment() {
         if (Projectivy.isInstalled(requireContext()) && ID_SYSTEM in explanations) {
             explanations[ID_SYSTEM] = "${explanations[ID_SYSTEM]}\n\n${getString(R.string.projectivy_screensaver_desc)}"
         }
-        explanations[ID_POSITION] = getString(R.string.screensaver_clock_explain)
+        explanations[ID_IDLE] = getString(R.string.screensaver_idle_explain)
+        explanations[ID_POSITION] =getString(R.string.screensaver_clock_explain)
         explanations[ID_WEATHER] = getString(R.string.screensaver_weather_explain)
         explanations[ID_LOCATION] = getString(R.string.screensaver_weather_explain)
     }
@@ -186,6 +187,8 @@ class ScreensaverFragment : OutputFragment() {
             // Says what it would show
             action(ID_START, R.drawable.ic_act_play, getString(R.string.sofascreen_start), sofascreenStatus())
                 .multilineDescription(true).enabled(canStart()).build(),
+            choice(ID_IDLE, R.drawable.ic_act_schedule, R.string.screensaver_idle_title, idleLabel(context, Settings.screensaverIdleMinutes),
+                Settings.SCREENSAVER_IDLE_OPTIONS.map { idleLabel(context, it) }),
             action(ID_SYSTEM, R.drawable.ic_act_tv, getString(R.string.sofascreen_switch_on), ScreensaverSetupFragment.status(context))
                 .multilineDescription(true).enabled(ScreensaverSetupFragment.canSwitchOn(context)).build()
                 // Only says something where it can't be switched on if it was, from a computer
@@ -239,11 +242,7 @@ class ScreensaverFragment : OutputFragment() {
             .also { it.isEnabled = clockOn }
     }
 
-    /** Sofascreen makes its set when it starts: only without lists there would be nothing to wait for. */
-    private fun canStart(): Boolean {
-        val set = Profile.SCREENSAVER.source
-        return Sources.selected(set).isNotEmpty() || WallpaperStore(requireContext(), set).current().isNotEmpty()
-    }
+    private fun canStart() = canStart(requireContext())
 
     override fun onGuidedActionClicked(action: GuidedAction) {
         when (action.id) {
@@ -295,6 +294,10 @@ class ScreensaverFragment : OutputFragment() {
         val index = (action.id % SUB_ID_BASE).toInt()
         when (action.id / SUB_ID_BASE) {
             ID_SECONDS -> Settings.screensaverSeconds = Settings.SCREENSAVER_SECONDS_OPTIONS[index]
+            ID_IDLE -> {
+                Settings.screensaverIdleMinutes = Settings.SCREENSAVER_IDLE_OPTIONS[index]
+                (activity as? SettingsActivity)?.waitIdle()
+            }
             ID_TRANSITION -> {
                 Settings.screensaverTransition = Settings.TRANSITIONS[index]
                 showTransition()
@@ -331,7 +334,18 @@ class ScreensaverFragment : OutputFragment() {
         private const val ID_LOCATION = 21L
         private const val ID_COLOR = 22L
         private const val ID_UNIT = 23L
+        private const val ID_IDLE = 24L
         private const val TRANSITION_HOLD_MILLIS = 1500L
+
+        /** Sofascreen makes its set when it starts: only without lists there would be nothing to wait for. */
+        fun canStart(context: Context): Boolean {
+            val set = Profile.SCREENSAVER.source
+            return Sources.selected(set).isNotEmpty() || WallpaperStore(context, set).current().isNotEmpty()
+        }
+
+        /** "Off", or "After 5 min" without a button pressed in the settings. */
+        fun idleLabel(context: Context, minutes: Int) =
+            if (minutes == 0) context.getString(R.string.screensaver_idle_off) else context.getString(R.string.screensaver_idle_minutes, minutes)
 
         /** "com.rfmarcos.sofadrop/com.rfmarcos.sofadrop.SofascreenService", for the adb command. */
         fun component(context: Context) = "${context.packageName}/${SofascreenService::class.java.name}"

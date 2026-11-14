@@ -6,6 +6,10 @@
     <string name="screensaver_empty">Aún no hay fondos: elige tus listas en Sofadrop</string>
     <string name="screensaver_preparing">Preparando los primeros fondos…</string>
     <string name="sofascreen_start">Iniciar salvapantallas</string>
+    <string name="screensaver_idle_title">Iniciar si dejas Sofadrop abierto</string>
+    <string name="screensaver_idle_off">Desactivado</string>
+    <string name="screensaver_idle_minutes">Tras %1$d min</string>
+    <string name="screensaver_idle_explain">Con los ajustes de Sofadrop abiertos y sin pulsar ningún botón, el salvapantallas se inicia pasado este tiempo. Útil donde no puede ser el salvapantallas de la tele. Al cerrarlo vuelves aquí.</string>
     <string name="sofascreen_switch_on">Usar como salvapantallas de la TV</string>
     <string name="screensaver_try_desc">OK abre el título, ◀ ▶ pasan al fondo anterior o siguiente, cualquier otro botón lo cierra</string>
     <string name="screensaver_system_off">Sin activar</string>

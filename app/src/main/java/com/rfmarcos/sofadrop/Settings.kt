@@ -87,6 +87,7 @@ object Settings {
     private const val KEY_SCREENSAVER_SHUFFLE = "screensaver_shuffle"
     private const val KEY_ORDER_MOVED = "order_moved"
     private const val KEY_SCREENSAVER_SECONDS = "screensaver_seconds"
+    private const val KEY_SCREENSAVER_IDLE = "screensaver_idle_minutes"
     private const val KEY_SCREENSAVER_TRANSITION = "screensaver_transition"
     private const val KEY_SCREENSAVER_ZOOM = "screensaver_zoom"
     private const val KEY_SCREENSAVER_CLOCK = "screensaver_clock"
@@ -660,6 +661,12 @@ object Settings {
         get() = refreshHours * 3_600_000L
 
     // --- Screensaver ---
+
+    /** Minutes without a button pressed in Sofadrop's settings before Sofascreen starts; 0 never. */
+    val SCREENSAVER_IDLE_OPTIONS = listOf(0, 1, 2, 5, 10)
+    var screensaverIdleMinutes: Int
+        get() = preferences.getInt(KEY_SCREENSAVER_IDLE, 0).takeIf { it in SCREENSAVER_IDLE_OPTIONS } ?: 0
+        set(value) = preferences.edit { putInt(KEY_SCREENSAVER_IDLE, value) }
 
     // How Sofascreen shows the set (see SofascreenView), after PR #13 by schumi2004
     val SCREENSAVER_SECONDS_OPTIONS = listOf(10, 20, 30, 60, 120, 300)
