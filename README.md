@@ -15,7 +15,7 @@
   <a href="https://ko-fi.com/rfmarcos"><img src="https://img.shields.io/badge/support-Ko--fi-A8186E?logo=kofi&amp;style=for-the-badge&amp;labelColor=0F0F1F&amp;logoColor=white" alt="Support on Ko-fi"></a>
 </p>
 
-Sofadrop is a wallpaper plugin for [Projectivy Launcher](https://github.com/spocky/miproja1) (Android TV) that turns your home screen into a rotating showcase of **movies and TV shows** from the lists you choose: what's trending, your Trakt or Simkl lists, any public Trakt or MDBList list… Everything is generated **on your TV** and set up from inside the launcher, with a live preview.
+Sofadrop is a wallpaper plugin for [Projectivy Launcher](https://github.com/spocky/miproja1) (Android TV) that turns your home screen into a rotating showcase of **movies and TV shows** from the lists you choose: what's trending, your Trakt or Simkl lists, any public Trakt or MDBList list, your own Jellyfin library… Everything is generated **on your TV** and set up from inside the launcher, with a live preview.
 
 ![Sofadrop on Projectivy's home screen](docs/images/projectivy_home_en.jpg)
 
@@ -40,12 +40,12 @@ Sofadrop is free and does two things. Each one has its own needs, so check them 
 
 ## ✨ Features
 
-* 🎬 **Your lists**: TMDB trending, popular, in cinemas, upcoming, top rated and on the air (no account needed); Trakt, Simkl and MDBList lists, including your watchlists and any public Trakt or MDBList list.
-* 📱 **Nothing to type on the TV**: accounts connect by scanning a QR code with your phone.
+* 🎬 **Your lists**: TMDB trending, popular, in cinemas, upcoming, top rated and on the air (no account needed); Trakt, Simkl and MDBList lists, including your watchlists and any public Trakt or MDBList list; and from your **Jellyfin** server, what was recently added, what you're watching, your favourites or your whole library.
+* 📱 **Nothing to type on the TV**: accounts connect by scanning a QR code with your phone (Jellyfin too, with Quick Connect).
 * 🖼️ **Clean, readable wallpapers**: textless backdrops with the title's logo, rating, year, runtime or seasons, genres, synopsis and cast (with their photos), kept clear of the launcher rows. Put the text in any corner or let it rotate, use black shading on OLED screens and choose how far the bottom shading reaches.
 * ⭐ **The ratings you trust**: IMDb, Rotten Tomatoes (critics and audience), Metacritic, Letterboxd, TMDB, Trakt or MyAnimeList, with their logos, in the order you choose. IMDb, TMDB and Trakt work without any account; the others come from MDBList.
 * 📺 **Where to watch it**: the streaming services that have each title in your country, or the list it came from.
-* ▶️ **Open it from the wallpaper**: the ▶ icon in Projectivy's status bar opens the title on your streaming platforms (Netflix, Prime Video, Disney+, HBO Max, Apple TV…), in Nuvio, Stremio, WuPlay or Jellyfin, or its trailer on YouTube.
+* ▶️ **Open it from the wallpaper**: the ▶ icon in Projectivy's status bar opens the title on your streaming platforms (Netflix, Prime Video, Disney+, HBO Max, Apple TV…), in Nuvio, Stremio, WuPlay or Jellyfin (on the title's page when it's in your library), or its trailer on YouTube.
 * 🎯 **The card you're on** (beta): in Projectivy's channels (Nuvio's *Continue watching*, Apple TV…), the wallpaper becomes the movie, series or episode you're on.
 * 📁 **Other launchers**: *Save in a folder* keeps a copy of the wallpapers in *Pictures/Sofadrop*, for launchers that rotate a folder's images.
 * ✅ **Watched titles**: with your Trakt or Simkl history, mark what you've seen ("✓ Watched", "▶ Watching · 3/8") or hide it.
@@ -106,13 +106,13 @@ The left side of the settings shows a **live preview** of a wallpaper with your 
 * **View wallpapers**, inside *Wallpapers*, shows the current set full screen (◀ ▶ to browse, **OK** to open the title, ▲ to use it in the preview, ▼ to block it).
 * **Lists**
   * *Wallpapers per list* and *Title picking* (at random or the top of each list). An update makes at most 200 wallpapers, shared among the lists; Projectivy shows 100 of them at a time, a different 100 at random each time it reloads.
-  * One screen per service, **TMDB**, **Trakt**, **Simkl** and **MDBList**, to tick lists and connect your account. Trakt and MDBList also take any public list by its URL or `user/list`.
+  * One screen per service, **TMDB**, **Trakt**, **Simkl**, **MDBList** and **Jellyfin**, to tick lists and connect your account. Trakt and MDBList also take any public list by its URL or `user/list`.
   * **Filters & explore lists**: the filters for every list, then your lists. Open one to see its titles, block one, or give the list its own filters. *Blocked titles* lists the ones you blocked, to unblock them.
 * **Wallpaper details**: style (complete, logo only or backdrop only), position of the text, shading (the backdrop's colour or black for OLED), bottom shading (from high to none) and resolution (1080p or 4K); then by parts: the language of each part, the header under the title (which ratings, in what order, and whether to show the year, runtime, genres and watched badge; hiding details leaves room for more ratings), synopsis length and cast (names only or with their photos), and the footer (streaming services and/or the list source, and the streaming country).
 * **Opening a title**: what the **OK** button opens in the screensaver, and the ▶ icon in Projectivy's status bar (or *About this wallpaper*). Your streaming platforms in the order you pick, then, if the title is on none of them, its trailer (in the language you choose), Nuvio, Stremio, WuPlay or Jellyfin (or a fork of Nuvio, Stremio or WuPlay), or nothing.
 * **Order**: mixed, or one list after another.
 * **Update every**: how often a new set is generated (6 hours to 7 days). How often the wallpaper *changes on screen* is set in Projectivy itself.
-* **Accounts**: connect TMDB, Trakt, Simkl and MDBList with a QR code, see what each one adds, and update the IMDb ratings data.
+* **Accounts**: connect TMDB, Trakt, Simkl and MDBList with a QR code, and your Jellyfin server, see what each one adds, and update the IMDb ratings data.
 * **About**: the guided setup again, *Export and import settings*, the *Last generation log* (lists, failures and how long the last update took) and *Version*, which checks for updates.
   * **Export and import settings** sets up another TV the same way: save the settings in *Download/sofadrop-settings.json* or share the file (to a file manager, Google Drive…), take it to the other TV and import it there (also from the guided setup's first step). Google TV has no file picker of its own: install a file manager (File Manager+, for instance) and *Import* opens it, or open the file with Sofadrop from it. Accounts and API keys aren't in the file: after importing, Sofadrop opens *Accounts* and says which ones the other TV had connected.
 
@@ -121,6 +121,7 @@ The left side of the settings shows a **live preview** of a wallpaper with your 
 * **Trakt**: public lists need no account. Connect it in *Accounts → Trakt* by scanning the QR code to add your recommendations, watchlist and your own lists; your history can mark or hide watched titles.
 * **Simkl**: trending anime, movies and shows work without an account. Connect it to add your *Plan to watch* and *Watching* lists and your history, and with Simkl PRO or VIP your personal recommendations for movies, shows and anime.
 * **MDBList**: tick a suggested public list or add any public one by `user/list` or its URL, no account needed. Connect your account to load your own lists, private ones included, and to show Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList ratings (*Wallpaper details → Header*). Ratings take one request per list from your MDBList daily quota.
+* **Jellyfin** (10.9 or later): in *Accounts → Jellyfin*, pick your server from the ones found on your network or type its address (`192.168.1.10`, or `https://…` behind a reverse proxy). Sign in with **Quick Connect**, scanning the QR code with a phone where you're signed in to Jellyfin, or with your user and password. Its lists are in *Lists → Jellyfin*: recently added movies, shows with new episodes, continue watching, favourites, and movies or shows from your library. Only titles Jellyfin matched to TMDB are used, and Sofadrop only reads your library. Pick Jellyfin in *Opening a title* to open each title's page in the Jellyfin app.
 
 <a id="screensaver"></a>
 ## 🌙 Screensaver
@@ -190,8 +191,8 @@ Bug reports and ideas are welcome in the [issues](../../issues). Want to build i
 
 * Based on the official [Projectivy wallpaper provider template](https://github.com/spocky/projectivy-plugin-wallpaper-provider) by spocky (Apache 2.0).
 * Movie and TV data, images and logos from [TMDB](https://www.themoviedb.org/). *This product uses the TMDB API but is not endorsed or certified by TMDB.*
-* Lists and watch history from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/) and [MDBList](https://mdblist.com/). *Sofadrop uses Trakt but is not endorsed or certified by Trakt.*
-* The Trakt logo is the official dark-background logo from [trakt.tv/branding](https://trakt.tv/branding), used unaltered; the Simkl and MDBList logos come from their own sites. Ratings come from MDBList and Trakt; without MDBList, IMDb ratings come from IMDb's official [dataset](https://developer.imdb.com/non-commercial-datasets/) (about 9 MB, refreshed weekly). *Information courtesy of IMDb (https://www.imdb.com). Used with permission.* The IMDb, Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList logos are the versions on [Wikimedia Commons](https://commons.wikimedia.org/), used unaltered next to each score. All names and logos belong to their owners.
+* Lists and watch history from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/) and [MDBList](https://mdblist.com/), and from your own [Jellyfin](https://jellyfin.org/) server. *Sofadrop uses Trakt but is not endorsed or certified by Trakt.*
+* The Trakt logo is the official dark-background logo from [trakt.tv/branding](https://trakt.tv/branding), used unaltered; the Simkl and MDBList logos come from their own sites; the Jellyfin logo is from [jellyfin-ux](https://github.com/jellyfin/jellyfin-ux) by the Jellyfin contributors ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)). Ratings come from MDBList and Trakt; without MDBList, IMDb ratings come from IMDb's official [dataset](https://developer.imdb.com/non-commercial-datasets/) (about 9 MB, refreshed weekly). *Information courtesy of IMDb (https://www.imdb.com). Used with permission.* The IMDb, Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList logos are the versions on [Wikimedia Commons](https://commons.wikimedia.org/), used unaltered next to each score. All names and logos belong to their owners.
 * Streaming availability from TMDB Watch Providers, powered by [JustWatch](https://www.justwatch.com/); links to each title on the streaming apps from [Wikidata](https://www.wikidata.org/).
 * Sofascreen, the screensaver, started from [schumi2004](https://github.com/schumi2004)'s work, who also contributed the Dutch translation, the minimum rating, the block list and more. Weather by [Open-Meteo](https://open-meteo.com/). Thanks also to Sofadrop Screensaver by ilee ([itslee.nl](https://itslee.nl)), the first screensaver for Sofadrop's wallpapers, where the Projectivy screensaver tip comes from.
 * [Roboto](https://github.com/googlefonts/roboto) (Apache 2.0) and [Nunito](https://github.com/googlefonts/nunito) (SIL Open Font License 1.1) fonts, and Material Icons (Apache 2.0).
