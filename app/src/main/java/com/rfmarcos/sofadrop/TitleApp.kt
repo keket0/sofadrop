@@ -30,8 +30,13 @@ enum class TitleApp(
      * The title's page when it is on the server Sofadrop is signed in to (by the server's item id), else its
      * search with the title. Its StartupActivity takes both, but has no DEFAULT category: named explicitly.
      */
-    JELLYFIN("jellyfin", "Jellyfin", listOf("org.jellyfin.androidtv"), Reach.SEARCH);
-    // Plex and Kodi have no way in to a title: only opening the app, which isn't worth a wallpaper click
+    JELLYFIN("jellyfin", "Jellyfin", listOf("org.jellyfin.androidtv"), Reach.SEARCH),
+    /**
+     * The title's page on watch.plex.tv, which Plex's app takes (the page of an item on the server doesn't
+     * open since Plex's May 2025 update); none without its slug, which needs the account.
+     */
+    PLEX("plex", "Plex", listOf("com.plexapp.android"), Reach.TITLE);
+    // Kodi has no way in to a title: only opening the app, which isn't worth a wallpaper click
 
     /** How close to the title the app gets. */
     enum class Reach { TITLE, SEARCH }
@@ -63,6 +68,7 @@ enum class TitleApp(
                 .setComponent(ComponentName(packageName, JELLYFIN_STARTUP))
                 // Jellyfin 0.20 crashes if its task is still open (NPE in its startup); a fresh task works
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            PLEX -> Intent(Intent.ACTION_VIEW, "https://watch.plex.tv/${if (series) "show" else "movie"}/${wallpaper.plexSlug ?: return null}".toUri())
         }.setPackage(packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 

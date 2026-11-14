@@ -18,6 +18,8 @@ import androidx.leanback.widget.GuidedAction
 class AccountsFragment : BaseSettingsFragment() {
 
     private var downloading = false
+    /** The Plex sign-in is open: once done, its server is chosen if the account has several. */
+    private var plexLogin = false
 
     override fun onCreateGuidance(savedInstanceState: Bundle?) = Guidance(
         getString(R.string.setting_accounts_title),
@@ -32,7 +34,11 @@ class AccountsFragment : BaseSettingsFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // The QR logins are shown in this fragment's own manager, so their result comes back here
-        childFragmentManager.setFragmentResultListener(QrDialog.RESULT_KEY, this) { _, _ -> refreshRows() }
+        childFragmentManager.setFragmentResultListener(QrDialog.RESULT_KEY, this) { _, _ ->
+            refreshRows()
+            if (plexLogin && Settings.plexSignedIn && !Settings.plexConnected) open(PlexServersFragment())
+            plexLogin = false
+        }
     }
 
     // Opened from a list, Header or Filters: start on the service the user came for
@@ -51,6 +57,7 @@ class AccountsFragment : BaseSettingsFragment() {
             ID_SIMKL to getString(R.string.enables_simkl),
             ID_MDBLIST to getString(R.string.enables_mdblist),
             ID_JELLYFIN to getString(R.string.enables_jellyfin),
+            ID_PLEX to getString(R.string.enables_plex),
             ID_IMDB to getString(R.string.enables_imdb),
         )
         // After an import the notice stays on the services to connect again
@@ -72,6 +79,8 @@ class AccountsFragment : BaseSettingsFragment() {
             listOfNotNull(
                 GuidedAction.Builder(context).id(idOf(provider) * SUB_ID_BASE + SUB_RELOAD).title(R.string.mdblist_refresh).build()
                     .takeIf { provider == SourceProvider.MDBLIST },
+                GuidedAction.Builder(context).id(idOf(provider) * SUB_ID_BASE + SUB_SERVER).title(R.string.plex_servers_title).build()
+                    .takeIf { provider == SourceProvider.PLEX },
                 GuidedAction.Builder(context).id(idOf(provider) * SUB_ID_BASE + SUB_DISCONNECT).title(R.string.tmdb_disconnect).build(),
             )
         )
@@ -95,6 +104,7 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.MDBLIST -> MdbListLoginDialog().takeIf { Settings.mdbListLoginAvailable }
             SourceProvider.TMDB -> TmdbLoginDialog().takeIf { Settings.token.isNotBlank() }
             SourceProvider.JELLYFIN -> null
+            SourceProvider.PLEX -> PlexLoginDialog().also { plexLogin = true }
         }
         if (dialog == null) Toast.makeText(requireContext(), R.string.account_unavailable, Toast.LENGTH_LONG).show()
         else dialog.show(childFragmentManager, dialog.javaClass.simpleName)
@@ -109,6 +119,10 @@ class AccountsFragment : BaseSettingsFragment() {
                 result.onSuccess { lists -> Settings.mdbLists = (lists + Settings.mdbLists).distinctBy { it.key } }
                 refreshRows()
             }
+            return true
+        }
+        if (action.id % SUB_ID_BASE == SUB_SERVER) {
+            open(PlexServersFragment())
             return true
         }
         disconnect(provider)
@@ -129,6 +143,7 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.SIMKL -> Settings.clearSimklSession()
             SourceProvider.TMDB -> Settings.clearTmdbSession()
             SourceProvider.JELLYFIN -> Settings.clearJellyfinSession()
+            SourceProvider.PLEX -> Settings.clearPlexSession()
             SourceProvider.MDBLIST -> {
                 // The account's own lists go, the public ones stay
                 val accountKeys = Settings.mdbLists.filter { it.path.isEmpty() }.map { it.key }.toSet()
@@ -143,6 +158,7 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.TRAKT -> Sources.TRAKT
             SourceProvider.SIMKL -> Sources.SIMKL
             SourceProvider.JELLYFIN -> Sources.JELLYFIN
+            SourceProvider.PLEX -> Sources.PLEX
             else -> Sources.TMDB
         }
         profile.lists -= lists.filter { it.needsAccount }.map { it.key }.toSet()
@@ -166,8 +182,10 @@ class AccountsFragment : BaseSettingsFragment() {
         private const val ID_NO_ACCOUNT = 5L
         private const val ID_IMDB = 6L
         private const val ID_JELLYFIN = 7L
+        private const val ID_PLEX = 8L
         private const val SUB_RELOAD = 0L
         private const val SUB_DISCONNECT = 1L
+        private const val SUB_SERVER = 2L
         private const val ARG_FOCUS = "focus"
         private const val ARG_RECONNECT = "reconnect"
 
@@ -179,11 +197,11 @@ class AccountsFragment : BaseSettingsFragment() {
             arguments = bundleOf(ARG_FOCUS to providers.first().name, ARG_RECONNECT to providers.map { it.name }.toTypedArray())
         }
 
-        private val SERVICES = listOf(SourceProvider.TMDB, SourceProvider.TRAKT, SourceProvider.SIMKL, SourceProvider.MDBLIST, SourceProvider.JELLYFIN)
+        private val SERVICES = listOf(SourceProvider.TMDB, SourceProvider.TRAKT, SourceProvider.SIMKL, SourceProvider.MDBLIST, SourceProvider.JELLYFIN, SourceProvider.PLEX)
         private val BADGES = mapOf(
             SourceProvider.TMDB to R.drawable.badge_tmdb, SourceProvider.TRAKT to R.drawable.badge_trakt,
             SourceProvider.SIMKL to R.drawable.badge_simkl, SourceProvider.MDBLIST to R.drawable.badge_mdblist,
-            SourceProvider.JELLYFIN to R.drawable.badge_jellyfin,
+            SourceProvider.JELLYFIN to R.drawable.badge_jellyfin, SourceProvider.PLEX to R.drawable.badge_plex,
         )
 
         private fun idOf(provider: SourceProvider) = when (provider) {
@@ -192,6 +210,7 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.SIMKL -> ID_SIMKL
             SourceProvider.MDBLIST -> ID_MDBLIST
             SourceProvider.JELLYFIN -> ID_JELLYFIN
+            SourceProvider.PLEX -> ID_PLEX
         }
 
         fun connected(provider: SourceProvider) = when (provider) {
@@ -200,6 +219,7 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.TMDB -> Settings.tmdbConnected
             SourceProvider.MDBLIST -> Settings.mdbListAvailable
             SourceProvider.JELLYFIN -> Settings.jellyfinConnected
+            SourceProvider.PLEX -> Settings.plexSignedIn
         }
 
         /** "Connected as X", "API key", or how to connect; shared with the shortcut rows of the list screens. */
@@ -210,16 +230,19 @@ class AccountsFragment : BaseSettingsFragment() {
                 SourceProvider.TMDB -> Settings.tmdbUser
                 SourceProvider.MDBLIST -> Settings.mdbListUser
                 SourceProvider.JELLYFIN -> listOf(Settings.jellyfinUser, Settings.jellyfinServer).filter { it.isNotBlank() }.joinToString(" · ")
+                SourceProvider.PLEX -> listOf(Settings.plexUser, Settings.plexServer).filter { it.isNotBlank() }.joinToString(" · ")
             }
             val loginAvailable = when (provider) {
                 SourceProvider.TRAKT -> Settings.traktLoginAvailable
                 SourceProvider.SIMKL -> Settings.simklLoginAvailable
                 SourceProvider.TMDB -> Settings.token.isNotBlank()
                 SourceProvider.MDBLIST -> Settings.mdbListLoginAvailable
-                SourceProvider.JELLYFIN -> true
+                SourceProvider.JELLYFIN, SourceProvider.PLEX -> true
             }
             return when {
                 provider == SourceProvider.MDBLIST && !Settings.mdbListConnected && Settings.mdbListKey.isNotBlank() -> context.getString(R.string.accounts_api_key)
+                provider == SourceProvider.PLEX && Settings.plexSignedIn && !Settings.plexConnected ->
+                    context.getString(R.string.plex_no_server_chosen, Settings.plexUser.ifBlank { "—" })
                 connected(provider) -> context.getString(R.string.tmdb_account_connected, user.ifBlank { "—" })
                 !loginAvailable -> context.getString(R.string.account_unavailable)
                 // No QR to start with: the server is found or typed first

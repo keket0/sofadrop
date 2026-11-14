@@ -649,4 +649,31 @@
     <string name="list_jellyfin_favorites">Jellyfin · Favorieten</string>
     <string name="list_jellyfin_library_movies">Jellyfin · Films uit je bibliotheek</string>
     <string name="list_jellyfin_library_shows">Jellyfin · Series uit je bibliotheek</string>
+    <!-- Plex -->
+    <string name="setting_plex_title">Plex</string>
+    <string name="account_title_plex">Je Plex-account</string>
+    <string name="enables_plex">Je Plex-account: lijsten uit de bibliotheken van je server (recent toegevoegd, verder kijken…) en achtergronden die de Plex-pagina van de titel in de Plex-app openen.</string>
+    <string name="plex_lists_description">Lijsten van de Plex-server die je bij Accounts hebt gekozen. Titels die Plex niet aan TMDB heeft gekoppeld, worden overgeslagen. Kies de Plex-app bij Een titel openen om titels daar te openen.</string>
+    <string name="plex_login_instructions">Scan de QR-code met je telefoon en log in bij Plex, of ga naar plex.tv/link en voer deze code in:</string>
+    <string name="plex_failed">Plex-fout: %1$s</string>
+    <string name="plex_login_ok">Plex verbonden als %1$s · %2$s</string>
+    <string name="plex_no_servers">Plex verbonden als %1$s, maar dit account heeft geen server</string>
+    <string name="plex_server_unreachable">%2$s reageert niet vanaf deze tv: controleer of hij aan staat, of zet toegang op afstand aan</string>
+    <string name="plex_choose_server">Plex verbonden als %1$s: kies je server</string>
+    <string name="plex_servers_title">Server</string>
+    <string name="plex_servers_description">De Plex-server waar je lijsten vandaan komen: die van jou, of een die met je gedeeld is.</string>
+    <string name="plex_servers_loading">Je servers zoeken…</string>
+    <string name="plex_servers_failed">Plex reageerde niet: probeer het later opnieuw</string>
+    <string name="plex_servers_none">Geen servers in dit account</string>
+    <string name="plex_server_owned">Jouw server</string>
+    <string name="plex_server_shared">Met je gedeeld</string>
+    <string name="plex_server_checking">Verbinden met %1$s…</string>
+    <string name="plex_no_server_chosen">Verbonden als %1$s · kies een server</string>
+    <string name="click_app_plex_desc">Gaat naar de pagina van de titel op Plex, met waar je hem kunt kijken</string>
+    <string name="click_app_plex_sign_in">Verbind Plex bij Accounts om de pagina van elke titel te openen</string>
+    <string name="list_plex_latest_movies">Plex · Recent toegevoegde films</string>
+    <string name="list_plex_latest_shows">Plex · Series met nieuwe afleveringen</string>
+    <string name="list_plex_watching">Plex · Verder kijken</string>
+    <string name="list_plex_library_movies">Plex · Films uit je bibliotheek</string>
+    <string name="list_plex_library_shows">Plex · Series uit je bibliotheek</string>
 </resources>

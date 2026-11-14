@@ -95,7 +95,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
                 log.finish("Cancelled")
                 return Result.success()
             }
-            val stored = withJellyfinItems(withPlatformLinks(drawn, log), log)
+            val stored = withPlexSlugs(withJellyfinItems(withPlatformLinks(drawn, log), log), log)
             // Every list failing (e.g. no network) or no title fitting in memory is that error, not "no titles"
             if (stored.isEmpty()) throw when {
                 listErrors.isNotEmpty() -> listErrors.first()
@@ -268,6 +268,27 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             wallpaper.copy(jellyfinId = index[TitleRef(type, wallpaper.tmdbId)])
         }
         log.add("Jellyfin: ${linked.count { it.jellyfinId != null }} of ${stored.size} titles in the library (${index.size} there)")
+        return linked
+    }
+
+    /**
+     * [stored] with their pages on watch.plex.tv, when wallpapers open Plex: the server's titles bring
+     * theirs, the rest are asked to Plex once and remembered. Without one, the fallback after the app opens.
+     */
+    private fun withPlexSlugs(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
+        if (Settings.clickApp(profile.clickFallback) != TitleApp.PLEX || !Settings.plexSignedIn) return stored
+        val slugs = PlexSlugs(applicationContext)
+        try {
+            PlexClient.connect()?.librarySlugs()?.forEach { (ref, slug) -> slugs[ref] = slug }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not read the Plex library", e)
+            log.add("Plex library failed: ${GenerationLog.describe(e)}")
+        }
+        val refs = stored.associateWith { wallpaper -> TitleRef(MediaType.entries.first { it.path == wallpaper.type }, wallpaper.tmdbId) }
+        val failed = slugs.fetch(refs.values.filter { slugs[it] == null }) { ref -> PlexClient.slug(Settings.plexToken, ref) }
+        slugs.save()
+        val linked = stored.map { wallpaper -> wallpaper.copy(plexSlug = slugs[refs.getValue(wallpaper)]) }
+        log.add("Plex: ${linked.count { it.plexSlug != null }} of ${stored.size} titles with a page" + if (failed > 0) " ($failed failed)" else "")
         return linked
     }
 

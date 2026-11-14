@@ -16,6 +16,7 @@ class ProviderListsFragment : BaseSettingsFragment() {
         SourceProvider.TRAKT -> Sources.TRAKT
         SourceProvider.SIMKL -> Sources.SIMKL
         SourceProvider.JELLYFIN -> Sources.JELLYFIN
+        SourceProvider.PLEX -> Sources.PLEX
         else -> Sources.TMDB
     }
 
@@ -25,6 +26,7 @@ class ProviderListsFragment : BaseSettingsFragment() {
             SourceProvider.TRAKT -> R.string.trakt_lists_description
             SourceProvider.SIMKL -> R.string.simkl_lists_description
             SourceProvider.JELLYFIN -> R.string.jellyfin_lists_description
+            SourceProvider.PLEX -> R.string.plex_lists_description
             else -> R.string.tmdb_lists_description
         }),
         getString(R.string.setting_lists_title),
@@ -62,7 +64,8 @@ class ProviderListsFragment : BaseSettingsFragment() {
         refreshActions(buildRows())
     }
 
-    private val connected get() = AccountsFragment.connected(provider)
+    // Plex: signed in is not enough, its lists come from the server picked
+    private val connected get() = if (provider == SourceProvider.PLEX) Settings.plexConnected else AccountsFragment.connected(provider)
 
     /** The account is managed in Accounts; this row shows its state and goes there. */
     private fun accountAction(): GuidedAction {
@@ -70,6 +73,7 @@ class ProviderListsFragment : BaseSettingsFragment() {
             SourceProvider.TRAKT -> R.drawable.ic_act_trakt to R.string.account_title_trakt
             SourceProvider.SIMKL -> R.drawable.ic_act_account to R.string.account_title_simkl
             SourceProvider.JELLYFIN -> R.drawable.ic_act_account to R.string.account_title_jellyfin
+            SourceProvider.PLEX -> R.drawable.ic_act_account to R.string.account_title_plex
             else -> R.drawable.ic_act_account to R.string.account_title_tmdb
         }
         return action(ID_ACCOUNT, icon, getString(title), AccountsFragment.status(requireContext(), provider)).hasNext(true).build()
@@ -106,6 +110,7 @@ class ProviderListsFragment : BaseSettingsFragment() {
             SourceProvider.TRAKT -> Settings.traktUser
             SourceProvider.SIMKL -> Settings.simklUser
             SourceProvider.JELLYFIN -> Settings.jellyfinUser
+            SourceProvider.PLEX -> Settings.plexUser
             else -> Settings.tmdbUser
         }
 
@@ -116,6 +121,7 @@ class ProviderListsFragment : BaseSettingsFragment() {
                 SourceProvider.TRAKT -> Settings.traktConnected
                 SourceProvider.SIMKL -> Settings.simklConnected
                 SourceProvider.JELLYFIN -> Settings.jellyfinConnected
+                SourceProvider.PLEX -> Settings.plexConnected
                 else -> Settings.tmdbConnected
             }
             return if (connected) context.getString(R.string.provider_summary_connected, count, accountUser(provider).ifBlank { "—" })

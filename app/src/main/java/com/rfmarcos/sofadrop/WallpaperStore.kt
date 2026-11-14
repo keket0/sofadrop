@@ -27,6 +27,8 @@ data class StoredWallpaper(
     val position: String? = null,
     /** Its item on the user's Jellyfin server, when it is there and Jellyfin opens it (see [TitleApp.JELLYFIN]). */
     val jellyfinId: String? = null,
+    /** Its page on watch.plex.tv ("the-matrix-1999"), when Plex opens it (see [TitleApp.PLEX]). */
+    val plexSlug: String? = null,
 )
 
 /**

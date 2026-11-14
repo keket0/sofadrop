@@ -189,6 +189,8 @@ class ClickActionFragment : PreviewSettingsFragment() {
             val app = Settings.clickApp(action)
             // Signed in to the server: the titles it has open their page
             val reach = if (app == TitleApp.JELLYFIN && Settings.jellyfinConnected) context.getString(R.string.click_app_jellyfin_desc)
+            // Its pages are found with the account
+            else if (app == TitleApp.PLEX) context.getString(if (Settings.plexSignedIn) R.string.click_app_plex_desc else R.string.click_app_plex_sign_in)
             else when (app?.reach) {
                 TitleApp.Reach.TITLE -> context.getString(R.string.click_app_title_desc)
                 TitleApp.Reach.SEARCH -> context.getString(R.string.click_app_search_desc)

@@ -210,6 +210,13 @@ object Settings {
     private const val KEY_JELLYFIN_USER_ID = "_jellyfin_user_id"
     private const val KEY_JELLYFIN_USER = "_jellyfin_user"
     private const val KEY_JELLYFIN_DEVICE = "_jellyfin_device_id"
+    private const val KEY_PLEX_TOKEN = "_plex_token"
+    private const val KEY_PLEX_USER = "_plex_user"
+    private const val KEY_PLEX_CLIENT = "_plex_client_id"
+    private const val KEY_PLEX_SERVER_ID = "_plex_server_id"
+    private const val KEY_PLEX_SERVER = "_plex_server"
+    private const val KEY_PLEX_SERVER_TOKEN = "_plex_server_token"
+    private const val KEY_PLEX_ADDRESS = "_plex_address"
 
     val COUNT_OPTIONS = listOf(5, 10, 20, 50, 100)
 
@@ -445,6 +452,43 @@ object Settings {
     /** Signs out; the address stays, to sign in again without typing it. */
     fun clearJellyfinSession() = preferences.edit {
         remove(KEY_JELLYFIN_TOKEN); remove(KEY_JELLYFIN_USER_ID); remove(KEY_JELLYFIN_USER)
+    }
+
+    // --- Plex (the account on plex.tv, signed in with a PIN, and one of its servers) ---
+
+    /** The account's token: plex.tv (servers, Discover) and the servers it owns. */
+    val plexToken: String get() = string(KEY_PLEX_TOKEN)
+    val plexUser: String get() = string(KEY_PLEX_USER)
+    val plexServerId: String get() = string(KEY_PLEX_SERVER_ID)
+    val plexServer: String get() = string(KEY_PLEX_SERVER)
+    val plexServerToken: String get() = string(KEY_PLEX_SERVER_TOKEN)
+    /** The server's address that answered last, "https://192-168-1-10.….plex.direct:32400". */
+    val plexAddress: String get() = string(KEY_PLEX_ADDRESS)
+
+    /** Signed in to plex.tv; the lists also need [plexConnected]. */
+    val plexSignedIn: Boolean get() = plexToken.isNotBlank()
+    val plexConnected: Boolean get() = plexSignedIn && plexServerId.isNotBlank() && plexAddress.isNotBlank()
+
+    /** Plex shows the devices signed in by this id: one per install, made the first time. */
+    val plexClientId: String
+        get() = string(KEY_PLEX_CLIENT).ifBlank {
+            "sofadrop-" + java.util.UUID.randomUUID().toString().also { id -> preferences.edit { putString(KEY_PLEX_CLIENT, "sofadrop-$id") } }
+        }
+
+    fun savePlexAccount(token: String, user: String) = preferences.edit {
+        putString(KEY_PLEX_TOKEN, token)
+        putString(KEY_PLEX_USER, user)
+    }
+
+    fun savePlexServer(server: PlexServer, address: String) = preferences.edit {
+        putString(KEY_PLEX_SERVER_ID, server.id)
+        putString(KEY_PLEX_SERVER, server.name)
+        putString(KEY_PLEX_SERVER_TOKEN, server.token)
+        putString(KEY_PLEX_ADDRESS, address)
+    }
+
+    fun clearPlexSession() = preferences.edit {
+        listOf(KEY_PLEX_TOKEN, KEY_PLEX_USER, KEY_PLEX_SERVER_ID, KEY_PLEX_SERVER, KEY_PLEX_SERVER_TOKEN, KEY_PLEX_ADDRESS).forEach(::remove)
     }
 
     /** Connected trackers that can provide the watch history. */

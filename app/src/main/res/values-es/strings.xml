@@ -641,4 +641,31 @@
     <string name="list_jellyfin_favorites">Jellyfin · Favoritos</string>
     <string name="list_jellyfin_library_movies">Jellyfin · Películas de tu biblioteca</string>
     <string name="list_jellyfin_library_shows">Jellyfin · Series de tu biblioteca</string>
+    <!-- Plex -->
+    <string name="setting_plex_title">Plex</string>
+    <string name="account_title_plex">Tu cuenta de Plex</string>
+    <string name="enables_plex">Tu cuenta de Plex: listas de las bibliotecas de tu servidor (añadido recientemente, seguir viendo…) y fondos que abren la ficha de Plex del título en la app de Plex.</string>
+    <string name="plex_lists_description">Listas del servidor de Plex que elegiste en Cuentas. Se omiten los títulos que Plex no ha enlazado con TMDB. Para abrir los títulos en la app de Plex, elígela en Al abrir un título.</string>
+    <string name="plex_login_instructions">Escanea el QR con el móvil y entra en Plex, o ve a plex.tv/link y escribe este código:</string>
+    <string name="plex_failed">Error de Plex: %1$s</string>
+    <string name="plex_login_ok">Plex conectado como %1$s · %2$s</string>
+    <string name="plex_no_servers">Plex conectado como %1$s, pero esta cuenta no tiene ningún servidor</string>
+    <string name="plex_server_unreachable">%2$s no responde desde este televisor: comprueba que está encendido o activa el acceso remoto</string>
+    <string name="plex_choose_server">Plex conectado como %1$s: elige tu servidor</string>
+    <string name="plex_servers_title">Servidor</string>
+    <string name="plex_servers_description">El servidor de Plex del que salen tus listas: el tuyo o uno que compartan contigo.</string>
+    <string name="plex_servers_loading">Buscando tus servidores…</string>
+    <string name="plex_servers_failed">Plex no ha respondido: inténtalo más tarde</string>
+    <string name="plex_servers_none">Esta cuenta no tiene servidores</string>
+    <string name="plex_server_owned">Tu servidor</string>
+    <string name="plex_server_shared">Compartido contigo</string>
+    <string name="plex_server_checking">Conectando con %1$s…</string>
+    <string name="plex_no_server_chosen">Conectado como %1$s · elige un servidor</string>
+    <string name="click_app_plex_desc">Va a la ficha del título en Plex, con dónde verlo</string>
+    <string name="click_app_plex_sign_in">Conecta Plex en Cuentas para abrir la ficha de cada título</string>
+    <string name="list_plex_latest_movies">Plex · Películas añadidas recientemente</string>
+    <string name="list_plex_latest_shows">Plex · Series con episodios nuevos</string>
+    <string name="list_plex_watching">Plex · Seguir viendo</string>
+    <string name="list_plex_library_movies">Plex · Películas de tu biblioteca</string>
+    <string name="list_plex_library_shows">Plex · Series de tu biblioteca</string>
 </resources>

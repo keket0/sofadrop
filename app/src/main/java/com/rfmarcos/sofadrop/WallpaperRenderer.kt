@@ -74,6 +74,7 @@ class WallpaperRenderer(
     private val simklLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_simkl)
     private val mdbListLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_mdblist)
     private val jellyfinLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_jellyfin)!!
+    private val plexLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_plex)!!
     // Official marks of the rating platforms, unaltered (sources in each drawable)
     private val ratingLogos: Map<Int, Drawable> = listOf(
         R.drawable.rating_imdb, R.drawable.rating_tomatoes_fresh, R.drawable.rating_tomatoes_rotten, R.drawable.rating_popcorn_up,
@@ -690,6 +691,7 @@ class WallpaperRenderer(
             SourceProvider.TRAKT -> drawVector(traktLogo, h * 0.9f)
             // Its icon is much taller than the wordmark's letters, which should match the list name's
             SourceProvider.JELLYFIN -> drawVector(jellyfinLogo, h * 1.8f)
+            SourceProvider.PLEX -> drawVector(plexLogo, h * 1.1f)
             // A wide, heavy wordmark: lower than TMDB's to weigh the same
             SourceProvider.SIMKL -> drawBitmap(simklLogo, h * 0.6f, x)
             // MDBList has no wordmark: its app icon followed by the name, both about TMDB's size

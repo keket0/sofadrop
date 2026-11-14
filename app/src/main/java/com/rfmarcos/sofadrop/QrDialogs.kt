@@ -368,6 +368,60 @@ class JellyfinLoginDialog : QrDialog() {
     }
 }
 
+/**
+ * Plex: the QR opens Plex's sign-in page with a long code in it; the short code is for typing at
+ * plex.tv/link instead. Either one, approved, gives the account's token. Then the server: the account's
+ * only one is picked here, several are chosen in [PlexServersFragment].
+ */
+class PlexLoginDialog : QrDialog() {
+    override val titleRes = R.string.setting_plex_title
+    override val iconRes = R.drawable.ic_act_phone
+
+    override fun start() {
+        background({ PlexClient.createPin(strong = true) to PlexClient.createPin(strong = false) }) { result ->
+            result.onSuccess { (qrPin, typedPin) ->
+                showQr(PlexClient.authUrl(qrPin.code), getString(R.string.plex_login_instructions), typedPin.code, LINK, typedPin.expiresIn)
+                poll(listOf(qrPin, typedPin), typedPin.expiresIn)
+            }.onFailure { finish(getString(R.string.plex_failed, it.message)) }
+        }
+    }
+
+    private fun poll(pins: List<PlexClient.Companion.Pin>, expiresIn: Int) {
+        background({
+            val deadline = System.currentTimeMillis() + expiresIn * 1000L
+            var token: String? = null
+            while (active && token == null && System.currentTimeMillis() < deadline) {
+                Thread.sleep(3000)
+                // A dropped request (Wi-Fi) is tried again
+                token = pins.firstNotNullOfOrNull { pin -> runCatching { PlexClient.pinToken(pin) }.getOrNull() }
+            }
+            token?.let { found ->
+                Settings.savePlexAccount(found, runCatching { PlexClient.accountName(found) }.getOrDefault(""))
+                // One server: nothing to choose
+                val servers = runCatching { PlexClient.servers(found) }.getOrDefault(emptyList())
+                servers.singleOrNull()?.let { server -> PlexClient.reachable(server)?.let { Settings.savePlexServer(server, it) } }
+                servers.size
+            }
+        }) { result ->
+            val servers = result.getOrNull()
+            when {
+                servers != null -> finish(getString(when {
+                    servers == 0 -> R.string.plex_no_servers
+                    Settings.plexConnected -> R.string.plex_login_ok
+                    servers == 1 -> R.string.plex_server_unreachable
+                    else -> R.string.plex_choose_server
+                }, Settings.plexUser.ifBlank { "Plex" }, Settings.plexServer))
+                result.isFailure -> finish(getString(R.string.plex_failed, result.exceptionOrNull()?.message))
+                active -> finish(getString(R.string.trakt_login_expired))
+            }
+        }
+    }
+
+    companion object {
+        private const val LINK = "plex.tv/link"
+    }
+}
+
 /** TMDB account: the QR opens the page where the user approves a request token. */
 class TmdbLoginDialog : QrDialog() {
     override val titleRes = R.string.setting_tmdb_account_title

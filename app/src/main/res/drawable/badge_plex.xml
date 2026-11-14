@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plex's chevron, from its logo, on a dark circle (Wikimedia Commons, "Plex logo 2022 full-color-on-black.svg", public domain).
+     Plex and its logo are trademarks of Plex, Inc. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+    <path android:fillColor="#FF1F1F1F" android:pathData="M24,0a24,24 0,1 1,0 48a24,24 0,1 1,0 -48z" />
+    <group android:translateX="-51.493" android:translateY="2.073" android:scaleX="0.09756" android:scaleY="0.09756">
+        <path android:fillColor="#FFEBAF00" android:pathData="M775.1,358h-92.6l89.9-133.2L682.6,91.5h92.6L865,224.8L775.1,358z" />
+    </group>
+</vector>
