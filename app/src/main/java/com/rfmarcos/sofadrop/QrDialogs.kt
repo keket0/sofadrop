@@ -305,6 +305,69 @@ class SimklLoginDialog : QrDialog() {
     }
 }
 
+/**
+ * Jellyfin Quick Connect: a code approved on a device already signed in to the server. The QR opens the
+ * server's own Quick Connect page with the code filled in (from a phone on the same network).
+ */
+class JellyfinLoginDialog : QrDialog() {
+    override val titleRes = R.string.setting_jellyfin_title
+    override val iconRes = R.drawable.ic_act_phone
+
+    private val server get() = requireArguments().let {
+        JellyfinServer(it.getString(ARG_ADDRESS).orEmpty(), it.getString(ARG_ID).orEmpty(), it.getString(ARG_NAME).orEmpty())
+    }
+
+    override fun start() {
+        val server = server
+        val client = JellyfinClient(server.address)
+        background({ client.initiateQuickConnect() }) { result ->
+            result.onSuccess { code ->
+                showQr(
+                    "${server.address}/web/#/quickconnect?code=${code.code}",
+                    getString(R.string.jellyfin_quick_connect_instructions),
+                    code.code, server.address.substringAfter("://"), EXPIRES_SECONDS,
+                )
+                poll(server, client, code)
+            }.onFailure { finish(getString(R.string.jellyfin_failed, it.message)) }
+        }
+    }
+
+    private fun poll(server: JellyfinServer, client: JellyfinClient, code: JellyfinClient.QuickConnect) {
+        background({
+            val deadline = System.currentTimeMillis() + EXPIRES_SECONDS * 1000L
+            var session: JellyfinClient.Session? = null
+            while (active && session == null && System.currentTimeMillis() < deadline) {
+                Thread.sleep(3000)
+                // A dropped request (Wi-Fi, server restart) is tried again
+                if (runCatching { client.quickConnectApproved(code.secret) }.getOrDefault(false)) session = client.authenticate(code.secret)
+            }
+            session
+        }) { result ->
+            val session = result.getOrNull()
+            when {
+                session != null -> {
+                    Settings.saveJellyfinSession(server, session)
+                    finish(getString(R.string.jellyfin_login_ok, session.userName.ifBlank { server.name }))
+                }
+                result.isFailure -> finish(getString(R.string.jellyfin_failed, result.exceptionOrNull()?.message))
+                active -> finish(getString(R.string.trakt_login_expired))
+            }
+        }
+    }
+
+    companion object {
+        /** The server forgets a code it wasn't approved after 10 minutes. */
+        private const val EXPIRES_SECONDS = 10 * 60
+        private const val ARG_ADDRESS = "address"
+        private const val ARG_ID = "id"
+        private const val ARG_NAME = "name"
+
+        fun newInstance(server: JellyfinServer) = JellyfinLoginDialog().apply {
+            arguments = bundleOf(ARG_ADDRESS to server.address, ARG_ID to server.id, ARG_NAME to server.name)
+        }
+    }
+}
+
 /** TMDB account: the QR opens the page where the user approves a request token. */
 class TmdbLoginDialog : QrDialog() {
     override val titleRes = R.string.setting_tmdb_account_title

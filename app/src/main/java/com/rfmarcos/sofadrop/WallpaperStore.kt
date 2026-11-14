@@ -25,6 +25,8 @@ data class StoredWallpaper(
     val platformLinks: Map<String, String> = emptyMap(),
     /** Where its text is, when each wallpaper has its own place (see [Settings.POSITION_ROTATE]). */
     val position: String? = null,
+    /** Its item on the user's Jellyfin server, when it is there and Jellyfin opens it (see [TitleApp.JELLYFIN]). */
+    val jellyfinId: String? = null,
 )
 
 /**

@@ -204,6 +204,12 @@ object Settings {
     private const val KEY_SIMKL_REFRESH = "_simkl_refresh_token"
     private const val KEY_SIMKL_EXPIRES = "_simkl_expires_at"
     private const val KEY_SIMKL_USER = "_simkl_user"
+    private const val KEY_JELLYFIN_ADDRESS = "_jellyfin_address"
+    private const val KEY_JELLYFIN_SERVER = "_jellyfin_server"
+    private const val KEY_JELLYFIN_TOKEN = "_jellyfin_token"
+    private const val KEY_JELLYFIN_USER_ID = "_jellyfin_user_id"
+    private const val KEY_JELLYFIN_USER = "_jellyfin_user"
+    private const val KEY_JELLYFIN_DEVICE = "_jellyfin_device_id"
 
     val COUNT_OPTIONS = listOf(5, 10, 20, 50, 100)
 
@@ -409,6 +415,36 @@ object Settings {
 
     fun clearSimklSession() = preferences.edit {
         remove(KEY_SIMKL_ACCESS); remove(KEY_SIMKL_REFRESH); remove(KEY_SIMKL_EXPIRES); remove(KEY_SIMKL_USER)
+    }
+
+    // --- Jellyfin (the user's own server, signed in with Quick Connect or user and password) ---
+
+    /** Base URL of the server signed in to, "http://192.168.1.10:8096". */
+    val jellyfinAddress: String get() = string(KEY_JELLYFIN_ADDRESS)
+    val jellyfinServer: String get() = string(KEY_JELLYFIN_SERVER)
+    val jellyfinToken: String get() = string(KEY_JELLYFIN_TOKEN)
+    val jellyfinUserId: String get() = string(KEY_JELLYFIN_USER_ID)
+    val jellyfinUser: String get() = string(KEY_JELLYFIN_USER)
+
+    val jellyfinConnected: Boolean get() = jellyfinAddress.isNotBlank() && jellyfinToken.isNotBlank() && jellyfinUserId.isNotBlank()
+
+    /** Jellyfin keeps one session per device id: one per install, made the first time. */
+    val jellyfinDeviceId: String
+        get() = string(KEY_JELLYFIN_DEVICE).ifBlank {
+            java.util.UUID.randomUUID().toString().replace("-", "").also { id -> preferences.edit { putString(KEY_JELLYFIN_DEVICE, id) } }
+        }
+
+    fun saveJellyfinSession(server: JellyfinServer, session: JellyfinClient.Session) = preferences.edit {
+        putString(KEY_JELLYFIN_ADDRESS, server.address)
+        putString(KEY_JELLYFIN_SERVER, server.name)
+        putString(KEY_JELLYFIN_TOKEN, session.token)
+        putString(KEY_JELLYFIN_USER_ID, session.userId)
+        putString(KEY_JELLYFIN_USER, session.userName)
+    }
+
+    /** Signs out; the address stays, to sign in again without typing it. */
+    fun clearJellyfinSession() = preferences.edit {
+        remove(KEY_JELLYFIN_TOKEN); remove(KEY_JELLYFIN_USER_ID); remove(KEY_JELLYFIN_USER)
     }
 
     /** Connected trackers that can provide the watch history. */

@@ -608,4 +608,37 @@
     <string name="bottom_shade_normal_desc">Oscurece la parte de abajo de la imagen</string>
     <string name="bottom_shade_none_desc">La imagen llega hasta el borde inferior</string>
     <string name="bottom_shade_summary">sombreado inferior: %1$s</string>
+    <!-- Jellyfin -->
+    <string name="setting_jellyfin_title">Jellyfin</string>
+    <string name="account_title_jellyfin">Tu servidor Jellyfin</string>
+    <string name="enables_jellyfin">Tu servidor Jellyfin: listas de tu biblioteca (añadido recientemente, seguir viendo, favoritos…) y fondos que abren la ficha del título en la app de Jellyfin.</string>
+    <string name="jellyfin_lists_description">Listas de tu propio servidor Jellyfin (10.9 o posterior). Se omiten los títulos que Jellyfin no ha enlazado con TMDB. Para abrirlos en la app de Jellyfin, elígela en Al abrir un título.</string>
+    <string name="jellyfin_description">Entra en tu servidor Jellyfin. Aquí salen los servidores de tu red; si no aparece el tuyo, escribe su dirección. Sofadrop solo lee tu biblioteca.</string>
+    <string name="account_not_connected_jellyfin">Sin conectar · busca tu servidor</string>
+    <string name="jellyfin_servers_header">Servidores en tu red</string>
+    <string name="jellyfin_searching">Buscando…</string>
+    <string name="jellyfin_none_found">No se ha encontrado ninguno: escribe su dirección abajo</string>
+    <string name="jellyfin_address_title">Dirección del servidor</string>
+    <string name="jellyfin_address_hint">Por ejemplo, 192.168.1.10:8096</string>
+    <string name="jellyfin_checking">Conectando con %1$s…</string>
+    <string name="jellyfin_not_found">No responde ningún servidor Jellyfin en %1$s</string>
+    <string name="jellyfin_sign_in_header">Entrar en %1$s</string>
+    <string name="jellyfin_quick_connect">Quick Connect</string>
+    <string name="jellyfin_quick_connect_desc">Aprueba un código desde el móvil u otro dispositivo con Jellyfin abierto</string>
+    <string name="jellyfin_quick_connect_off">Quick Connect está desactivado en este servidor: entra con tu usuario y contraseña</string>
+    <string name="jellyfin_quick_connect_instructions">Escanea el QR con un móvil en la misma red, o en Jellyfin abre tu perfil → Quick Connect y escribe este código:</string>
+    <string name="jellyfin_user">Usuario</string>
+    <string name="jellyfin_password">Contraseña</string>
+    <string name="jellyfin_sign_in">Entrar</string>
+    <string name="jellyfin_sign_in_desc">Con el usuario y la contraseña de arriba</string>
+    <string name="jellyfin_wrong_password">Usuario o contraseña incorrectos</string>
+    <string name="jellyfin_login_ok">Jellyfin conectado como %1$s</string>
+    <string name="jellyfin_failed">Error de Jellyfin: %1$s</string>
+    <string name="click_app_jellyfin_desc">Va a la ficha del título si está en tu servidor; si no, lo busca</string>
+    <string name="list_jellyfin_latest_movies">Jellyfin · Películas añadidas recientemente</string>
+    <string name="list_jellyfin_latest_shows">Jellyfin · Series con episodios nuevos</string>
+    <string name="list_jellyfin_watching">Jellyfin · Seguir viendo</string>
+    <string name="list_jellyfin_favorites">Jellyfin · Favoritos</string>
+    <string name="list_jellyfin_library_movies">Jellyfin · Películas de tu biblioteca</string>
+    <string name="list_jellyfin_library_shows">Jellyfin · Series de tu biblioteca</string>
 </resources>

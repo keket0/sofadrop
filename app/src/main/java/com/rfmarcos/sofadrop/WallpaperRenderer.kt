@@ -73,6 +73,7 @@ class WallpaperRenderer(
     private val traktLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_trakt)!!
     private val simklLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_simkl)
     private val mdbListLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_mdblist)
+    private val jellyfinLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_jellyfin)!!
     // Official marks of the rating platforms, unaltered (sources in each drawable)
     private val ratingLogos: Map<Int, Drawable> = listOf(
         R.drawable.rating_imdb, R.drawable.rating_tomatoes_fresh, R.drawable.rating_tomatoes_rotten, R.drawable.rating_popcorn_up,
@@ -676,17 +677,19 @@ class WallpaperRenderer(
             canvas?.drawBitmap(bitmap, null, RectF(left, center - height / 2, left + w, center + height / 2), bitmapPaint)
             return left + w
         }
-        return when (info.sourceProvider) {
-            SourceProvider.TRAKT -> {
-                // As tall as TMDB's two rows: its letters are bold and would look bigger
-                val height = h * 0.9f
-                val w = height * traktLogo.intrinsicWidth / traktLogo.intrinsicHeight
-                if (canvas != null) {
-                    traktLogo.setBounds(x.roundToInt(), (center - height / 2).roundToInt(), (x + w).roundToInt(), (center + height / 2).roundToInt())
-                    traktLogo.draw(canvas)
-                }
-                x + w
+        fun drawVector(logo: Drawable, height: Float): Float {
+            val w = height * logo.intrinsicWidth / logo.intrinsicHeight
+            if (canvas != null) {
+                logo.setBounds(x.roundToInt(), (center - height / 2).roundToInt(), (x + w).roundToInt(), (center + height / 2).roundToInt())
+                logo.draw(canvas)
             }
+            return x + w
+        }
+        return when (info.sourceProvider) {
+            // As tall as TMDB's two rows: its letters are bold and would look bigger
+            SourceProvider.TRAKT -> drawVector(traktLogo, h * 0.9f)
+            // Its icon is much taller than the wordmark's letters, which should match the list name's
+            SourceProvider.JELLYFIN -> drawVector(jellyfinLogo, h * 1.8f)
             // A wide, heavy wordmark: lower than TMDB's to weigh the same
             SourceProvider.SIMKL -> drawBitmap(simklLogo, h * 0.6f, x)
             // MDBList has no wordmark: its app icon followed by the name, both about TMDB's size

@@ -44,6 +44,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
     val trakt: TraktClient? = if (Settings.traktConfigured) TraktClient(Settings.traktClientId, Settings.traktClientSecret) else null
     val simkl = SimklClient(Settings.simklClientId, client)
     val mdbList: MdbListClient? = MdbListClient.fromSettings()
+    val jellyfin: JellyfinClient? = JellyfinClient.fromSettings()
 
     /** Trakt and Simkl history, loaded on first use (null when not needed). */
     val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl) }
@@ -68,7 +69,8 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
             }
         }.takeIf { skipTaken || hideWatched }
         // Twice as many as needed for titles that fail to draw, but the list is only read further for the ones needed
-        val candidates = catalog.candidates(source, perList * 2, trakt, simkl, mdbList, shuffle = random, runExclusion = runExclusion, enough = perList)
+        val candidates = catalog.candidates(source, perList * 2, trakt, simkl, mdbList, shuffle = random, runExclusion = runExclusion, enough = perList,
+            jellyfin = jellyfin)
         // History is only loaded when some list shows or hides watched titles
         if (watchedMode != Settings.WATCHED_SHOW) candidates.forEach { candidate ->
             if (candidate.exclusion == null) watched?.status(candidate.ref)?.let { statuses[candidate.ref] = it }

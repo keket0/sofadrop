@@ -616,4 +616,37 @@
     <string name="bottom_shade_normal_desc">Maakt de onderkant van de afbeelding donkerder</string>
     <string name="bottom_shade_none_desc">De afbeelding loopt door tot de onderrand</string>
     <string name="bottom_shade_summary">schaduw onderaan: %1$s</string>
+    <!-- Jellyfin -->
+    <string name="setting_jellyfin_title">Jellyfin</string>
+    <string name="account_title_jellyfin">Je Jellyfin-server</string>
+    <string name="enables_jellyfin">Je Jellyfin-server: lijsten uit je bibliotheek (recent toegevoegd, verder kijken, favorieten…) en achtergronden die de pagina van de titel in de Jellyfin-app openen.</string>
+    <string name="jellyfin_lists_description">Lijsten van je eigen Jellyfin-server (10.9 of nieuwer). Titels die Jellyfin niet aan TMDB heeft gekoppeld, worden overgeslagen. Kies de Jellyfin-app bij Een titel openen om ze daar te openen.</string>
+    <string name="jellyfin_description">Log in op je Jellyfin-server. Servers in je netwerk verschijnen hier; staat de jouwe er niet bij, typ dan het adres. Sofadrop leest alleen je bibliotheek.</string>
+    <string name="account_not_connected_jellyfin">Niet verbonden · zoek je server</string>
+    <string name="jellyfin_servers_header">Servers in je netwerk</string>
+    <string name="jellyfin_searching">Zoeken…</string>
+    <string name="jellyfin_none_found">Geen gevonden: typ hieronder het adres</string>
+    <string name="jellyfin_address_title">Serveradres</string>
+    <string name="jellyfin_address_hint">Bijv. 192.168.1.10:8096</string>
+    <string name="jellyfin_checking">Verbinden met %1$s…</string>
+    <string name="jellyfin_not_found">Geen Jellyfin-server op %1$s</string>
+    <string name="jellyfin_sign_in_header">Inloggen op %1$s</string>
+    <string name="jellyfin_quick_connect">Quick Connect</string>
+    <string name="jellyfin_quick_connect_desc">Keur een code goed met je telefoon of een ander apparaat dat bij Jellyfin is ingelogd</string>
+    <string name="jellyfin_quick_connect_off">Quick Connect staat uit op deze server: log in met je gebruikersnaam en wachtwoord</string>
+    <string name="jellyfin_quick_connect_instructions">Scan de QR-code met een telefoon in hetzelfde netwerk, of open in Jellyfin je profiel → Quick Connect en voer deze code in:</string>
+    <string name="jellyfin_user">Gebruiker</string>
+    <string name="jellyfin_password">Wachtwoord</string>
+    <string name="jellyfin_sign_in">Inloggen</string>
+    <string name="jellyfin_sign_in_desc">Met de gebruiker en het wachtwoord hierboven</string>
+    <string name="jellyfin_wrong_password">Verkeerde gebruiker of wachtwoord</string>
+    <string name="jellyfin_login_ok">Jellyfin verbonden als %1$s</string>
+    <string name="jellyfin_failed">Jellyfin-fout: %1$s</string>
+    <string name="click_app_jellyfin_desc">Gaat naar de pagina van de titel als die op je server staat, anders zoekt hij hem</string>
+    <string name="list_jellyfin_latest_movies">Jellyfin · Recent toegevoegde films</string>
+    <string name="list_jellyfin_latest_shows">Jellyfin · Series met nieuwe afleveringen</string>
+    <string name="list_jellyfin_watching">Jellyfin · Verder kijken</string>
+    <string name="list_jellyfin_favorites">Jellyfin · Favorieten</string>
+    <string name="list_jellyfin_library_movies">Jellyfin · Films uit je bibliotheek</string>
+    <string name="list_jellyfin_library_shows">Jellyfin · Series uit je bibliotheek</string>
 </resources>

@@ -1,6 +1,6 @@
 package com.rfmarcos.sofadrop
 
-enum class SourceProvider { TMDB, TRAKT, SIMKL, MDBLIST }
+enum class SourceProvider { TMDB, TRAKT, SIMKL, MDBLIST, JELLYFIN }
 
 /** A list the user can pick as a source of titles. */
 data class ListSource(
@@ -11,6 +11,8 @@ data class ListSource(
     val needsTraktAccount: Boolean = false,
     val needsTmdbAccount: Boolean = false,
     val needsSimklAccount: Boolean = false,
+    /** Every Jellyfin list: they are the signed-in user's library. */
+    val needsJellyfinAccount: Boolean = false,
     /** False for lists that are niche on purpose (anime), where "global hits only" would empty them. */
     val localMarketFilter: Boolean = true,
 ) {
@@ -21,7 +23,7 @@ data class ListSource(
     val automatic: Boolean
         get() = label == null && !needsAccount
 
-    val needsAccount: Boolean get() = needsTraktAccount || needsTmdbAccount || needsSimklAccount
+    val needsAccount: Boolean get() = needsTraktAccount || needsTmdbAccount || needsSimklAccount || needsJellyfinAccount
 }
 
 object Sources {
@@ -67,6 +69,16 @@ object Sources {
             needsSimklAccount = true, localMarketFilter = false),
     )
 
+    /** The library is what the user chose to have: no "global hits only" on these. */
+    val JELLYFIN = listOf(
+        JellyfinClient.LATEST_MOVIES to R.string.list_jellyfin_latest_movies,
+        JellyfinClient.LATEST_SHOWS to R.string.list_jellyfin_latest_shows,
+        JellyfinClient.WATCHING to R.string.list_jellyfin_watching,
+        JellyfinClient.FAVORITES to R.string.list_jellyfin_favorites,
+        JellyfinClient.LIBRARY_MOVIES to R.string.list_jellyfin_library_movies,
+        JellyfinClient.LIBRARY_SHOWS to R.string.list_jellyfin_library_shows,
+    ).map { (key, label) -> ListSource(key, SourceProvider.JELLYFIN, label, needsJellyfinAccount = true, localMarketFilter = false) }
+
     fun label(context: android.content.Context, source: ListSource): String =
         source.label?.let { context.getString(if (source.provider == SourceProvider.TRAKT) R.string.list_trakt_user else R.string.list_mdblist, it) }
             ?: context.getString(source.labelRes)
@@ -81,6 +93,7 @@ object Sources {
                 .map { ListSource(it.key, SourceProvider.TRAKT, label = it.name) }
         }
         lists += SIMKL.filter { !it.needsSimklAccount || Settings.simklConnected }
+        if (Settings.jellyfinConnected) lists += JELLYFIN
         // Public lists need no account; the account's own lists only while it is connected
         lists += Settings.mdbLists.filter { it.path.isNotEmpty() || Settings.mdbListAvailable }
             .map { ListSource(it.key, SourceProvider.MDBLIST, label = it.name) }

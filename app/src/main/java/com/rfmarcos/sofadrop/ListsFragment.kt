@@ -29,6 +29,8 @@ class ListsFragment : BaseSettingsFragment() {
         actions += provider(ID_SIMKL, R.drawable.badge_simkl, getString(R.string.setting_simkl_title),
             ProviderListsFragment.summary(context, profile, SourceProvider.SIMKL))
         actions += provider(ID_MDBLIST, R.drawable.badge_mdblist, getString(R.string.setting_mdblist_title), MdbListFragment.summary(context, profile))
+        actions += provider(ID_JELLYFIN, R.drawable.badge_jellyfin, getString(R.string.setting_jellyfin_title),
+            ProviderListsFragment.summary(context, profile, SourceProvider.JELLYFIN))
         actions += action(ID_EXPLORE, R.drawable.ic_act_filter, getString(R.string.setting_explore_title),
             Filters.summary(context, profile)).hasNext(true).build()
     }
@@ -46,6 +48,7 @@ class ListsFragment : BaseSettingsFragment() {
         updateDescription(ID_TRAKT, ProviderListsFragment.summary(context, profile, SourceProvider.TRAKT))
         updateDescription(ID_SIMKL, ProviderListsFragment.summary(context, profile, SourceProvider.SIMKL))
         updateDescription(ID_MDBLIST, MdbListFragment.summary(context, profile))
+        updateDescription(ID_JELLYFIN, ProviderListsFragment.summary(context, profile, SourceProvider.JELLYFIN))
         updateDescription(ID_EXPLORE, Filters.summary(context, profile))
     }
 
@@ -55,6 +58,7 @@ class ListsFragment : BaseSettingsFragment() {
             ID_TRAKT -> open(ProviderListsFragment.newInstance(SourceProvider.TRAKT))
             ID_SIMKL -> open(ProviderListsFragment.newInstance(SourceProvider.SIMKL))
             ID_MDBLIST -> open(MdbListFragment())
+            ID_JELLYFIN -> open(ProviderListsFragment.newInstance(SourceProvider.JELLYFIN))
             ID_EXPLORE -> open(ListExplorerFragment())
         }
     }
@@ -86,6 +90,7 @@ class ListsFragment : BaseSettingsFragment() {
         private const val ID_SIMKL = 5L
         private const val ID_COUNT = 6L
         private const val ID_ORDER = 7L
+        private const val ID_JELLYFIN = 8L
         private val ORDER_MODES = listOf(Settings.SELECTION_ORDER, Settings.SELECTION_RANDOM)
 
         fun countLabel(context: Context, count: Int) =
@@ -118,6 +123,7 @@ class ListsFragment : BaseSettingsFragment() {
             SourceProvider.TRAKT -> context.getString(R.string.setting_trakt_title)
             SourceProvider.SIMKL -> context.getString(R.string.setting_simkl_title)
             SourceProvider.MDBLIST -> context.getString(R.string.setting_mdblist_title)
+            SourceProvider.JELLYFIN -> context.getString(R.string.setting_jellyfin_title)
         }
     }
 }

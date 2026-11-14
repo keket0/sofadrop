@@ -95,7 +95,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
                 log.finish("Cancelled")
                 return Result.success()
             }
-            val stored = withPlatformLinks(drawn, log)
+            val stored = withJellyfinItems(withPlatformLinks(drawn, log), log)
             // Every list failing (e.g. no network) or no title fitting in memory is that error, not "no titles"
             if (stored.isEmpty()) throw when {
                 listErrors.isNotEmpty() -> listErrors.first()
@@ -246,6 +246,28 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             wallpaper.copy(platformLinks = Platform.links(ref.type, ids[ref].orEmpty()))
         }
         log.add("Platform links: ${linked.count { it.platformLinks.isNotEmpty() }} of ${refs.size} titles on a known platform")
+        return linked
+    }
+
+    /**
+     * [stored] with their items on the user's Jellyfin server, when wallpapers open Jellyfin: its page then,
+     * instead of its search. Without the server they open the search: not worth failing the generation for.
+     */
+    private fun withJellyfinItems(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
+        if (Settings.clickApp(profile.clickFallback) != TitleApp.JELLYFIN) return stored
+        val client = JellyfinClient.fromSettings() ?: return stored
+        val index = try {
+            client.libraryIndex()
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not read the Jellyfin library", e)
+            log.add("Jellyfin library failed: ${GenerationLog.describe(e)}")
+            return stored
+        }
+        val linked = stored.map { wallpaper ->
+            val type = MediaType.entries.first { it.path == wallpaper.type }
+            wallpaper.copy(jellyfinId = index[TitleRef(type, wallpaper.tmdbId)])
+        }
+        log.add("Jellyfin: ${linked.count { it.jellyfinId != null }} of ${stored.size} titles in the library (${index.size} there)")
         return linked
     }
 

@@ -626,4 +626,37 @@
     <string name="bottom_shade_normal_desc">Darkens the bottom of the image</string>
     <string name="bottom_shade_none_desc">The image reaches the bottom edge</string>
     <string name="bottom_shade_summary">bottom shading: %1$s</string>
+    <!-- Jellyfin -->
+    <string name="setting_jellyfin_title">Jellyfin</string>
+    <string name="account_title_jellyfin">Your Jellyfin server</string>
+    <string name="enables_jellyfin">Your Jellyfin server: lists from your library (recently added, continue watching, favourites…), and wallpapers that open the title\'s page in the Jellyfin app.</string>
+    <string name="jellyfin_lists_description">Lists from your own Jellyfin server (10.9 or later). Titles Jellyfin hasn\'t matched to TMDB are left out. To open them in the Jellyfin app, choose it in Opening a title.</string>
+    <string name="jellyfin_description">Sign in to your Jellyfin server. Servers on your network show up here; if yours doesn\'t, type its address. Sofadrop only reads your library.</string>
+    <string name="account_not_connected_jellyfin">Not connected · find your server</string>
+    <string name="jellyfin_servers_header">Servers on your network</string>
+    <string name="jellyfin_searching">Searching…</string>
+    <string name="jellyfin_none_found">None found: type its address below</string>
+    <string name="jellyfin_address_title">Server address</string>
+    <string name="jellyfin_address_hint">E.g. 192.168.1.10:8096</string>
+    <string name="jellyfin_checking">Connecting to %1$s…</string>
+    <string name="jellyfin_not_found">No Jellyfin server answers at %1$s</string>
+    <string name="jellyfin_sign_in_header">Sign in to %1$s</string>
+    <string name="jellyfin_quick_connect">Quick Connect</string>
+    <string name="jellyfin_quick_connect_desc">Approve a code from your phone or another device signed in to Jellyfin</string>
+    <string name="jellyfin_quick_connect_off">Quick Connect is off on this server: sign in with your user and password</string>
+    <string name="jellyfin_quick_connect_instructions">Scan the QR code with a phone on the same network, or in Jellyfin open your profile → Quick Connect and enter this code:</string>
+    <string name="jellyfin_user">User</string>
+    <string name="jellyfin_password">Password</string>
+    <string name="jellyfin_sign_in">Sign in</string>
+    <string name="jellyfin_sign_in_desc">With the user and password above</string>
+    <string name="jellyfin_wrong_password">Wrong user or password</string>
+    <string name="jellyfin_login_ok">Jellyfin connected as %1$s</string>
+    <string name="jellyfin_failed">Jellyfin error: %1$s</string>
+    <string name="click_app_jellyfin_desc">Goes to the title\'s page when it\'s on your server, else searches for it</string>
+    <string name="list_jellyfin_latest_movies">Jellyfin · Recently added movies</string>
+    <string name="list_jellyfin_latest_shows">Jellyfin · Shows with new episodes</string>
+    <string name="list_jellyfin_watching">Jellyfin · Continue watching</string>
+    <string name="list_jellyfin_favorites">Jellyfin · Favourites</string>
+    <string name="list_jellyfin_library_movies">Jellyfin · Movies from your library</string>
+    <string name="list_jellyfin_library_shows">Jellyfin · Shows from your library</string>
 </resources>
