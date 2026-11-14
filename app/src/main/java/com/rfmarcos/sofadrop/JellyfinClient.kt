@@ -116,6 +116,18 @@ class JellyfinClient(private val address: String, private val token: String = ""
         item.ref?.let { it to item.id }
     }.toMap()
 
+    /**
+     * What the user has watched: movies played, and series by how many of their episodes in the library
+     * were played (all of them: watched).
+     */
+    fun watched(): Map<TitleRef, WatchStatus> {
+        val movies = items("includeItemTypes" to "Movie", "isPlayed" to "true", "enableUserData" to "true").filter { it.played }
+            .mapNotNull { it.ref }.associateWith { WatchStatus.Watched }
+        val series = items("includeItemTypes" to "Series", "enableUserData" to "true", "fields" to "ProviderIds,RecursiveItemCount")
+            .mapNotNull { item -> item.ref?.let { ref -> item.watched?.let { ref to it } } }
+        return movies + series
+    }
+
     /** Movies and series of the user's libraries; [params] override the defaults. */
     private fun items(vararg params: Pair<String, String>): List<Item> {
         val defaults = mapOf(
@@ -231,8 +243,18 @@ class JellyfinClient(private val address: String, private val token: String = ""
         }.getOrNull()
 
         /** A library item: a movie or a series by its TMDB id, or an episode of [seriesId]. */
-        data class Item(val id: String, val type: MediaType?, val tmdbId: Int?, val seriesId: String?) {
+        data class Item(
+            val id: String, val type: MediaType?, val tmdbId: Int?, val seriesId: String?,
+            /** With user data: played (a series, all its episodes), and a series' episodes and those not played. */
+            val played: Boolean = false, val episodes: Int? = null, val unplayed: Int? = null,
+        ) {
             val ref: TitleRef? get() = if (type != null && tmdbId != null) TitleRef(type, tmdbId) else null
+
+            /** A series' progress (with RecursiveItemCount and user data). */
+            val watched: WatchStatus? get() {
+                val total = episodes ?: return null
+                return WatchStatus.episodes(total - (unplayed ?: total), total)
+            }
         }
 
         /** The `Items` of a query result. */
@@ -247,7 +269,9 @@ class JellyfinClient(private val address: String, private val token: String = ""
             // ProviderIds keys are written "Tmdb", but older libraries have other casings
             val tmdb = item.obj("ProviderIds")?.entries?.firstOrNull { it.key.equals("Tmdb", ignoreCase = true) }
                 ?.let { (it.value as? JsonPrimitive)?.content?.toIntOrNull() }
-            Item(id, type, tmdb.takeIf { type != null }, item.str("SeriesId").takeIf { kind == "Episode" })
+            val user = item.obj("UserData")
+            Item(id, type, tmdb.takeIf { type != null }, item.str("SeriesId").takeIf { kind == "Episode" },
+                user?.bool("Played") == true, item.int("RecursiveItemCount"), user?.int("UnplayedItemCount"))
         }
     }
 }

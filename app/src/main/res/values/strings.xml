@@ -465,8 +465,11 @@
     </plurals>
     <string name="watch_source_title">Watch history</string>
     <string name="watch_source_off">Don\'t use</string>
-    <string name="watch_source_explain">The Trakt or Simkl account whose watched titles can be marked or hidden</string>
-    <string name="watch_source_connect">Connect Trakt or Simkl in Accounts to use your watch history</string>
+    <string name="watch_source_explain">Where Sofadrop learns what you\'ve watched, to mark or hide it: Trakt, Simkl, Plex or Jellyfin, one or several</string>
+    <string name="watch_source_connect">Connect Trakt, Simkl, Plex or Jellyfin in Accounts to use your watch history</string>
+    <string name="watch_sources_description">Where Sofadrop learns what you\'ve watched, to mark or hide it. Tick several to put them together: a title counts as watched if any of them says so. Plex and Jellyfin only know the titles on your server.</string>
+    <string name="watch_source_library">Only the titles on your server</string>
+    <string name="watch_source_not_connected">Not connected · connect it in Accounts</string>
     <string name="watched_need_source">Choose a watch history first</string>
     <string name="explore_lists_header">Your lists</string>
     <string name="filters_duplicates_title">Skip repeated titles</string>

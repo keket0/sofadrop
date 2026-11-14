@@ -19,14 +19,19 @@ object Filters {
         }
     )
 
-    /** "Trakt", "Simkl" or "Don't use". */
-    fun watchSourceLabel(context: Context, source: String?) = context.getString(
+    /** "Trakt", "Simkl", "Plex" or "Jellyfin". */
+    fun watchSourceName(context: Context, source: String) = context.getString(
         when (source) {
             Settings.WATCH_TRAKT -> R.string.setting_trakt_title
             Settings.WATCH_SIMKL -> R.string.setting_simkl_title
-            else -> R.string.watch_source_off
+            Settings.WATCH_PLEX -> R.string.setting_plex_title
+            else -> R.string.setting_jellyfin_title
         }
     )
+
+    /** "Trakt + Plex", or "Don't use". */
+    fun watchSourcesLabel(context: Context, sources: List<String>): String =
+        if (sources.isEmpty()) context.getString(R.string.watch_source_off) else sources.joinToString(" + ") { watchSourceName(context, it) }
 
     /** "All genres", "All but 2 genres" or "Only 3 genres". */
     fun genresLabel(context: Context, filter: GenreFilter): String = when {
@@ -58,7 +63,7 @@ object Filters {
         val parts = listOfNotNull(
             custom.maxAge?.let { ageLabel(context, it) },
             custom.globalHits?.let { context.getString(if (it) R.string.list_filters_hits_on else R.string.list_filters_hits_off) },
-            custom.watched?.takeIf { Settings.watchSource != null }?.let { watchedLabel(context, it) },
+            custom.watched?.takeIf { Settings.watchHistoryOn }?.let { watchedLabel(context, it) },
             custom.genres?.let { genresLabel(context, it) },
             custom.minRating?.let { context.getString(R.string.filters_min_rating_summary, ratingLabel(context, it)) },
         )
@@ -72,7 +77,7 @@ object Filters {
         profile.maxRatingAge.takeIf { it > 0 }?.let { context.getString(R.string.filters_rating_age_summary, it) },
         profile.genreFilter.takeUnless { it.isOff }?.let { genresLabel(context, it) },
         profile.minRating.takeIf { it > 0 }?.let { context.getString(R.string.filters_min_rating_summary, ratingLabel(context, it)) },
-        context.getString(R.string.watched_summary_hidden).takeIf { Settings.watchSource != null && profile.watchedMode == Settings.WATCHED_HIDE },
+        context.getString(R.string.watched_summary_hidden).takeIf { Settings.watchHistoryOn && profile.watchedMode == Settings.WATCHED_HIDE },
         customised(profile).size.takeIf { it > 0 }?.let { context.resources.getQuantityString(R.plurals.lists_customised, it, it) },
     ).joinToString(" · ")
 }

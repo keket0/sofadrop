@@ -48,8 +48,8 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
     /** The Plex server, checked (and found again if it moved) the first time a Plex list is read. */
     val plex: PlexClient? by lazy { runCatching { PlexClient.connect() }.getOrNull() }
 
-    /** Trakt and Simkl history, loaded on first use (null when not needed). */
-    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl) }
+    /** The watch history, loaded on first use (null when not needed). */
+    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl, { plex }, jellyfin) }
 
     /**
      * Titles of a list with every rule applied: filters, watched content, titles already taken by a

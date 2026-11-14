@@ -27,15 +27,15 @@ enum class TitleApp(
     /** wuplay://detail/movie/tt0133093, or tmdb:603 without an IMDb id. */
     WUPLAY("wuplay", "WuPlay", listOf("app.wuplay.androidtv"), Reach.TITLE, "wuplay://detail/movie/tt0133093"),
     /**
-     * The title's page when it is on the server Sofadrop is signed in to (by the server's item id), else its
-     * search with the title. Its StartupActivity takes both, but has no DEFAULT category: named explicitly.
-     */
-    JELLYFIN("jellyfin", "Jellyfin", listOf("org.jellyfin.androidtv"), Reach.SEARCH),
-    /**
      * The title's page on watch.plex.tv, which Plex's app takes (the page of an item on the server doesn't
      * open since Plex's May 2025 update); none without its slug, which needs the account.
      */
-    PLEX("plex", "Plex", listOf("com.plexapp.android"), Reach.TITLE);
+    PLEX("plex", "Plex", listOf("com.plexapp.android"), Reach.TITLE),
+    /**
+     * The title's page when it is on the server Sofadrop is signed in to (by the server's item id), else its
+     * search with the title. Its StartupActivity takes both, but has no DEFAULT category: named explicitly.
+     */
+    JELLYFIN("jellyfin", "Jellyfin", listOf("org.jellyfin.androidtv"), Reach.SEARCH);
     // Kodi has no way in to a title: only opening the app, which isn't worth a wallpaper click
 
     /** How close to the title the app gets. */

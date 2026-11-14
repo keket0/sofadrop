@@ -447,8 +447,11 @@
     </plurals>
     <string name="watch_source_title">Historial de vistos</string>
     <string name="watch_source_off">No usar</string>
-    <string name="watch_source_explain">La cuenta de Trakt o Simkl cuyos títulos vistos se pueden marcar u ocultar</string>
-    <string name="watch_source_connect">Conecta Trakt o Simkl en Cuentas para usar tu historial</string>
+    <string name="watch_source_explain">De dónde sabe Sofadrop lo que has visto, para marcarlo u ocultarlo: Trakt, Simkl, Plex o Jellyfin, uno o varios</string>
+    <string name="watch_source_connect">Conecta Trakt, Simkl, Plex o Jellyfin en Cuentas para usar tu historial</string>
+    <string name="watch_sources_description">De dónde sabe Sofadrop lo que has visto, para marcarlo u ocultarlo. Marca varios para juntarlos: un título cuenta como visto si alguno lo dice. Plex y Jellyfin solo conocen los títulos de tu servidor.</string>
+    <string name="watch_source_library">Solo los títulos de tu servidor</string>
+    <string name="watch_source_not_connected">Sin conectar · conéctalo en Cuentas</string>
     <string name="watched_need_source">Elige antes un historial de vistos</string>
     <string name="explore_lists_header">Tus listas</string>
     <string name="filters_duplicates_title">Saltar títulos repetidos</string>

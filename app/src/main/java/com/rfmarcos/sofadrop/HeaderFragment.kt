@@ -49,7 +49,7 @@ class HeaderFragment : PreviewSettingsFragment() {
             val builder = GuidedAction.Builder(context).id(ID_BLOCK + index).icon(ColorDrawable(Color.TRANSPARENT))
                 .title(blockTitle(context, block))
             // The badge needs a watch history; kept visible (disabled) so rows don't jump
-            if (block == Settings.HEADER_WATCHED && Settings.watchSource == null) {
+            if (block == Settings.HEADER_WATCHED && !Settings.watchHistoryOn) {
                 return@mapIndexed builder.description(getString(R.string.header_watched_needs)).enabled(false).build()
             }
             // Ratings are hidden by choosing no platform below
@@ -164,7 +164,7 @@ class HeaderFragment : PreviewSettingsFragment() {
 
     /** Blocks drawn, in order (the badge only with a watch history). */
     private fun shownBlocks() = profile.headerOrder.filter { block ->
-        (block == Settings.HEADER_RATINGS || profile.showsInHeader(block)) && (block != Settings.HEADER_WATCHED || Settings.watchSource != null)
+        (block == Settings.HEADER_RATINGS || profile.showsInHeader(block)) && (block != Settings.HEADER_WATCHED || Settings.watchHistoryOn)
     }
 
     /** Shown blocks in order, then the hidden ones. */
@@ -200,7 +200,7 @@ class HeaderFragment : PreviewSettingsFragment() {
             val parts = profile.headerOrder.mapNotNull { block ->
                 when (block) {
                     Settings.HEADER_RATINGS -> profile.ratingSources.joinToString(" ") { it.shortTitle(context) }.ifEmpty { null }
-                    Settings.HEADER_WATCHED -> blockTitle(context, block, short = true).takeIf { profile.showsInHeader(block) && Settings.watchSource != null }
+                    Settings.HEADER_WATCHED -> blockTitle(context, block, short = true).takeIf { profile.showsInHeader(block) && Settings.watchHistoryOn }
                     Settings.HEADER_YEAR -> listOfNotNull(
                         blockTitle(context, block, short = true).takeIf { profile.showsInHeader(block) },
                         context.getString(R.string.header_certification_short).takeIf { profile.showsInHeader(Settings.HEADER_CERTIFICATION) },

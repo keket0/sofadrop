@@ -79,6 +79,7 @@ object Settings {
     private const val KEY_PREVIEW_PIN = "_preview_pin"
     private const val KEY_PREVIEW_PIN_TITLE = "_preview_pin_title"
     private const val KEY_WATCH_SOURCE = "watch_source"
+    private const val KEY_WATCH_SOURCES = "watch_sources"
     private const val KEY_BLOCKED = "blocked_titles"
     private const val KEY_MIX_LISTS = "mix_lists"
     private const val KEY_FOCUSED_CARD = "focused_card"
@@ -128,7 +129,12 @@ object Settings {
     const val WATCHED_HIDE = "hide"
     const val WATCH_TRAKT = "trakt"
     const val WATCH_SIMKL = "simkl"
+    const val WATCH_PLEX = "plex"
+    const val WATCH_JELLYFIN = "jellyfin"
     const val WATCH_NONE = "none"
+
+    /** Services the watch history can come from, in the order they're offered. */
+    val WATCH_SOURCES = listOf(WATCH_TRAKT, WATCH_SIMKL, WATCH_PLEX, WATCH_JELLYFIN)
     /** With no logo in the logo language: write the title, use the original-language (or English) one, or skip the title. */
     const val LOGO_TEXT = "text"
     const val LOGO_ORIGINAL = "original"
@@ -491,19 +497,36 @@ object Settings {
         listOf(KEY_PLEX_TOKEN, KEY_PLEX_USER, KEY_PLEX_SERVER_ID, KEY_PLEX_SERVER, KEY_PLEX_SERVER_TOKEN, KEY_PLEX_ADDRESS).forEach(::remove)
     }
 
-    /** Connected trackers that can provide the watch history. */
-    val connectedTrackers: List<String> get() = listOfNotNull(WATCH_TRAKT.takeIf { traktConnected }, WATCH_SIMKL.takeIf { simklConnected })
+    fun watchSourceConnected(source: String): Boolean = when (source) {
+        WATCH_TRAKT -> traktConnected
+        WATCH_SIMKL -> simklConnected
+        WATCH_PLEX -> plexConnected
+        WATCH_JELLYFIN -> jellyfinConnected
+        else -> false
+    }
+
+    /** Connected services that can provide the watch history. */
+    val connectedTrackers: List<String> get() = WATCH_SOURCES.filter(::watchSourceConnected)
 
     /**
-     * Tracker whose history marks or hides watched titles: the chosen one while connected, null when off
-     * or disconnected. Until chosen, the first connected tracker (what earlier versions used).
+     * The services chosen as watch history, connected or not. Until chosen, what earlier versions used: the
+     * one picked as "watch_source" (one at most, or "none"), else the first connected one.
      */
-    val watchSource: String?
-        get() = preferences.getString(KEY_WATCH_SOURCE, null).let { chosen ->
-            if (chosen == null) connectedTrackers.firstOrNull() else chosen.takeIf { it in connectedTrackers }
-        }
+    private val chosenWatchSources: List<String>
+        get() = preferences.getString(KEY_WATCH_SOURCES, null)?.split(',')?.filter { it in WATCH_SOURCES }
+            ?: preferences.getString(KEY_WATCH_SOURCE, null)?.let { old -> listOf(old).filter { it in WATCH_SOURCES } }
+            ?: listOfNotNull(connectedTrackers.firstOrNull())
 
-    fun setWatchSource(value: String) = preferences.edit { putString(KEY_WATCH_SOURCE, value) }
+    /** Services whose history marks or hides watched titles: the chosen ones while connected (none: off). */
+    val watchSources: List<String> get() = chosenWatchSources.filter(::watchSourceConnected)
+
+    val watchHistoryOn: Boolean get() = watchSources.isNotEmpty()
+
+    /** Adds or removes [source]; a disconnected one stays chosen, for when it's connected again. */
+    fun setWatchSource(source: String, on: Boolean) {
+        val chosen = chosenWatchSources.toSet().let { if (on) it + source else it - source }
+        preferences.edit { putString(KEY_WATCH_SOURCES, WATCH_SOURCES.filter { it in chosen }.joinToString(",")) }
+    }
 
     // --- TMDB account (optional, adds the user's watchlist / favourites) ---
 

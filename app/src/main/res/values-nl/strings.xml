@@ -455,8 +455,11 @@
     </plurals>
     <string name="watch_source_title">Kijkgeschiedenis</string>
     <string name="watch_source_off">Niet gebruiken</string>
-    <string name="watch_source_explain">Het Trakt- of Simkl-account waarvan de bekeken titels gemarkeerd of verborgen kunnen worden</string>
-    <string name="watch_source_connect">Verbind Trakt of Simkl bij Accounts om je kijkgeschiedenis te gebruiken</string>
+    <string name="watch_source_explain">Waar Sofadrop leert wat je hebt bekeken, om het te markeren of te verbergen: Trakt, Simkl, Plex of Jellyfin, een of meer</string>
+    <string name="watch_source_connect">Verbind Trakt, Simkl, Plex of Jellyfin bij Accounts om je kijkgeschiedenis te gebruiken</string>
+    <string name="watch_sources_description">Waar Sofadrop leert wat je hebt bekeken, om het te markeren of te verbergen. Vink er meerdere aan om ze te combineren: een titel telt als bekeken als een van hen dat zegt. Plex en Jellyfin kennen alleen de titels op je server.</string>
+    <string name="watch_source_library">Alleen de titels op je server</string>
+    <string name="watch_source_not_connected">Niet verbonden · verbind het bij Accounts</string>
     <string name="watched_need_source">Kies eerst een kijkgeschiedenis</string>
     <string name="explore_lists_header">Je lijsten</string>
     <string name="filters_duplicates_title">Herhaalde titels overslaan</string>

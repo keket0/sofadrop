@@ -1,6 +1,6 @@
 package com.rfmarcos.sofadrop
 
-enum class SourceProvider { TMDB, TRAKT, SIMKL, MDBLIST, JELLYFIN, PLEX }
+enum class SourceProvider { TMDB, TRAKT, SIMKL, MDBLIST, PLEX, JELLYFIN }
 
 /** A list the user can pick as a source of titles. */
 data class ListSource(
@@ -103,8 +103,8 @@ object Sources {
                 .map { ListSource(it.key, SourceProvider.TRAKT, label = it.name) }
         }
         lists += SIMKL.filter { !it.needsSimklAccount || Settings.simklConnected }
-        if (Settings.jellyfinConnected) lists += JELLYFIN
         if (Settings.plexConnected) lists += PLEX
+        if (Settings.jellyfinConnected) lists += JELLYFIN
         // Public lists need no account; the account's own lists only while it is connected
         lists += Settings.mdbLists.filter { it.path.isNotEmpty() || Settings.mdbListAvailable }
             .map { ListSource(it.key, SourceProvider.MDBLIST, label = it.name) }

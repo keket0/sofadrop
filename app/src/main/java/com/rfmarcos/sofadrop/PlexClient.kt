@@ -52,6 +52,13 @@ class PlexClient(private val address: String, private val token: String) {
     fun librarySlugs(): Map<TitleRef, String> = (fromSections("movie", "type" to "1") + fromSections("show", "type" to "2"))
         .mapNotNull { item -> item.ref?.let { ref -> item.slug?.let { ref to it } } }.toMap()
 
+    /**
+     * What the account has watched in the libraries: movies seen at least once, and shows by how many of
+     * their episodes on the server were seen (all of them: watched).
+     */
+    fun watched(): Map<TitleRef, WatchStatus> = (fromSections("movie", "type" to "1") + fromSections("show", "type" to "2"))
+        .mapNotNull { item -> item.ref?.let { ref -> item.watched?.let { ref to it } } }.toMap()
+
     /** Plex's Continue Watching: movies and episodes started, then the next episode of the shows being watched. */
     private fun watching(): List<Item> {
         val hub = runCatching { parseItems(request("hubs/home/continueWatching")) }.getOrDefault(emptyList())
@@ -238,8 +245,18 @@ class PlexClient(private val address: String, private val token: String) {
         }
 
         /** A library item: a movie or show by its TMDB id, or an episode or season of the show [showKey]. */
-        data class Item(val ratingKey: String, val type: MediaType?, val tmdbId: Int?, val showKey: String?, val slug: String?, val addedAt: Long) {
+        data class Item(
+            val ratingKey: String, val type: MediaType?, val tmdbId: Int?, val showKey: String?, val slug: String?, val addedAt: Long,
+            /** Times a movie was played; a show's episodes, and how many of them were played. */
+            val views: Int = 0, val episodes: Int = 0, val episodesViewed: Int = 0,
+        ) {
             val ref: TitleRef? get() = if (type != null && tmdbId != null) TitleRef(type, tmdbId) else null
+
+            val watched: WatchStatus? get() = when (type) {
+                MediaType.MOVIE -> WatchStatus.Watched.takeIf { views > 0 }
+                MediaType.TV -> WatchStatus.episodes(episodesViewed, episodes)
+                null -> null
+            }
         }
 
         /** The `Metadata` of a server answer. */
@@ -257,7 +274,8 @@ class PlexClient(private val address: String, private val token: String) {
                     "season" -> item.str("parentRatingKey")
                     else -> null
                 }
-                Item(key, type, tmdbId(item).takeIf { type != null }, show, item.str("slug"), (item["addedAt"] as? JsonPrimitive)?.content?.toLongOrNull() ?: 0)
+                Item(key, type, tmdbId(item).takeIf { type != null }, show, item.str("slug"), (item["addedAt"] as? JsonPrimitive)?.content?.toLongOrNull() ?: 0,
+                    item.int("viewCount") ?: 0, item.int("leafCount") ?: 0, item.int("viewedLeafCount") ?: 0)
             }
 
         /**

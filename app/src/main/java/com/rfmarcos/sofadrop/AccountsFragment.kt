@@ -197,7 +197,7 @@ class AccountsFragment : BaseSettingsFragment() {
             arguments = bundleOf(ARG_FOCUS to providers.first().name, ARG_RECONNECT to providers.map { it.name }.toTypedArray())
         }
 
-        private val SERVICES = listOf(SourceProvider.TMDB, SourceProvider.TRAKT, SourceProvider.SIMKL, SourceProvider.MDBLIST, SourceProvider.JELLYFIN, SourceProvider.PLEX)
+        private val SERVICES = listOf(SourceProvider.TMDB, SourceProvider.TRAKT, SourceProvider.SIMKL, SourceProvider.MDBLIST, SourceProvider.PLEX, SourceProvider.JELLYFIN)
         private val BADGES = mapOf(
             SourceProvider.TMDB to R.drawable.badge_tmdb, SourceProvider.TRAKT to R.drawable.badge_trakt,
             SourceProvider.SIMKL to R.drawable.badge_simkl, SourceProvider.MDBLIST to R.drawable.badge_mdblist,

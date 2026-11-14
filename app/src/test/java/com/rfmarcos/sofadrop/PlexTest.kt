@@ -43,6 +43,23 @@ class PlexTest {
     }
 
     @Test
+    fun watched() {
+        val body = Json.parseToJsonElement(
+            """
+            {"MediaContainer": {"Metadata": [
+              {"ratingKey": "5", "type": "movie", "viewCount": 2, "Guid": [{"id": "tmdb://603"}]},
+              {"ratingKey": "6", "type": "movie", "Guid": [{"id": "tmdb://550"}]},
+              {"ratingKey": "57", "type": "show", "leafCount": 19, "viewedLeafCount": 3, "Guid": [{"id": "tmdb://95396"}]},
+              {"ratingKey": "70", "type": "show", "leafCount": 7, "viewedLeafCount": 7, "Guid": [{"id": "tmdb://1396"}]},
+              {"ratingKey": "80", "type": "show", "leafCount": 10, "viewedLeafCount": 0, "Guid": [{"id": "tmdb://1399"}]}
+            ]}}
+            """
+        )
+        val items = PlexClient.parseItems(body)
+        assertEquals(listOf(WatchStatus.Watched, null, WatchStatus.InProgress(3, 19), WatchStatus.Watched, null), items.map { it.watched })
+    }
+
+    @Test
     fun servers() {
         val body = Json.parseToJsonElement(
             """

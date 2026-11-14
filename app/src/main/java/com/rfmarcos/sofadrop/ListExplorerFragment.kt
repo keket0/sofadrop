@@ -38,20 +38,16 @@ class ListExplorerFragment : BaseSettingsFragment() {
 
     private fun buildRows(): List<GuidedAction> {
         val context = requireContext()
-        val trackers = Settings.connectedTrackers
         val rows = mutableListOf(
             choiceRow(ID_AGE, R.drawable.ic_act_schedule, R.string.filters_age_title, ageOptions(profile.maxAgeMonths).map { Filters.ageLabel(context, it) },
                 Filters.ageLabel(context, profile.maxAgeMonths)),
             yearRow(ID_FROM_YEAR, profile.maxAgeMonths),
             choiceRow(ID_GLOBAL_HITS, R.drawable.ic_act_public, R.string.setting_global_hits_title, Filters.onOff(context),
                 Filters.onOff(context)[if (profile.globalHitsOnly) 1 else 0]),
-            if (trackers.isEmpty()) action(ID_WATCH_SOURCE, R.drawable.ic_act_history, getString(R.string.watch_source_title),
-                describe(context, profile, ID_WATCH_SOURCE)).hasNext(true).build()
-            else choiceRow(ID_WATCH_SOURCE, R.drawable.ic_act_history, R.string.watch_source_title,
-                (listOf(Settings.WATCH_NONE) + trackers).map { Filters.watchSourceLabel(context, it) },
-                Filters.watchSourceLabel(context, Settings.watchSource)),
+            action(ID_WATCH_SOURCE, R.drawable.ic_act_history, getString(R.string.watch_source_title),
+                describe(context, profile, ID_WATCH_SOURCE)).hasNext(true).build(),
             choiceRow(ID_WATCHED, R.drawable.ic_act_visibility, R.string.setting_watched_title, Filters.WATCHED_MODES.map { Filters.watchedLabel(context, it) },
-                Filters.watchedLabel(context, profile.watchedMode)).also { it.isEnabled = Settings.watchSource != null },
+                Filters.watchedLabel(context, profile.watchedMode)).also { it.isEnabled = Settings.watchHistoryOn },
             action(ID_ADULT, R.drawable.ic_act_block, getString(R.string.filters_adult_title), null)
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID).checked(profile.excludeAdult).build(),
             choiceRow(ID_RATING_AGE, R.drawable.ic_act_filter, R.string.filters_rating_age_title,
@@ -102,7 +98,7 @@ class ListExplorerFragment : BaseSettingsFragment() {
     override fun onGuidedActionClicked(action: GuidedAction) {
         when (action.id) {
             ID_ADULT -> profile.excludeAdult = action.isChecked
-            ID_WATCH_SOURCE -> if (Settings.connectedTrackers.isEmpty()) open(AccountsFragment.newInstance(SourceProvider.TRAKT))
+            ID_WATCH_SOURCE -> { open(WatchHistoryFragment()); return }
             ID_DUPLICATES -> profile.skipDuplicates = action.isChecked
             ID_GENRES -> { open(GenresFragment.newInstance(null)); return }
         }
@@ -123,7 +119,6 @@ class ListExplorerFragment : BaseSettingsFragment() {
         when (action.id / SUB_ID_BASE) {
             ID_AGE -> profile.maxAgeMonths = ageOptions(profile.maxAgeMonths)[index]
             ID_GLOBAL_HITS -> profile.globalHitsOnly = index == 1
-            ID_WATCH_SOURCE -> Settings.setWatchSource((listOf(Settings.WATCH_NONE) + Settings.connectedTrackers)[index])
             ID_WATCHED -> profile.watchedMode = Filters.WATCHED_MODES[index]
             ID_RATING_AGE -> profile.maxRatingAge = Settings.MAX_RATING_AGE_OPTIONS[index]
             ID_MIN_RATING -> profile.minRating = Settings.MIN_RATING_OPTIONS[index]
@@ -182,8 +177,8 @@ class ListExplorerFragment : BaseSettingsFragment() {
             ID_RATING_AGE -> Filters.ratingAgeLabel(context, profile.maxRatingAge)
             ID_MIN_RATING -> Filters.ratingLabel(context, profile.minRating)
             ID_WATCH_SOURCE -> if (Settings.connectedTrackers.isEmpty()) context.getString(R.string.watch_source_connect)
-                else Filters.watchSourceLabel(context, Settings.watchSource)
-            else -> if (Settings.watchSource == null) context.getString(R.string.watched_need_source)
+                else Filters.watchSourcesLabel(context, Settings.watchSources)
+            else -> if (!Settings.watchHistoryOn) context.getString(R.string.watched_need_source)
                 else Filters.watchedLabel(context, profile.watchedMode)
         }
 
@@ -297,7 +292,7 @@ class ListContentsFragment : BaseSettingsFragment() {
             custom.globalHits?.let { Filters.onOff(context)[if (it) 1 else 0] } ?: default(defaultHits),
             listOf(default(defaultHits)) + Filters.onOff(context))
         // What to do with watched titles needs a watch history (chosen in the default filters)
-        if (Settings.watchSource != null) rows += filterRow(ID_WATCHED, R.drawable.ic_act_visibility, R.string.setting_watched_title,
+        if (Settings.watchHistoryOn) rows += filterRow(ID_WATCHED, R.drawable.ic_act_visibility, R.string.setting_watched_title,
             custom.watched?.let { Filters.watchedLabel(context, it) } ?: default(defaultWatched),
             listOf(default(defaultWatched)) + Filters.WATCHED_MODES.map { Filters.watchedLabel(context, it) })
         rows += filterRow(ID_MIN_RATING, R.drawable.ic_act_status, R.string.filters_min_rating_title,

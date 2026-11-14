@@ -29,10 +29,10 @@ class ListsFragment : BaseSettingsFragment() {
         actions += provider(ID_SIMKL, R.drawable.badge_simkl, getString(R.string.setting_simkl_title),
             ProviderListsFragment.summary(context, profile, SourceProvider.SIMKL))
         actions += provider(ID_MDBLIST, R.drawable.badge_mdblist, getString(R.string.setting_mdblist_title), MdbListFragment.summary(context, profile))
-        actions += provider(ID_JELLYFIN, R.drawable.badge_jellyfin, getString(R.string.setting_jellyfin_title),
-            ProviderListsFragment.summary(context, profile, SourceProvider.JELLYFIN))
         actions += provider(ID_PLEX, R.drawable.badge_plex, getString(R.string.setting_plex_title),
             ProviderListsFragment.summary(context, profile, SourceProvider.PLEX))
+        actions += provider(ID_JELLYFIN, R.drawable.badge_jellyfin, getString(R.string.setting_jellyfin_title),
+            ProviderListsFragment.summary(context, profile, SourceProvider.JELLYFIN))
         actions += action(ID_EXPLORE, R.drawable.ic_act_filter, getString(R.string.setting_explore_title),
             Filters.summary(context, profile)).hasNext(true).build()
     }

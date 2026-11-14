@@ -57,6 +57,28 @@ class JellyfinTest {
     }
 
     @Test
+    fun watchedSeries() {
+        val body = Json.parseToJsonElement(
+            """
+            {"Items": [
+              {"Id": "a1", "Type": "Series", "ProviderIds": {"Tmdb": "95396"}, "RecursiveItemCount": 19,
+               "UserData": {"UnplayedItemCount": 16, "PlayedPercentage": 15.8, "Played": false}},
+              {"Id": "b2", "Type": "Series", "ProviderIds": {"Tmdb": "1396"}, "RecursiveItemCount": 7,
+               "UserData": {"UnplayedItemCount": 0, "PlayedPercentage": 100, "Played": true}},
+              {"Id": "c3", "Type": "Series", "ProviderIds": {"Tmdb": "1399"}, "RecursiveItemCount": 10,
+               "UserData": {"UnplayedItemCount": 10, "Played": false}},
+              {"Id": "d4", "Type": "Movie", "ProviderIds": {"Tmdb": "603"}, "UserData": {"PlayCount": 1, "Played": true}}
+            ]}
+            """
+        )
+        val items = JellyfinClient.parseItems(body)
+        assertEquals(WatchStatus.InProgress(3, 19), items[0].watched)
+        assertEquals(WatchStatus.Watched, items[1].watched)
+        assertNull(items[2].watched)
+        assertEquals(true, items[3].played)
+    }
+
+    @Test
     fun wallpaperSourceLabels() {
         fun label(key: String, language: String) = Languages.sourceLabel(language, Sources.JELLYFIN.first { it.key == key })
         assertEquals("Recently added", label(JellyfinClient.LATEST_MOVIES, "en-US"))
