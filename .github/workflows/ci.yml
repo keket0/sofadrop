@@ -1,0 +1,38 @@
+# Builds Sofadrop and runs its unit tests on every push and pull request, so contributors see whether
+# their change passes. It needs no secrets: without local.properties the build has empty API keys and
+# no signing, which the unit tests don't use. Releases are still built, tested and signed by hand.
+name: CI
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Build and unit tests
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleGithubDebug testGithubDebugUnitTest
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
