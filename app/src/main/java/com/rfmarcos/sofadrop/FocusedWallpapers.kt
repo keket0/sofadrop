@@ -371,14 +371,25 @@ object FocusedWallpapers {
     }
 
     /**
-     * How good a search result is for a card: each of its names (translated, original) that matches the card
-     * counts double, and having a backdrop to draw counts one. 0: not named like the card at all.
+     * How good a search result is for a card: each of the card's names it has ([namesMatched]) counts three,
+     * and having a backdrop to draw counts one. A result of the other kind than the card's loses one: a backdrop
+     * alone doesn't make it win, one more name does (kino.pub's movies, marked as series), even without a
+     * backdrop. 0: not named like the card at all.
      */
-    fun candidateScore(namesMatched: Int, hasBackdrop: Boolean): Int =
-        if (namesMatched <= 0) 0 else namesMatched * 2 + (if (hasBackdrop) 1 else 0)
+    fun candidateScore(namesMatched: Int, hasBackdrop: Boolean, cardsKind: Boolean = true): Int =
+        if (namesMatched <= 0) 0 else namesMatched * 3 + (if (hasBackdrop) 1 else 0) - (if (cardsKind) 0 else 1)
 
     /** The score that needs no further searching: every name of the card matched, with a backdrop. */
-    fun perfectScore(bilingual: Boolean): Int = candidateScore(if (bilingual) 2 else 1, true)
+    fun perfectScore(bilingual: Boolean, cardsKind: Boolean = true): Int = candidateScore(if (bilingual) 2 else 1, true, cardsKind)
+
+    /**
+     * How many of the card's names ([titleVariants]) a result's names (translated, original) are: "Dune" named
+     * so twice is one, "Терапия" originally "Shrinking" is two.
+     */
+    fun namesMatched(resultNames: List<String?>, variants: List<String>): Int {
+        val targets = variants.map { normalized(it) }.filter { it.isNotEmpty() }.toSet()
+        return resultNames.map { normalized(it.orEmpty()) }.filter { it in targets }.distinct().size
+    }
 
     private class Candidate(val media: MediaType, val id: Int, val result: JsonObject, val query: String, val language: String, val score: Int)
 
@@ -410,8 +421,7 @@ object FocusedWallpapers {
      */
     private fun findNamed(client: TmdbClient, card: FocusedCard, title: String, medias: List<MediaType>, how: String): Pair<Match?, String> {
         val variants = titleVariants(title)
-        val targets = variants.map { normalized(it) }.toSet()
-        val enough = perfectScore(variants.size > 1)
+        val bilingual = variants.size > 1
         val languages = listOf(Locale.getDefault().toLanguageTag(), Settings.language).distinct()
         var closest = ""
         var best: Candidate? = null
@@ -425,12 +435,13 @@ object FocusedWallpapers {
                     if (closest.isEmpty()) closest = results.take(CLOSEST_LOGGED).joinToString(", ") { "${it.str(name).orEmpty()} (${yearOf(it)})" }
                     for (result in results) {
                         val id = result.int("id") ?: continue
-                        val matched = listOf(name, original).count { normalized(result.str(it).orEmpty()) in targets }
-                        val score = candidateScore(matched, !result.str("backdrop_path").isNullOrEmpty())
+                        val matched = namesMatched(listOf(result.str(name), result.str(original)), variants)
+                        val score = candidateScore(matched, !result.str("backdrop_path").isNullOrEmpty(), media == card.media)
                         // Strictly better only: between equals, TMDB's order (relevance) and the card's own kind win
                         if (score > (best?.score ?: 0)) best = Candidate(media, id, result, query, language, score)
                     }
-                    if ((best?.score ?: 0) >= enough) break@search
+                    val top = best ?: continue
+                    if (top.score >= perfectScore(bilingual, top.media == card.media)) break@search
                 }
             }
         }
@@ -438,7 +449,7 @@ object FocusedWallpapers {
         val name = if (found.media == MediaType.MOVIE) "title" else "name"
         val by = if (found.query == title) how else "$how \"${found.query}\""
         val kind = if (found.media != card.media) " (card says ${card.media.path})" else ""
-        val note = "${found.media.path}/${found.id} ${found.result.str(name).orEmpty()} (${yearOf(found.result)}) $by ${found.language}$kind · score ${found.score}/$enough"
+        val note = "${found.media.path}/${found.id} ${found.result.str(name).orEmpty()} (${yearOf(found.result)}) $by ${found.language}$kind · score ${found.score}"
         return Match(TitleRef(found.media, found.id), null, note) to closest
     }
 

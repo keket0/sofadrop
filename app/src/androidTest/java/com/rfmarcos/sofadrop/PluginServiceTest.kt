@@ -181,6 +181,31 @@ class PluginServiceTest {
     }
 
     /**
+     * kino.pub's cards (PR #31, 2026-11) name titles in Russian and originally ("Терапия / Shrinking") and say
+     * every one is a series: the series is found by either name, and a movie as a movie.
+     */
+    @Test
+    fun kinoPubCardsFindBilingualTitlesAndMovies() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
+        FocusedLog.clear(context)
+        try {
+            val service = bind()
+            val series = Event.ProgramCardFocused(title = "Терапия / Shrinking", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
+            assertEquals(1, answer(service, series).size)
+            val movie = Event.ProgramCardFocused(title = "Хороший адвокат / Un bon avocat", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
+            assertEquals(1, answer(service, movie).size)
+            val log = FocusedLog.read(context)
+            Log.i(TAG, "kino.pub: $log")
+            assertTrue(log.any { "Shrinking" in it && "→ tv/" in it && "card says" !in it })
+            assertTrue(log.any { "Un bon avocat" in it && "movie/1616419" in it && "(card says tv)" in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
+    /**
      * "Episode, sharp image": Doctor Who's first episode (1963) has a 480 px still on TMDB, which gives way to
      * the series' backdrop; Breaking Bad's first has a 1920 px one, which stays (2026-11).
      */

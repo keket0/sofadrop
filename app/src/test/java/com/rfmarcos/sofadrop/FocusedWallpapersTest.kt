@@ -97,6 +97,28 @@ class FocusedWallpapersTest {
     }
 
     @Test
+    fun theOtherKindNeedsAnotherNameNotJustABackdrop() {
+        // A movie card (Apple TV): a series of the same name with a backdrop ties with the movie without one,
+        // and between equals the card's own kind, searched first, wins
+        assertEquals(FocusedWallpapers.candidateScore(1, false), FocusedWallpapers.candidateScore(1, true, cardsKind = false))
+        assertEquals(FocusedWallpapers.candidateScore(2, false), FocusedWallpapers.candidateScore(2, true, cardsKind = false))
+        // kino.pub marks movies as series: the movie named like both sides wins over a series named like one
+        assertTrue(FocusedWallpapers.candidateScore(2, false, cardsKind = false) > FocusedWallpapers.candidateScore(1, true))
+        assertTrue(FocusedWallpapers.candidateScore(1, false, cardsKind = false) > 0)
+        assertEquals(FocusedWallpapers.candidateScore(2, true, cardsKind = false), FocusedWallpapers.perfectScore(bilingual = true, cardsKind = false))
+    }
+
+    @Test
+    fun namesMatchedCountsTheCardsNamesOnce() {
+        // Named so in both fields: still one name, so it can't outweigh the card's kind
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Dune", "Dune"), FocusedWallpapers.titleVariants("Dune")))
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Matchbox: la película", "Matchbox: The Movie"), FocusedWallpapers.titleVariants("Matchbox: La película")))
+        assertEquals(2, FocusedWallpapers.namesMatched(listOf("Терапия", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking")))
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Shrinking", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking")))
+        assertEquals(0, FocusedWallpapers.namesMatched(listOf("Brother", null), FocusedWallpapers.titleVariants("Brothers")))
+    }
+
+    @Test
     fun episodeCodesInTheWallpaperLanguage() {
         assertEquals("T2E3", Languages.episodeCode("es-ES", 2, 3))
         assertEquals("S2E3", Languages.episodeCode("en-US", 2, 3))
