@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import tv.projectivy.plugin.wallpaperprovider.api.Wallpaper
 import tv.projectivy.plugin.wallpaperprovider.api.WallpaperDisplayMode
@@ -80,6 +82,16 @@ object FocusedWallpapers {
 
     /** What each card is, by [FocusedCard.key]. */
     private val found = ConcurrentHashMap<String, Match>()
+    /** Videos of scrolling synopses: one at a time, apart from the drawings so they don't wait for them. */
+    private val videoExecutor = Executors.newSingleThreadExecutor()
+    /** Wallpaper files whose video is queued or being made. */
+    private val encoding = ConcurrentHashMap.newKeySet<String>()
+    private val json = Json { ignoreUnknownKeys = true }
+    /** Next to a wallpaper "x.jpg": its video, its scroll box and the files [ScrollingSynopsis.save] names. */
+    private const val VIDEO = ".mp4"
+    private const val SCROLL = ".scroll.json"
+    private const val PATCH = "-patch.jpg"
+    private const val STRIP = "-strip.png"
     /** Width of each episode still's original, by its path, once downloaded. */
     private val stillWidths = ConcurrentHashMap<String, Int>()
     /** Cards that matched nothing: not searched again until Sofadrop restarts. */
@@ -117,9 +129,9 @@ object FocusedWallpapers {
         context: Context, card: FocusedCard, mode: String, waitMillis: Long = 0, stillWanted: () -> Boolean = { true },
     ): Wallpaper? {
         val prefix = filePrefix()
-        cached(context, card, mode, prefix)?.let { return finished(context, it, card) }
-        if (card.key in unmatched) return fallback(card, mode)
         val taskKey = "$mode/${card.key}"
+        cached(context, card, mode, prefix)?.let { wanted = taskKey; return finished(context, it, card, taskKey) }
+        if (card.key in unmatched) return fallback(card, mode)
         wanted = taskKey
         val task = drawing.computeIfAbsent(taskKey) {
             val appContext = context.applicationContext
@@ -150,7 +162,7 @@ object FocusedWallpapers {
                 } catch (_: ExecutionException) {
                 }
             }
-            cached(context, card, mode, prefix)?.let { return finished(context, it, card) }
+            cached(context, card, mode, prefix)?.let { return finished(context, it, card, taskKey) }
         }
         return fallback(card, mode)
     }
@@ -164,10 +176,52 @@ object FocusedWallpapers {
         return file
     }
 
-    private fun finished(context: Context, file: File, card: FocusedCard): Wallpaper {
+    /**
+     * The drawn [file], or its video once made (see [encodeLater]): Projectivy asks again every few seconds
+     * while the card has the focus, and the video's first frame is the picture it's showing.
+     */
+    private fun finished(context: Context, file: File, card: FocusedCard, taskKey: String): Wallpaper {
+        val video = companion(file, VIDEO).takeIf { it.exists() }
+        if (video == null && companion(file, SCROLL).exists()) encodeLater(context.applicationContext, file, card, taskKey)
         val uri = Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
-            .appendPath(DIR).appendPath(file.name).build()
-        return wallpaper(uri.toString(), card.title)
+            .appendPath(DIR).appendPath((video ?: file).name).build()
+        return wallpaper(uri.toString(), card.title, video != null)
+    }
+
+    /** "…-tv-1399.mp4" next to "…-tv-1399.jpg". */
+    private fun companion(file: File, suffix: String) = File(file.parentFile, file.nameWithoutExtension + suffix)
+
+    /**
+     * The video of [file], whose synopsis scrolls ([Settings.OVERVIEW_SCROLL]), one at a time behind the
+     * drawings; only while its card is still the one wanted.
+     */
+    private fun encodeLater(context: Context, file: File, card: FocusedCard, taskKey: String) {
+        if (!encoding.add(file.name)) return
+        videoExecutor.execute {
+            val start = System.currentTimeMillis()
+            var image: Bitmap? = null
+            var synopsis: ScrollingSynopsis? = null
+            val tmp = File(file.parentFile, file.nameWithoutExtension + VIDEO + ".tmp")
+            try {
+                if (wanted != taskKey || companion(file, VIDEO).exists()) return@execute
+                val box = json.decodeFromString<ScrollBox>(companion(file, SCROLL).readText())
+                synopsis = ScrollingSynopsis.load(file.parentFile!!, box) ?: return@execute
+                image = BitmapFactory.decodeFile(file.path) ?: return@execute
+                ScrollVideo.encode(synopsis, image, tmp)
+                tmp.renameTo(companion(file, VIDEO))
+                val seconds = (System.currentTimeMillis() - start) / 100 / 10.0
+                Log.i(TAG, "${card.title}: video in $seconds s")
+                FocusedLog.add(context, card, "scrolling synopsis · video in $seconds s")
+            } catch (e: Throwable) {
+                Log.w(TAG, "Could not encode the video of ${card.title}", e)
+                FocusedLog.add(context, card, "video failed · ${GenerationLog.describe(e)}")
+                tmp.delete()
+            } finally {
+                image?.recycle()
+                synopsis?.recycle()
+                encoding.remove(file.name)
+            }
+        }
     }
 
     /** The episode's still alone while its wallpaper is drawn; with [Settings.FOCUSED_EPISODE_SHARP], once it's known to be sharp. */
@@ -192,8 +246,9 @@ object FocusedWallpapers {
         return width >= MIN_STILL_WIDTH
     }
 
-    private fun wallpaper(uri: String, title: String) =
-        Wallpaper(uri = uri, type = WallpaperType.IMAGE, displayMode = WallpaperDisplayMode.CROP, title = title)
+    private fun wallpaper(uri: String, title: String, video: Boolean = false) = Wallpaper(
+        uri = uri, type = if (video) WallpaperType.VIDEO else WallpaperType.IMAGE, displayMode = WallpaperDisplayMode.CROP, title = title,
+    )
 
     private fun dir(context: Context) = File(File(context.filesDir, WallpaperStore.DIR), DIR)
 
@@ -247,13 +302,17 @@ object FocusedWallpapers {
                 overview = if (details) episode.overview.ifBlank { title.overview } else title.overview,
             )
         }
-        val bitmap = factory.render(drawn)
+        var synopsis: ScrollingSynopsis? = null
+        val bitmap = factory.render(drawn) { synopsis = it }
         file.parentFile?.mkdirs()
         val tmp = File(file.path + ".tmp")
         try {
             FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+            // A synopsis that scrolls: what its video needs, made once the picture is out (see finished)
+            synopsis?.save(file.parentFile!!, file.nameWithoutExtension, bitmap.width)?.let { companion(file, SCROLL).writeText(json.encodeToString(it)) }
         } finally {
             bitmap.recycle()
+            synopsis?.recycle()
         }
         tmp.renameTo(file)
         prune(context)
@@ -262,11 +321,14 @@ object FocusedWallpapers {
         FocusedLog.add(context, card, "${match.note} · ${if (episode != null) "episode" else match.ref.type.path} in $seconds s$lowQuality")
     }
 
-    /** Older than [MAX_AGE_MILLIS] or beyond the [MAX_FILES] last used: they go. */
+    /** Older than [MAX_AGE_MILLIS] or beyond the [MAX_FILES] last used: they go, with their scrolling synopsis' files and video. */
     private fun prune(context: Context) {
         val now = System.currentTimeMillis()
-        dir(context).listFiles()?.sortedByDescending { it.lastModified() }?.forEachIndexed { index, file ->
-            if (index >= MAX_FILES || now - file.lastModified() > MAX_AGE_MILLIS) file.delete()
+        val files = dir(context).listFiles().orEmpty()
+        files.filter { it.extension == "jpg" && !it.name.endsWith(PATCH) }.sortedByDescending { it.lastModified() }.forEachIndexed { index, file ->
+            if (index < MAX_FILES && now - file.lastModified() <= MAX_AGE_MILLIS) return@forEachIndexed
+            file.delete()
+            listOf(VIDEO, SCROLL, PATCH, STRIP).forEach { companion(file, it).delete() }
         }
     }
 

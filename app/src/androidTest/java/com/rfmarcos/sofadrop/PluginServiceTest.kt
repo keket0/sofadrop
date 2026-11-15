@@ -190,6 +190,9 @@ class PluginServiceTest {
         val mode = Settings.focusedCard
         Settings.focusedCard = Settings.FOCUSED_EPISODE_SHARP
         FocusedLog.clear(context)
+        // Drawn by an earlier run they'd only be "cached" in the log
+        java.io.File(context.filesDir, "${WallpaperStore.DIR}/${FocusedWallpapers.DIR}").listFiles()
+            ?.filter { "-tv-121-" in it.name || "-tv-1396-" in it.name }?.forEach { it.delete() }
         try {
             val service = bind()
             val doctorWho = Event.ProgramCardFocused(title = "Doctor Who", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/geJKM80SjYZIG5XNwonRHIkKBrF.jpg")
