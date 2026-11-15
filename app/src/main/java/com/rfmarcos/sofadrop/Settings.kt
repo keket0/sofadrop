@@ -152,17 +152,20 @@ object Settings {
     const val SYNOPSIS_SKIP = "skip"
     val SYNOPSIS_MODES = listOf(SYNOPSIS_HIDE, SYNOPSIS_ENGLISH, SYNOPSIS_SKIP)
     /**
-     * While a card is focused: leave the wallpaper alone, show its episode when it's known (with the series'
-     * image when the episode's is low quality, in [FOCUSED_EPISODE_SHARP]), or always its series (or movie).
+     * While a card is focused: leave the wallpaper alone; show its episode when it's known, with the episode's
+     * image ([FOCUSED_EPISODE], the series' when the episode's is low quality) or always the series'
+     * ([FOCUSED_EPISODE_SERIES_IMAGE]); or always its series (or movie).
      */
     const val FOCUSED_OFF = "off"
     const val FOCUSED_EPISODE = "episode"
-    const val FOCUSED_EPISODE_SHARP = "episode_sharp"
+    const val FOCUSED_EPISODE_SERIES_IMAGE = "episode_series_image"
     const val FOCUSED_SERIES = "series"
-    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_EPISODE_SHARP, FOCUSED_SERIES)
+    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_EPISODE_SERIES_IMAGE, FOCUSED_SERIES)
+    /** 1.2.2's betas had the low-quality swap as a mode of its own; it's what [FOCUSED_EPISODE] does now. */
+    private const val FOCUSED_EPISODE_SHARP_OLD = "episode_sharp"
 
     /** The focused card's [mode] shows episodes. */
-    fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SHARP
+    fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SERIES_IMAGE
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"
@@ -315,7 +318,8 @@ object Settings {
 
     /** What Projectivy shows while a movie, series or episode card is focused, see [FocusedWallpapers]. */
     var focusedCard: String
-        get() = preferences.getString(KEY_FOCUSED_CARD, null)?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
+        get() = preferences.getString(KEY_FOCUSED_CARD, null)
+            ?.let { if (it == FOCUSED_EPISODE_SHARP_OLD) FOCUSED_EPISODE else it }?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
         set(value) = preferences.edit { putString(KEY_FOCUSED_CARD, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */

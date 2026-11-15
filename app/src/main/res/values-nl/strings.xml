@@ -23,10 +23,10 @@
     <string name="focused_card_title">Geselecteerde kaart (bèta)</string>
     <string name="focused_card_off">Uit</string>
     <string name="focused_card_episode">Aflevering indien herkend</string>
-    <string name="focused_card_episode_sharp">Aflevering, scherpe afbeelding</string>
-    <string name="focused_card_episode_sharp_desc">Is de afleveringsafbeelding van lage kwaliteit, dan die van de serie (met de afleveringsgegevens)</string>
+    <string name="focused_card_episode_desc">Met de afbeelding van de aflevering, of die van de serie als ze van lage kwaliteit is</string>
+    <string name="focused_card_episode_series_image">Aflevering, afbeelding van de serie</string>
     <string name="focused_card_series">Serie of film</string>
-    <string name="focused_card_explain">Terwijl je op een film, serie of aflevering in een kanaal van Projectivy staat, wordt de achtergrond die titel (op TMDB gezocht op de naam van de kaart). De eerste keer op een kaart duurt het een paar seconden; daarna is hij er meteen. Dit is nieuw: als een kaart een verkeerde titel toont, stuur dan het kaartenlogboek.</string>
+    <string name="focused_card_explain">Terwijl je op een film, serie of aflevering in een kanaal van Projectivy staat, wordt de achtergrond die titel (op TMDB gezocht op de naam van de kaart). De eerste keer op een kaart duurt het een paar seconden; daarna is hij er meteen. Dit is nieuw: als een kaart een verkeerde titel toont, stuur dan het kaartenlogboek (in Over).</string>
     <string name="focused_log_title">Kaartenlogboek</string>
     <string name="focused_log_none">Nog geen kaarten</string>
     <string name="focused_log_explain">De laatste kaarten waarop je stond, wat elke app erover zei en wat Sofadrop vond. Stuur het als een kaart niet de juiste achtergrond toont: zo werkt het met meer apps.</string>
@@ -316,10 +316,10 @@
     <string name="status_select_list">Kies minstens één lijst</string>
     <string name="select_list_first">Kies eerst minstens één lijst</string>
     <string name="synopsis_title">Samenvatting</string>
-    <string name="synopsis_full">Volledig (4 regels)</string>
+    <string name="synopsis_full">Normaal (4 regels)</string>
     <string name="synopsis_short">Kort (2 regels)</string>
-    <string name="synopsis_scroll">Helemaal, scrollend</string>
-    <string name="synopsis_scroll_desc">Lange scrollen vanzelf. In Projectivy zijn het video\'s: 1–3 MB per stuk, het maken duurt langer.</string>
+    <string name="synopsis_scroll">Volledig, scrollend</string>
+    <string name="synopsis_scroll_desc">Lange scrollen vanzelf. In Projectivy zijn het video\'s: ze nemen meer ruimte in en het maken duurt langer.</string>
     <string name="synopsis_hidden">Verborgen</string>
     <string name="synopsis_summary_short">korte samenvatting</string>
     <string name="synopsis_summary_scroll">scrollende samenvatting</string>

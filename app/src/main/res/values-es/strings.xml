@@ -22,10 +22,10 @@
     <string name="focused_card_title">Tarjeta seleccionada (beta)</string>
     <string name="focused_card_off">Desactivado</string>
     <string name="focused_card_episode">Episodio si se reconoce</string>
-    <string name="focused_card_episode_sharp">Episodio, con imagen nítida</string>
-    <string name="focused_card_episode_sharp_desc">Si la imagen del episodio es de poca calidad, se usa la de la serie (con los datos del episodio)</string>
+    <string name="focused_card_episode_desc">Con la imagen del episodio, o la de la serie si es de poca calidad</string>
+    <string name="focused_card_episode_series_image">Episodio, con imagen de la serie</string>
     <string name="focused_card_series">Serie o película</string>
-    <string name="focused_card_explain">Mientras estás sobre una película, serie o episodio en un canal de Projectivy, el fondo pasa a ser ese título (se busca en TMDB por el nombre de la tarjeta). La primera vez en una tarjeta tarda unos segundos; después sale al momento. Es nuevo: si una tarjeta muestra otro título, envía el registro de tarjetas.</string>
+    <string name="focused_card_explain">Mientras estás sobre una película, serie o episodio en un canal de Projectivy, el fondo pasa a ser ese título (se busca en TMDB por el nombre de la tarjeta). La primera vez en una tarjeta tarda unos segundos; después sale al momento. Es nuevo: si una tarjeta muestra otro título, envía el registro de tarjetas (en Acerca de).</string>
     <string name="focused_log_title">Registro de tarjetas</string>
     <string name="focused_log_none">Aún no hay tarjetas</string>
     <string name="focused_log_explain">Las últimas tarjetas en las que has estado, qué decía de ellas cada app y qué encontró Sofadrop. Envíalo si una tarjeta no muestra el fondo correcto: ayuda a que funcione con más apps.</string>
@@ -308,10 +308,10 @@
     <string name="status_select_list">Elige al menos una lista</string>
     <string name="select_list_first">Elige antes al menos una lista</string>
     <string name="synopsis_title">Sinopsis</string>
-    <string name="synopsis_full">Completa (4 líneas)</string>
+    <string name="synopsis_full">Normal (4 líneas)</string>
     <string name="synopsis_short">Corta (2 líneas)</string>
-    <string name="synopsis_scroll">Entera, desplazándose</string>
-    <string name="synopsis_scroll_desc">Las largas se desplazan solas. En Projectivy son vídeos: 1–3 MB cada uno, tardan más en generarse.</string>
+    <string name="synopsis_scroll">Completa, desplazándose</string>
+    <string name="synopsis_scroll_desc">Las largas se desplazan solas. En Projectivy son vídeos: ocupan más y tardan más en generarse.</string>
     <string name="synopsis_hidden">Oculta</string>
     <string name="synopsis_summary_short">sinopsis corta</string>
     <string name="synopsis_summary_scroll">sinopsis desplazándose</string>

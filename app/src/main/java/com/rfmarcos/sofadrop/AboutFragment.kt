@@ -44,6 +44,14 @@ class AboutFragment : BaseSettingsFragment() {
         val log = GenerationLog.read(requireContext())
         actions += action(ID_LOG, R.drawable.ic_act_status, getString(R.string.about_log),
             log?.lines()?.lastOrNull() ?: getString(R.string.about_log_none)).hasNext(log != null).enabled(log != null).build()
+        // What the focused card (beta) made of the last cards, to send: only once it's been on
+        val cards = FocusedLog.read(requireContext()).size
+        if (cards > 0 || Settings.focusedCard != Settings.FOCUSED_OFF) {
+            actions += action(ID_CARD_LOG, R.drawable.ic_act_status, getString(R.string.focused_log_title),
+                if (cards == 0) getString(R.string.focused_log_none) else resources.getQuantityString(R.plurals.focused_log_cards, cards, cards))
+                .hasNext(cards > 0).enabled(cards > 0).build()
+            explanations[ID_CARD_LOG] = getString(R.string.focused_log_explain)
+        }
         actions += action(ID_CREDITS, R.drawable.badge_tmdb, getString(R.string.about_credits), getString(R.string.about_credits_short)).build()
         explanations[ID_CREDITS] = getString(R.string.about_credits_desc)
     }
@@ -62,6 +70,7 @@ class AboutFragment : BaseSettingsFragment() {
         when (action.id) {
             ID_VERSION -> checkForUpdate()
             ID_LOG -> open(GenerationLogFragment())
+            ID_CARD_LOG -> open(FocusedLogFragment())
             ID_WIZARD -> Wizard.start(parentFragmentManager)
             ID_SETTINGS_FILE -> open(SettingsFileFragment())
             ID_BETA -> LinkQrDialog.newInstance(BETA_URL, R.string.about_beta, R.string.about_beta_scan).show(parentFragmentManager, "beta")
@@ -128,6 +137,7 @@ class AboutFragment : BaseSettingsFragment() {
         private const val ID_WIZARD = 7L
         private const val ID_SETTINGS_FILE = 8L
         private const val ID_BETA = 9L
+        private const val ID_CARD_LOG = 10L
         // The 1.2.1 release, whose notes have the steps (the test's own link only works after joining its Google
         // Group). Review it with each release: point it elsewhere, or drop the row once Sofadrop is published
         private const val BETA_URL = "https://github.com/rfmarcos/sofadrop/releases/tag/v1.2.1"

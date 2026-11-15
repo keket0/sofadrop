@@ -25,10 +25,10 @@
     <string name="focused_card_title">Focused card (beta)</string>
     <string name="focused_card_off">Off</string>
     <string name="focused_card_episode">Episode when known</string>
-    <string name="focused_card_episode_sharp">Episode, sharp image</string>
-    <string name="focused_card_episode_sharp_desc">A low-quality episode image gives way to its series\' (the episode\'s details stay)</string>
+    <string name="focused_card_episode_desc">With the episode\'s image, or its series\' when it\'s low quality</string>
+    <string name="focused_card_episode_series_image">Episode, series image</string>
     <string name="focused_card_series">Series or movie</string>
-    <string name="focused_card_explain">While you\'re on a movie, series or episode in a Projectivy channel, the wallpaper becomes that title (looked up on TMDB by the card\'s name). The first time on a card it takes a few seconds; after that it\'s instant. It\'s new: if a card shows the wrong title, send the card log.</string>
+    <string name="focused_card_explain">While you\'re on a movie, series or episode in a Projectivy channel, the wallpaper becomes that title (looked up on TMDB by the card\'s name). The first time on a card it takes a few seconds; after that it\'s instant. It\'s new: if a card shows the wrong title, send the card log (in About).</string>
     <string name="focused_log_title">Card log</string>
     <string name="focused_log_none">No cards yet</string>
     <string name="focused_log_explain">The last cards you were on, what each app said about them and what Sofadrop found. Send it if a card doesn\'t show the right wallpaper: it helps make this work with more apps.</string>
@@ -326,10 +326,10 @@
     <string name="status_select_list">Select at least one list</string>
     <string name="select_list_first">Select at least one list first</string>
     <string name="synopsis_title">Synopsis</string>
-    <string name="synopsis_full">Full (4 lines)</string>
+    <string name="synopsis_full">Normal (4 lines)</string>
     <string name="synopsis_short">Short (2 lines)</string>
-    <string name="synopsis_scroll">All of it, scrolling</string>
-    <string name="synopsis_scroll_desc">Long ones scroll by themselves. In Projectivy they\'re videos: 1–3 MB each, slower to make.</string>
+    <string name="synopsis_scroll">Full, scrolling</string>
+    <string name="synopsis_scroll_desc">Long ones scroll by themselves. In Projectivy they\'re videos: they take more space and longer to make.</string>
     <string name="synopsis_hidden">Hidden</string>
     <string name="synopsis_summary_short">short synopsis</string>
     <string name="synopsis_summary_scroll">scrolling synopsis</string>

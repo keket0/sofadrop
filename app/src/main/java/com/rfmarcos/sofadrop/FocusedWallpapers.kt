@@ -61,7 +61,7 @@ object FocusedWallpapers {
     /** Search results tried for an episode's still: the first is almost always it, the next for series with the same name. */
     private const val SHOWS_TRIED = 3
     /**
-     * Narrower episode stills are low quality for [Settings.FOCUSED_EPISODE_SHARP]: TMDB has many at 400 or
+     * Narrower episode stills are low quality for [Settings.FOCUSED_EPISODE]: TMDB has many at 400 or
      * 640 px, blurry across a TV; 1280 px ones still look fine at 1080p.
      */
     private const val MIN_STILL_WIDTH = 1280
@@ -233,14 +233,10 @@ object FocusedWallpapers {
         }
     }
 
-    /** The episode's still alone while its wallpaper is drawn; with [Settings.FOCUSED_EPISODE_SHARP], once it's known to be sharp. */
+    /** The episode's still alone while its wallpaper is drawn, once it's known to be sharp ([Settings.FOCUSED_EPISODE] only). */
     private fun fallback(card: FocusedCard, mode: String): Wallpaper? {
         val still = card.still ?: return null
-        val shown = when (mode) {
-            Settings.FOCUSED_EPISODE -> true
-            Settings.FOCUSED_EPISODE_SHARP -> (stillWidths[still] ?: 0) >= MIN_STILL_WIDTH
-            else -> false
-        }
+        val shown = mode == Settings.FOCUSED_EPISODE && (stillWidths[still] ?: 0) >= MIN_STILL_WIDTH
         return if (shown) wallpaper(TmdbClient.IMAGE_URL + "original" + still, card.title) else null
     }
 
@@ -265,12 +261,12 @@ object FocusedWallpapers {
     private fun filePrefix() = Integer.toHexString(Profile.WALLPAPER.signature.hashCode())
 
     /**
-     * "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3.jpg" for an episode ("…-s1e3-sharp.jpg"
-     * with [Settings.FOCUSED_EPISODE_SHARP], which may have the series' image).
+     * "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3-sharp.jpg" for an episode (its image,
+     * or the series' when it's low quality), "…-s1e3-series.jpg" for an episode on the series' image.
      */
     private fun fileOf(context: Context, prefix: String, match: Match, mode: String): File {
         val episode = match.episode?.takeIf { Settings.showsEpisodes(mode) }
-            ?.let { "-s${it.season}e${it.number}" + if (mode == Settings.FOCUSED_EPISODE_SHARP) "-sharp" else "" }.orEmpty()
+            ?.let { "-s${it.season}e${it.number}" + if (mode == Settings.FOCUSED_EPISODE_SERIES_IMAGE) "-series" else "-sharp" }.orEmpty()
         return File(dir(context), "$prefix-${match.ref.type.path}-${match.ref.tmdbId}$episode.jpg")
     }
 
@@ -296,9 +292,13 @@ object FocusedWallpapers {
         val details = profile.drawsDetails
         val language = Settings.language
         val episode = match.episode?.takeIf { Settings.showsEpisodes(mode) }
-        // A low-quality still gives way to the series' backdrop, under the episode's details
-        val still = card.still?.takeIf { episode != null && (mode != Settings.FOCUSED_EPISODE_SHARP || sharp(factory.client, it)) }
-        val lowQuality = if (episode != null && card.still != null && still == null) " · low-quality still (${stillWidths[card.still] ?: "?"} px): series image" else ""
+        // A low-quality still gives way to the series' backdrop, under the episode's details; or the series' always
+        val still = card.still?.takeIf { episode != null && mode == Settings.FOCUSED_EPISODE && sharp(factory.client, it) }
+        val lowQuality = when {
+            episode == null || card.still == null || still != null -> ""
+            mode == Settings.FOCUSED_EPISODE_SERIES_IMAGE -> " · series image"
+            else -> " · low-quality still (${stillWidths[card.still] ?: "?"} px): series image"
+        }
         // No list behind it: no list name in the footer
         val drawn = info.copy(sourceLabel = null, sourceProvider = null).let { title ->
             if (episode == null || card.still == null) title

@@ -206,14 +206,15 @@ class PluginServiceTest {
     }
 
     /**
-     * "Episode, sharp image": Doctor Who's first episode (1963) has a 480 px still on TMDB, which gives way to
-     * the series' backdrop; Breaking Bad's first has a 1920 px one, which stays (2026-11).
+     * "Episode": Doctor Who's first episode (1963) has a 480 px still on TMDB, which gives way to the series'
+     * backdrop; Breaking Bad's first has a 1920 px one, which stays (2026-11). "Episode, series image" takes
+     * the series' backdrop for Breaking Bad too.
      */
     @Test
     fun lowQualityStillsGiveWayToTheSeries() {
         Settings.init(context)
         val mode = Settings.focusedCard
-        Settings.focusedCard = Settings.FOCUSED_EPISODE_SHARP
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
         FocusedLog.clear(context)
         // Drawn by an earlier run they'd only be "cached" in the log
         java.io.File(context.filesDir, "${WallpaperStore.DIR}/${FocusedWallpapers.DIR}").listFiles()
@@ -227,7 +228,13 @@ class PluginServiceTest {
             val log = FocusedLog.read(context)
             Log.i(TAG, "Sharp: $log")
             assertTrue(log.any { "tv/121 " in it && "S1E1 by still" in it && "low-quality still (480 px)" in it })
-            assertTrue(log.any { "tv/1396 " in it && "S1E1 by still" in it && "episode in" in it && "low-quality" !in it })
+            assertTrue(log.any { "tv/1396 " in it && "S1E1 by still" in it && "episode in" in it && "image" !in it.substringAfter("episode in") })
+
+            Settings.focusedCard = Settings.FOCUSED_EPISODE_SERIES_IMAGE
+            FocusedLog.clear(context)
+            assertEquals(1, answer(service, breakingBad).size)
+            Log.i(TAG, "Series image: ${FocusedLog.read(context)}")
+            assertTrue(FocusedLog.read(context).any { "tv/1396 " in it && "episode in" in it && "· series image" in it })
         } finally {
             Settings.focusedCard = mode
         }
