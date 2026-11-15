@@ -49,20 +49,40 @@ object ScrollVideo {
         return times.map { offsetAt(it) to it }
     }
 
+    private fun avcEncoders() = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
+        .filter { it.isEncoder && it.supportedTypes.any { type -> type.equals(MediaFormat.MIMETYPE_VIDEO_AVC, ignoreCase = true) } }
+        // The device's own (hardware) encoders before Android's software ones
+        .sortedBy { it.name.startsWith("c2.android.") || it.name.startsWith("OMX.google.") }
+
+    /**
+     * An H.264 encoder and the size it takes nearest [width] by [height]: the Chromecast with Google TV's
+     * hardware encoder only takes multiples of 16 (1920x1072 for 1080p, a squeeze nobody sees), which
+     * `findEncoderForFormat` doesn't round to.
+     */
+    private fun encoderFor(width: Int, height: Int): Triple<String, Int, Int> {
+        for (info in avcEncoders()) {
+            val video = info.getCapabilitiesForType(MediaFormat.MIMETYPE_VIDEO_AVC).videoCapabilities ?: continue
+            val w = width / video.widthAlignment * video.widthAlignment
+            val h = height / video.heightAlignment * video.heightAlignment
+            if (video.isSizeSupported(w, h)) return Triple(info.name, w, h)
+        }
+        error("No H.264 encoder for ${width}x$height")
+    }
+
+    private fun vbr(name: String) = avcEncoders().first { it.name == name }.getCapabilitiesForType(MediaFormat.MIMETYPE_VIDEO_AVC)
+        .encoderCapabilities.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
+
     /** [synopsis] scrolling over [wallpaper] (its JPEG, the synopsis cut) into [file]; returns the encoder's name. */
     fun encode(synopsis: ScrollingSynopsis, wallpaper: Bitmap, file: File): String {
         val scale = min(1f, VIDEO_WIDTH / wallpaper.width.toFloat())
-        // Even sizes: what H.264 encoders take
-        val width = (wallpaper.width * scale).roundToInt() and 1.inv()
-        val height = (wallpaper.height * scale).roundToInt() and 1.inv()
+        val (name, width, height) = encoderFor((wallpaper.width * scale).roundToInt(), (wallpaper.height * scale).roundToInt())
         val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height).apply {
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
             setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 10)
-            setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
+            if (vbr(name)) setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
         }
-        val name = MediaCodecList(MediaCodecList.REGULAR_CODECS).findEncoderForFormat(format) ?: error("No H.264 encoder for ${width}x$height")
         val codec = MediaCodec.createByCodecName(name)
         val muxer = MediaMuxer(file.path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         try {
