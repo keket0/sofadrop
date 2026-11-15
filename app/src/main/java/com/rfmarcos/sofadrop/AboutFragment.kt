@@ -138,8 +138,8 @@ class AboutFragment : BaseSettingsFragment() {
         private const val ID_SETTINGS_FILE = 8L
         private const val ID_BETA = 9L
         private const val ID_CARD_LOG = 10L
-        // The 1.2.1 release, whose notes have the steps (the test's own link only works after joining its Google
-        // Group). Review it with each release: point it elsewhere, or drop the row once Sofadrop is published
-        private const val BETA_URL = "https://github.com/rfmarcos/sofadrop/releases/tag/v1.2.1"
+        // The README's steps (the test's own link only works after joining its Google Group). Drop the row once
+        // Sofadrop is published on Google Play
+        private const val BETA_URL = "https://github.com/rfmarcos/sofadrop#google-play-test"
     }
 }

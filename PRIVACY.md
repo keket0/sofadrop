@@ -1,6 +1,6 @@
 # Sofadrop privacy policy
 
-Last updated: November 5, 2026
+Last updated: November 15, 2026
 
 Sofadrop is a free app for Android TV, Google TV and Fire TV, made by rfmarcos, an individual developer. It makes wallpapers and a screensaver from movie and TV show lists, on your own device.
 
@@ -22,12 +22,14 @@ To work, Sofadrop connects directly from your device to these services. As with 
 | [Trakt](https://trakt.tv/privacy) | Optional: your lists, ratings and watch history | Your access token, if you connect an account |
 | [Simkl](https://simkl.com/privacy/) | Optional: your lists and watch history | Your access token, if you connect an account |
 | [MDBList](https://mdblist.com/) | Optional: ratings and lists | Your API key or access token, if you connect an account; titles requested |
+| [Plex](https://www.plex.tv/about/privacy-legal/) | Optional: lists and watch history from your Plex server, opening titles in the Plex app | Your Plex access token, if you connect an account; your server receives the requests for your library |
+| Your own Jellyfin server | Optional: lists and watch history from your library, opening titles in the Jellyfin app | The requests for your library; when you sign in, a Quick Connect code or your user and password |
 | [IMDb datasets](https://developer.imdb.com/non-commercial-datasets/) | Download of the public ratings file | Nothing specific to you |
 | [Wikidata](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy) | Links to titles on streaming services | Titles requested |
 | [Open-Meteo](https://open-meteo.com/en/terms) | Optional: the weather under the screensaver's clock | The place you typed, or its coordinates. Sofadrop never reads your device's location |
 | [YouTube](https://policies.google.com/privacy) | Opening a title's trailer, if you ask for it | The trailer you open |
 
-Accounts are connected by scanning a QR code with your phone, on the service's own page. Sofadrop never sees your passwords. You can disconnect an account in Settings → Accounts.
+Accounts are connected by scanning a QR code with your phone, on the service's own page, so Sofadrop never sees those passwords. The only exception is your own Jellyfin server: if you sign in there with your user and password instead of Quick Connect, they're sent only to that server and aren't stored; Sofadrop keeps the access token the server gives back. You can disconnect an account in Settings → Accounts.
 
 The version distributed on GitHub also asks GitHub whether there is a newer release. The Google Play version doesn't.
 
