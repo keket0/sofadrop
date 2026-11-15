@@ -22,6 +22,8 @@
     <string name="focused_card_title">Tarjeta seleccionada (beta)</string>
     <string name="focused_card_off">Desactivado</string>
     <string name="focused_card_episode">Episodio si se reconoce</string>
+    <string name="focused_card_episode_sharp">Episodio, con imagen nítida</string>
+    <string name="focused_card_episode_sharp_desc">Si la imagen del episodio es de poca calidad, se usa la de la serie (con los datos del episodio)</string>
     <string name="focused_card_series">Serie o película</string>
     <string name="focused_card_explain">Mientras estás sobre una película, serie o episodio en un canal de Projectivy, el fondo pasa a ser ese título (se busca en TMDB por el nombre de la tarjeta). La primera vez en una tarjeta tarda unos segundos; después sale al momento. Es nuevo: si una tarjeta muestra otro título, envía el registro de tarjetas.</string>
     <string name="focused_log_title">Registro de tarjetas</string>

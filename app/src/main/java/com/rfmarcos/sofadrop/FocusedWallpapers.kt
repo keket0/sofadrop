@@ -2,6 +2,7 @@ package com.rfmarcos.sofadrop
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import kotlinx.serialization.json.JsonObject
@@ -57,6 +58,11 @@ object FocusedWallpapers {
     private const val MAX_AGE_MILLIS = 7 * 24 * 60 * 60 * 1000L
     /** Search results tried for an episode's still: the first is almost always it, the next for series with the same name. */
     private const val SHOWS_TRIED = 3
+    /**
+     * Narrower episode stills are low quality for [Settings.FOCUSED_EPISODE_SHARP]: TMDB has many at 400 or
+     * 640 px, blurry across a TV; 1280 px ones still look fine at 1080p.
+     */
+    private const val MIN_STILL_WIDTH = 1280
     /** Results named in the log when none is named like the card. */
     private const val CLOSEST_LOGGED = 3
 
@@ -74,6 +80,8 @@ object FocusedWallpapers {
 
     /** What each card is, by [FocusedCard.key]. */
     private val found = ConcurrentHashMap<String, Match>()
+    /** Width of each episode still's original, by its path, once downloaded. */
+    private val stillWidths = ConcurrentHashMap<String, Int>()
     /** Cards that matched nothing: not searched again until Sofadrop restarts. */
     private val unmatched = ConcurrentHashMap.newKeySet<String>()
     private val drawing = ConcurrentHashMap<String, Future<*>>()
@@ -162,8 +170,27 @@ object FocusedWallpapers {
         return wallpaper(uri.toString(), card.title)
     }
 
-    private fun fallback(card: FocusedCard, mode: String) =
-        if (mode == Settings.FOCUSED_EPISODE && card.still != null) wallpaper(TmdbClient.IMAGE_URL + "original" + card.still, card.title) else null
+    /** The episode's still alone while its wallpaper is drawn; with [Settings.FOCUSED_EPISODE_SHARP], once it's known to be sharp. */
+    private fun fallback(card: FocusedCard, mode: String): Wallpaper? {
+        val still = card.still ?: return null
+        val shown = when (mode) {
+            Settings.FOCUSED_EPISODE -> true
+            Settings.FOCUSED_EPISODE_SHARP -> (stillWidths[still] ?: 0) >= MIN_STILL_WIDTH
+            else -> false
+        }
+        return if (shown) wallpaper(TmdbClient.IMAGE_URL + "original" + still, card.title) else null
+    }
+
+    /** [still] is at least [MIN_STILL_WIDTH] wide (its original, which the drawing downloads anyway); not when it can't be read. */
+    private fun sharp(client: TmdbClient, still: String): Boolean {
+        val width = stillWidths[still] ?: run {
+            val bytes = client.image(still, "original") ?: return false
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            bounds.outWidth.also { stillWidths[still] = it }
+        }
+        return width >= MIN_STILL_WIDTH
+    }
 
     private fun wallpaper(uri: String, title: String) =
         Wallpaper(uri = uri, type = WallpaperType.IMAGE, displayMode = WallpaperDisplayMode.CROP, title = title)
@@ -173,9 +200,13 @@ object FocusedWallpapers {
     /** Drawn with other settings, it's another file. */
     private fun filePrefix() = Integer.toHexString(Profile.WALLPAPER.signature.hashCode())
 
-    /** "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3.jpg" for an episode. */
+    /**
+     * "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3.jpg" for an episode ("…-s1e3-sharp.jpg"
+     * with [Settings.FOCUSED_EPISODE_SHARP], which may have the series' image).
+     */
     private fun fileOf(context: Context, prefix: String, match: Match, mode: String): File {
-        val episode = match.episode?.takeIf { mode == Settings.FOCUSED_EPISODE }?.let { "-s${it.season}e${it.number}" }.orEmpty()
+        val episode = match.episode?.takeIf { Settings.showsEpisodes(mode) }
+            ?.let { "-s${it.season}e${it.number}" + if (mode == Settings.FOCUSED_EPISODE_SHARP) "-sharp" else "" }.orEmpty()
         return File(dir(context), "$prefix-${match.ref.type.path}-${match.ref.tmdbId}$episode.jpg")
     }
 
@@ -200,12 +231,15 @@ object FocusedWallpapers {
         }
         val details = profile.drawsDetails
         val language = Settings.language
-        val episode = match.episode?.takeIf { mode == Settings.FOCUSED_EPISODE }
+        val episode = match.episode?.takeIf { Settings.showsEpisodes(mode) }
+        // A low-quality still gives way to the series' backdrop, under the episode's details
+        val still = card.still?.takeIf { episode != null && (mode != Settings.FOCUSED_EPISODE_SHARP || sharp(factory.client, it)) }
+        val lowQuality = if (episode != null && card.still != null && still == null) " · low-quality still (${stillWidths[card.still] ?: "?"} px): series image" else ""
         // No list behind it: no list name in the footer
         val drawn = info.copy(sourceLabel = null, sourceProvider = null).let { title ->
             if (episode == null || card.still == null) title
             else title.copy(
-                backdropPath = card.still,
+                backdropPath = still ?: title.backdropPath,
                 extraInfo = if (details && profile.showsInHeader(Settings.HEADER_RUNTIME))
                     listOf(Languages.episodeCode(language, episode.season, episode.number), episode.name).filter { it.isNotBlank() }.joinToString(" · ")
                 else title.extraInfo,
@@ -225,7 +259,7 @@ object FocusedWallpapers {
         prune(context)
         val seconds = (System.currentTimeMillis() - start) / 100 / 10.0
         Log.i(TAG, "${card.title}: ${file.name} drawn in $seconds s")
-        FocusedLog.add(context, card, "${match.note} · ${if (episode != null) "episode" else match.ref.type.path} in $seconds s")
+        FocusedLog.add(context, card, "${match.note} · ${if (episode != null) "episode" else match.ref.type.path} in $seconds s$lowQuality")
     }
 
     /** Older than [MAX_AGE_MILLIS] or beyond the [MAX_FILES] last used: they go. */

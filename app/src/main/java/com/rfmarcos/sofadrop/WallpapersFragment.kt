@@ -81,7 +81,9 @@ class WallpapersFragment : OutputFragment() {
         val labels = Settings.FOCUSED_OPTIONS.map { focusedCardLabel(it) }
         val cards = FocusedLog.read(requireContext()).size
         return listOfNotNull(
-            choice(ID_FOCUSED_CARD, R.drawable.ic_act_play, R.string.focused_card_title, focusedCardLabel(Settings.focusedCard), labels),
+            action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), focusedCardLabel(Settings.focusedCard))
+                .subActions(options(ID_FOCUSED_CARD, labels, focusedCardLabel(Settings.focusedCard),
+                    Settings.FOCUSED_OPTIONS.map { if (it == Settings.FOCUSED_EPISODE_SHARP) getString(R.string.focused_card_episode_sharp_desc) else null })).build(),
             action(ID_FOCUSED_LOG, R.drawable.ic_act_status, getString(R.string.focused_log_title),
                 if (cards == 0) getString(R.string.focused_log_none) else resources.getQuantityString(R.plurals.focused_log_cards, cards, cards))
                 .hasNext(cards > 0).enabled(cards > 0).build()
@@ -91,6 +93,7 @@ class WallpapersFragment : OutputFragment() {
 
     private fun focusedCardLabel(mode: String) = getString(when (mode) {
         Settings.FOCUSED_EPISODE -> R.string.focused_card_episode
+        Settings.FOCUSED_EPISODE_SHARP -> R.string.focused_card_episode_sharp
         Settings.FOCUSED_SERIES -> R.string.focused_card_series
         else -> R.string.focused_card_off
     })

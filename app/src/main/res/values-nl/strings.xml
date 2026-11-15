@@ -23,6 +23,8 @@
     <string name="focused_card_title">Geselecteerde kaart (bèta)</string>
     <string name="focused_card_off">Uit</string>
     <string name="focused_card_episode">Aflevering indien herkend</string>
+    <string name="focused_card_episode_sharp">Aflevering, scherpe afbeelding</string>
+    <string name="focused_card_episode_sharp_desc">Is de afleveringsafbeelding van lage kwaliteit, dan die van de serie (met de afleveringsgegevens)</string>
     <string name="focused_card_series">Serie of film</string>
     <string name="focused_card_explain">Terwijl je op een film, serie of aflevering in een kanaal van Projectivy staat, wordt de achtergrond die titel (op TMDB gezocht op de naam van de kaart). De eerste keer op een kaart duurt het een paar seconden; daarna is hij er meteen. Dit is nieuw: als een kaart een verkeerde titel toont, stuur dan het kaartenlogboek.</string>
     <string name="focused_log_title">Kaartenlogboek</string>

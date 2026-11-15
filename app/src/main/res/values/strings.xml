@@ -25,6 +25,8 @@
     <string name="focused_card_title">Focused card (beta)</string>
     <string name="focused_card_off">Off</string>
     <string name="focused_card_episode">Episode when known</string>
+    <string name="focused_card_episode_sharp">Episode, sharp image</string>
+    <string name="focused_card_episode_sharp_desc">A low-quality episode image gives way to its series\' (the episode\'s details stay)</string>
     <string name="focused_card_series">Series or movie</string>
     <string name="focused_card_explain">While you\'re on a movie, series or episode in a Projectivy channel, the wallpaper becomes that title (looked up on TMDB by the card\'s name). The first time on a card it takes a few seconds; after that it\'s instant. It\'s new: if a card shows the wrong title, send the card log.</string>
     <string name="focused_log_title">Card log</string>

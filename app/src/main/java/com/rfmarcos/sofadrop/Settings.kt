@@ -147,11 +147,18 @@ object Settings {
     const val SYNOPSIS_ENGLISH = "english"
     const val SYNOPSIS_SKIP = "skip"
     val SYNOPSIS_MODES = listOf(SYNOPSIS_HIDE, SYNOPSIS_ENGLISH, SYNOPSIS_SKIP)
-    /** While a card is focused: leave the wallpaper alone, show its episode when it's known, or always its series (or movie). */
+    /**
+     * While a card is focused: leave the wallpaper alone, show its episode when it's known (with the series'
+     * image when the episode's is low quality, in [FOCUSED_EPISODE_SHARP]), or always its series (or movie).
+     */
     const val FOCUSED_OFF = "off"
     const val FOCUSED_EPISODE = "episode"
+    const val FOCUSED_EPISODE_SHARP = "episode_sharp"
     const val FOCUSED_SERIES = "series"
-    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_SERIES)
+    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_EPISODE_SHARP, FOCUSED_SERIES)
+
+    /** The focused card's [mode] shows episodes. */
+    fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SHARP
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"

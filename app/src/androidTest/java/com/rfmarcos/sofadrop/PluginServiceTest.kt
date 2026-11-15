@@ -180,6 +180,31 @@ class PluginServiceTest {
         }
     }
 
+    /**
+     * "Episode, sharp image": Doctor Who's first episode (1963) has a 480 px still on TMDB, which gives way to
+     * the series' backdrop; Breaking Bad's first has a 1920 px one, which stays (2026-11).
+     */
+    @Test
+    fun lowQualityStillsGiveWayToTheSeries() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE_SHARP
+        FocusedLog.clear(context)
+        try {
+            val service = bind()
+            val doctorWho = Event.ProgramCardFocused(title = "Doctor Who", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/geJKM80SjYZIG5XNwonRHIkKBrF.jpg")
+            assertEquals(1, answer(service, doctorWho).size)
+            val breakingBad = Event.ProgramCardFocused(title = "Breaking Bad", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg")
+            assertEquals(1, answer(service, breakingBad).size)
+            val log = FocusedLog.read(context)
+            Log.i(TAG, "Sharp: $log")
+            assertTrue(log.any { "tv/121 " in it && "S1E1 by still" in it && "low-quality still (480 px)" in it })
+            assertTrue(log.any { "tv/1396 " in it && "S1E1 by still" in it && "episode in" in it && "low-quality" !in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
     /** What the service answers [event] with once the card is drawn, or found to be nothing (asked again as Projectivy does). */
     private fun answer(service: IWallpaperProviderService, event: Event.ProgramCardFocused): List<tv.projectivy.plugin.wallpaperprovider.api.Wallpaper> {
         val card = FocusedWallpapers.card(event.title, event.type, event.iconUri)!!
