@@ -79,6 +79,8 @@ object FocusedWallpapers {
     private val notAlphanumeric = Regex("""[^\p{L}\p{N}]+""")
     /** Between a series and its episode in a card's title: a spaced hyphen or dash. */
     private val seriesSeparator = Regex("""\s[-–—]\s""")
+    /** " / " between a translated and an original title, as in kino.pub's "Терапия / Shrinking". */
+    private val bilingualSeparator = Regex("""\s+/\s+""")
 
     /** What each card is, by [FocusedCard.key]. */
     private val found = ConcurrentHashMap<String, Match>()
@@ -116,6 +118,13 @@ object FocusedWallpapers {
 
     /** "/abc.jpg" from a TMDB image URL of any size; null for any other image. */
     fun stillOf(iconUri: String?): String? = iconUri?.let { stillPattern.find(it)?.groupValues?.get(1) }
+
+    /**
+     * The names [title] may go by on TMDB: the whole title and, for a bilingual one like "Терапия / Shrinking"
+     * (kino.pub), each side of the " / ".
+     */
+    fun titleVariants(title: String): List<String> =
+        (listOf(title) + title.split(bilingualSeparator)).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
     /** "matchboxlapelicula" for "Matchbox: La película": names compared without case, accents or punctuation. */
     fun normalized(title: String): String =
@@ -362,41 +371,75 @@ object FocusedWallpapers {
     }
 
     /**
-     * The movie or series named exactly like [card] (or originally named so), in the TV's language and then the
-     * wallpapers'; with several, the first TMDB gives (the most relevant). Its note says how sure it was.
-     * Without one, the first results instead ("Lucky Hank (2023), …"), for the log.
+     * How good a search result is for a card: each of its names (translated, original) that matches the card
+     * counts double, and having a backdrop to draw counts one. 0: not named like the card at all.
+     */
+    fun candidateScore(namesMatched: Int, hasBackdrop: Boolean): Int =
+        if (namesMatched <= 0) 0 else namesMatched * 2 + (if (hasBackdrop) 1 else 0)
+
+    /** The score that needs no further searching: every name of the card matched, with a backdrop. */
+    fun perfectScore(bilingual: Boolean): Int = candidateScore(if (bilingual) 2 else 1, true)
+
+    private class Candidate(val media: MediaType, val id: Int, val result: JsonObject, val query: String, val language: String, val score: Int)
+
+    /**
+     * The movie or series named exactly like [card] (see [findNamed]). The card's kind is tried first, then the
+     * other one: some apps (kino.pub) mark movies as series. Without a match, the first results instead
+     * ("Lucky Hank (2023), …"), for the log.
      */
     private fun findTitle(client: TmdbClient, card: FocusedCard): Pair<Match?, String> {
-        val (match, closest) = findNamed(client, card.title, card.media, "name")
+        val medias = listOf(card.media) + MediaType.entries.filter { it != card.media }
+        val (match, closest) = findNamed(client, card, card.title, medias, "by name")
         if (match != null) return match to closest
         // Paramount+ names its series' cards after the series and the episode: the series alone. Not for movies,
         // whose subtitles follow a " - " too ("Mission: Impossible - Dead Reckoning" isn't the 1966 series)
         if (card.media != MediaType.TV) return null to closest
         val series = seriesNameOf(card.title) ?: return null to closest
-        return findNamed(client, series, MediaType.TV, "series name").first to closest
+        return findNamed(client, card, series, listOf(MediaType.TV), "by series name").first to closest
     }
 
     /** "Marshals" for "Marshals - Mehr Schein als Sein"; null for a title without " - ". */
     fun seriesNameOf(title: String): String? =
         seriesSeparator.find(title)?.let { title.substring(0, it.range.first).trim() }?.takeIf { it.isNotEmpty() }
 
-    private fun findNamed(client: TmdbClient, title: String, media: MediaType, how: String): Pair<Match?, String> {
-        val target = normalized(title)
-        val path = media.path
-        val name = if (media == MediaType.MOVIE) "title" else "name"
-        val original = "original_$name"
+    /**
+     * The movie or series among [medias] named exactly like [title] (or originally named so), in the TV's
+     * language and then the wallpapers'; between equals, the first TMDB gives (the most relevant). Its note says
+     * how sure it was. A bilingual title ("Терапия / Shrinking", as kino.pub names them) is also searched by each
+     * side; a result named like both sides, and one with a backdrop, goes first ([candidateScore]).
+     */
+    private fun findNamed(client: TmdbClient, card: FocusedCard, title: String, medias: List<MediaType>, how: String): Pair<Match?, String> {
+        val variants = titleVariants(title)
+        val targets = variants.map { normalized(it) }.toSet()
+        val enough = perfectScore(variants.size > 1)
+        val languages = listOf(Locale.getDefault().toLanguageTag(), Settings.language).distinct()
         var closest = ""
-        for (language in listOf(Locale.getDefault().toLanguageTag(), Settings.language).distinct()) {
-            val results = client.get("search/$path?query=${URLEncoder.encode(title, "UTF-8")}&language=$language")
-                ?.objects("results").orEmpty()
-            if (closest.isEmpty()) closest = results.take(CLOSEST_LOGGED).joinToString(", ") { "${it.str(name).orEmpty()} (${yearOf(it)})" }
-            val exact = results.filter { result -> listOf(name, original).any { normalized(result.str(it).orEmpty()) == target } }
-            val first = exact.firstOrNull() ?: continue
-            val id = first.int("id") ?: continue
-            val others = if (exact.size > 1) " · ${exact.size} named so" else ""
-            return Match(TitleRef(media, id), null, "$path/$id ${first.str(name).orEmpty()} (${yearOf(first)}) by $how $language$others") to closest
+        var best: Candidate? = null
+        search@ for (media in medias) {
+            val name = if (media == MediaType.MOVIE) "title" else "name"
+            val original = "original_$name"
+            for (query in variants) {
+                for (language in languages) {
+                    val results = client.get("search/${media.path}?query=${URLEncoder.encode(query, "UTF-8")}&language=$language")
+                        ?.objects("results").orEmpty()
+                    if (closest.isEmpty()) closest = results.take(CLOSEST_LOGGED).joinToString(", ") { "${it.str(name).orEmpty()} (${yearOf(it)})" }
+                    for (result in results) {
+                        val id = result.int("id") ?: continue
+                        val matched = listOf(name, original).count { normalized(result.str(it).orEmpty()) in targets }
+                        val score = candidateScore(matched, !result.str("backdrop_path").isNullOrEmpty())
+                        // Strictly better only: between equals, TMDB's order (relevance) and the card's own kind win
+                        if (score > (best?.score ?: 0)) best = Candidate(media, id, result, query, language, score)
+                    }
+                    if ((best?.score ?: 0) >= enough) break@search
+                }
+            }
         }
-        return null to closest
+        val found = best ?: return null to closest
+        val name = if (found.media == MediaType.MOVIE) "title" else "name"
+        val by = if (found.query == title) how else "$how \"${found.query}\""
+        val kind = if (found.media != card.media) " (card says ${card.media.path})" else ""
+        val note = "${found.media.path}/${found.id} ${found.result.str(name).orEmpty()} (${yearOf(found.result)}) $by ${found.language}$kind · score ${found.score}/$enough"
+        return Match(TitleRef(found.media, found.id), null, note) to closest
     }
 
     private fun yearOf(result: JsonObject) = (result.str("release_date") ?: result.str("first_air_date")).orEmpty().take(4).ifEmpty { "?" }

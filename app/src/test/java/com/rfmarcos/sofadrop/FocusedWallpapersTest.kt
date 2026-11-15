@@ -3,6 +3,7 @@ package com.rfmarcos.sofadrop
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Focused cards, as Projectivy describes them (Nuvio's "Continue watching" and the Apple TV channel, 2026-11). */
@@ -69,6 +70,30 @@ class FocusedWallpapersTest {
         assertNull(FocusedWallpapers.seriesNameOf("Spider-Man: No Way Home"))
         assertNull(FocusedWallpapers.seriesNameOf("Slow Horses"))
         assertNull(FocusedWallpapers.seriesNameOf(" - Pilot"))
+    }
+
+    @Test
+    fun bilingualTitlesSearchedByEachSide() {
+        assertEquals(listOf("Терапия / Shrinking", "Терапия", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking"))
+        assertEquals(listOf("Чужой: Земля / Alien: Earth", "Чужой: Земля", "Alien: Earth"), FocusedWallpapers.titleVariants("Чужой: Земля / Alien: Earth"))
+        // No spaces around the slash: part of the name, not a separator
+        assertEquals(listOf("AC/DC"), FocusedWallpapers.titleVariants("AC/DC"))
+        assertEquals(listOf("Slow Horses"), FocusedWallpapers.titleVariants("Slow Horses"))
+    }
+
+    @Test
+    fun bothNamesAndABackdropWinOverOneName() {
+        // "Величайший / The Greatest": the old "The Greatest" without images loses to the right one
+        val oneNameNoImage = FocusedWallpapers.candidateScore(1, false)
+        val oneNameWithImage = FocusedWallpapers.candidateScore(1, true)
+        val bothNames = FocusedWallpapers.candidateScore(2, false)
+        val bothNamesWithImage = FocusedWallpapers.candidateScore(2, true)
+        assertTrue(oneNameNoImage < oneNameWithImage)
+        assertTrue(oneNameWithImage < bothNames)
+        assertTrue(bothNames < bothNamesWithImage)
+        assertEquals(0, FocusedWallpapers.candidateScore(0, true))
+        assertEquals(bothNamesWithImage, FocusedWallpapers.perfectScore(bilingual = true))
+        assertEquals(oneNameWithImage, FocusedWallpapers.perfectScore(bilingual = false))
     }
 
     @Test
