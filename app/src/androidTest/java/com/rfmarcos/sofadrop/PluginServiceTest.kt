@@ -161,7 +161,7 @@ class PluginServiceTest {
         Settings.focusedCard = Settings.FOCUSED_EPISODE
         FocusedLog.clear(context)
         try {
-            val service = bind()
+            val service = bindAsProjectivy()
             val skyMed = Event.ProgramCardFocused(title = "SkyMed - Frau im Cockpit", type = 3, iconUri = "https://thumbnails.cbsig.net/example.jpg")
             val wallpapers = answer(service, skyMed)
             Log.i(TAG, "SkyMed: ${wallpapers.map { it.uri }} · ${FocusedLog.read(context)}")
@@ -191,7 +191,7 @@ class PluginServiceTest {
         Settings.focusedCard = Settings.FOCUSED_EPISODE
         FocusedLog.clear(context)
         try {
-            val service = bind()
+            val service = bindAsProjectivy()
             val series = Event.ProgramCardFocused(title = "Терапия / Shrinking", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
             assertEquals(1, answer(service, series).size)
             val movie = Event.ProgramCardFocused(title = "Хороший адвокат / Un bon avocat", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
@@ -220,7 +220,7 @@ class PluginServiceTest {
         java.io.File(context.filesDir, "${WallpaperStore.DIR}/${FocusedWallpapers.DIR}").listFiles()
             ?.filter { "-tv-121-" in it.name || "-tv-1396-" in it.name }?.forEach { it.delete() }
         try {
-            val service = bind()
+            val service = bindAsProjectivy()
             val doctorWho = Event.ProgramCardFocused(title = "Doctor Who", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/geJKM80SjYZIG5XNwonRHIkKBrF.jpg")
             assertEquals(1, answer(service, doctorWho).size)
             val breakingBad = Event.ProgramCardFocused(title = "Breaking Bad", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg")
@@ -251,6 +251,9 @@ class PluginServiceTest {
         }
         return emptyList()
     }
+
+    /** Bound and already given the set, as Projectivy is after its first request: card events then wait for their card. */
+    private fun bindAsProjectivy(): IWallpaperProviderService = bind().also { it.getWallpapers(Event.TimeElapsed) }
 
     private fun bind(): IWallpaperProviderService {
         val latch = CountDownLatch(1)

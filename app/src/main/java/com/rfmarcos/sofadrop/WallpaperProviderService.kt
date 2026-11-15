@@ -26,11 +26,19 @@ class WallpaperProviderService : Service() {
     /** Projectivy shows [focusedCard]'s wallpaper, which must give way to the set when the focus leaves it. */
     @Volatile private var showingCard = false
 
+    /**
+     * Projectivy got the set since it bound this service. Started cold (after a reboot), it shows a black
+     * background until it gets a list, and its first request is often a card event: answering that one
+     * empty left the screen black until the first TimeElapsed (reported 2026-11-15).
+     */
+    @Volatile private var servedSet = false
+
     private val binder = object : IWallpaperProviderService.Stub() {
 
         /**
-         * Projectivy asks on start, every few seconds (TimeElapsed) and, as the manifest's updateMode asks,
-         * when a card is focused and when it goes idle. An empty answer leaves the wallpaper as it is.
+         * Projectivy asks every few seconds (TimeElapsed) and, as the manifest's updateMode asks, when a card
+         * is focused and when it goes idle; there's no request of its own on start. An empty answer leaves
+         * the wallpaper as it is, so the first request of any kind gets the set.
          */
         override fun getWallpapers(event: Event?): List<Wallpaper> {
             Log.d(TAG, "getWallpapers(${event?.javaClass?.simpleName})")
@@ -46,7 +54,7 @@ class WallpaperProviderService : Service() {
                     if (card != null) {
                         cardWallpaper(card, mode)?.let { return it }
                         // Still drawn, or focus moved on: the wallpaper stays. Found nothing: as with any other card
-                        if (focusedCard !== card || !FocusedWallpapers.matchesNothing(card)) return emptyList()
+                        if (servedSet && (focusedCard !== card || !FocusedWallpapers.matchesNothing(card))) return emptyList()
                     }
                 }
                 is Event.CardFocused, is Event.LauncherIdleModeChanged -> focusedCard = null
@@ -55,10 +63,10 @@ class WallpaperProviderService : Service() {
                     // The same wait as the card's own request: answering the set now would win over it
                     else cardWallpaper(card, mode)?.let { return it }
                 }
-                else -> return emptyList()
+                else -> if (servedSet) return emptyList()
             }
             // Away from the card: its wallpaper gives way to the set; otherwise card events change nothing
-            if (event !is Event.TimeElapsed && !showingCard) return emptyList()
+            if (event !is Event.TimeElapsed && !showingCard && servedSet) return emptyList()
             showingCard = false
             return wallpapers()
         }
@@ -105,7 +113,7 @@ class WallpaperProviderService : Service() {
                     // "Watch" in Projectivy's "About this wallpaper" and a play button on its status bar
                     actionUri = actionUri(this@WallpaperProviderService, wallpaper, apps),
                 )
-            }
+            }.also { if (it.isNotEmpty()) servedSet = true }
         }
 
         override fun getPreferences(): String = Settings.export()
