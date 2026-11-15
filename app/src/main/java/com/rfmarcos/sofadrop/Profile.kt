@@ -398,7 +398,7 @@ class Profile private constructor(val id: String, private val prefix: String) {
         get() = with(Settings) {
             listOf(
                 token.hashCode(), language, region, lists.sorted().joinToString(","), titlesPerList,
-                outputWidth, globalHitsOnly, showProviders, selectionMode, watchSource?.let { "$it:$watchedMode" }.orEmpty(),
+                outputWidth, globalHitsOnly, showProviders, selectionMode, watchSources.takeIf { it.isNotEmpty() }?.let { "${it.joinToString("+")}:$watchedMode" }.orEmpty(),
                 // Without the genre field lists don't use, so updating doesn't show a pending change
                 maxAgeMonths, excludeAdult, listFilters.toSortedMap().toString().replace(", genres=null", "").replace(", minRating=null", ""),
             // Only when changed, so existing installs don't see a pending change after updating

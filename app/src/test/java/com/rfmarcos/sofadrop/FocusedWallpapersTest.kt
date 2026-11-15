@@ -3,6 +3,7 @@ package com.rfmarcos.sofadrop
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Focused cards, as Projectivy describes them (Nuvio's "Continue watching" and the Apple TV channel, 2026-11). */
@@ -60,6 +61,61 @@ class FocusedWallpapersTest {
         assertEquals("slowhorses", FocusedWallpapers.normalized("Slow Horses"))
         assertEquals("第2季", FocusedWallpapers.normalized("第2季"))
         assertNotEquals(FocusedWallpapers.normalized("Brothers"), FocusedWallpapers.normalized("Brother"))
+    }
+
+    @Test
+    fun paramountCardsNameTheSeriesFirst() {
+        assertEquals("Marshals", FocusedWallpapers.seriesNameOf("Marshals - Mehr Schein als Sein"))
+        assertEquals("SkyMed", FocusedWallpapers.seriesNameOf("SkyMed – Frau im Cockpit"))
+        assertNull(FocusedWallpapers.seriesNameOf("Spider-Man: No Way Home"))
+        assertNull(FocusedWallpapers.seriesNameOf("Slow Horses"))
+        assertNull(FocusedWallpapers.seriesNameOf(" - Pilot"))
+    }
+
+    @Test
+    fun bilingualTitlesSearchedByEachSide() {
+        assertEquals(listOf("Терапия / Shrinking", "Терапия", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking"))
+        assertEquals(listOf("Чужой: Земля / Alien: Earth", "Чужой: Земля", "Alien: Earth"), FocusedWallpapers.titleVariants("Чужой: Земля / Alien: Earth"))
+        // No spaces around the slash: part of the name, not a separator
+        assertEquals(listOf("AC/DC"), FocusedWallpapers.titleVariants("AC/DC"))
+        assertEquals(listOf("Slow Horses"), FocusedWallpapers.titleVariants("Slow Horses"))
+    }
+
+    @Test
+    fun bothNamesAndABackdropWinOverOneName() {
+        // "Величайший / The Greatest": the old "The Greatest" without images loses to the right one
+        val oneNameNoImage = FocusedWallpapers.candidateScore(1, false)
+        val oneNameWithImage = FocusedWallpapers.candidateScore(1, true)
+        val bothNames = FocusedWallpapers.candidateScore(2, false)
+        val bothNamesWithImage = FocusedWallpapers.candidateScore(2, true)
+        assertTrue(oneNameNoImage < oneNameWithImage)
+        assertTrue(oneNameWithImage < bothNames)
+        assertTrue(bothNames < bothNamesWithImage)
+        assertEquals(0, FocusedWallpapers.candidateScore(0, true))
+        assertEquals(bothNamesWithImage, FocusedWallpapers.perfectScore(bilingual = true))
+        assertEquals(oneNameWithImage, FocusedWallpapers.perfectScore(bilingual = false))
+    }
+
+    @Test
+    fun theOtherKindNeedsAnotherNameNotJustABackdrop() {
+        // A movie card (Apple TV): a series of the same name with a backdrop ties with the movie without one,
+        // and between equals the card's own kind, searched first, wins
+        assertEquals(FocusedWallpapers.candidateScore(1, false), FocusedWallpapers.candidateScore(1, true, cardsKind = false))
+        assertEquals(FocusedWallpapers.candidateScore(2, false), FocusedWallpapers.candidateScore(2, true, cardsKind = false))
+        // kino.pub marks movies as series: the movie named like both sides wins over a series named like one
+        assertTrue(FocusedWallpapers.candidateScore(2, false, cardsKind = false) > FocusedWallpapers.candidateScore(1, true))
+        assertTrue(FocusedWallpapers.candidateScore(1, false, cardsKind = false) > 0)
+        assertEquals(FocusedWallpapers.candidateScore(2, true, cardsKind = false), FocusedWallpapers.perfectScore(bilingual = true, cardsKind = false))
+    }
+
+    @Test
+    fun namesMatchedCountsTheCardsNamesOnce() {
+        // Named so in both fields: still one name, so it can't outweigh the card's kind
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Dune", "Dune"), FocusedWallpapers.titleVariants("Dune")))
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Matchbox: la película", "Matchbox: The Movie"), FocusedWallpapers.titleVariants("Matchbox: La película")))
+        assertEquals(2, FocusedWallpapers.namesMatched(listOf("Терапия", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking")))
+        assertEquals(1, FocusedWallpapers.namesMatched(listOf("Shrinking", "Shrinking"), FocusedWallpapers.titleVariants("Терапия / Shrinking")))
+        assertEquals(0, FocusedWallpapers.namesMatched(listOf("Brother", null), FocusedWallpapers.titleVariants("Brothers")))
     }
 
     @Test

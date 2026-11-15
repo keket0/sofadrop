@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -66,7 +69,7 @@ class SofascreenView(context: Context) : FrameLayout(context) {
     private val drift = object : Runnable {
         override fun run() {
             // A few pixels every minute, so the clock doesn't burn into the panel
-            val range = resources.displayMetrics.heightPixels * 0.012f
+            val range = resources.displayMetrics.heightPixels * 0.012f * Settings.screensaverClockScale
             clock.view.animate().translationX(Random.nextFloat() * 2 * range - range).translationY(Random.nextFloat() * 2 * range - range)
                 .setDuration(2000).start()
             handler.postDelayed(this, 60_000)
@@ -187,12 +190,17 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             val exists = file?.isFile == true
             // Errors too (out of memory): a wallpaper that can't be read mustn't stop the screensaver
             val bitmap = if (exists) runCatching { decode(file!!.path, width) }.getOrNull() else null
+            // A synopsis that scrolls: the image goes with it, or it shows still if its files can't be read
+            val image = bitmap?.let { image ->
+                val box = wallpaper.scroll ?: return@let null
+                runCatching { ScrollingSynopsis.load(file!!.parentFile!!, box) }.getOrNull()?.let { ScrollingWallpaper(image, it, box.imageWidth) }
+            } ?: bitmap?.let { BitmapDrawable(resources, it) }
             handler.post {
                 if (!running) return@post
                 when {
-                    bitmap != null -> {
+                    image != null -> {
                         shown = wallpaper
-                        show(bitmap, transition)
+                        show(image, transition)
                     }
                     // Removed by a newer set: start the round again from that one
                     !exists -> {
@@ -206,12 +214,15 @@ class SofascreenView(context: Context) : FrameLayout(context) {
         }
     }
 
-    private fun show(bitmap: Bitmap, duration: Long) {
+    private fun show(image: Drawable, duration: Long) {
         settle?.run()
         val incoming = back
         val outgoing = front
         reset(incoming)
-        incoming.setImageBitmap(bitmap)
+        incoming.setImageDrawable(image)
+        // Long enough to read a scrolling synopsis to its end
+        val scrolling = image as? ScrollingWallpaper
+        val showFor = maxOf(Settings.screensaverSeconds * 1000L, scrolling?.synopsis?.durationMillis ?: 0L)
         // The incoming image goes on top of the outgoing one, under the dimming and the clock
         removeView(incoming)
         addView(incoming, indexOfChild(outgoing) + 1)
@@ -223,20 +234,21 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             reset(incoming)
             reset(outgoing)
             outgoing.setImageDrawable(null)
-            slowZoom(incoming)
+            slowZoom(incoming, showFor)
+            scrolling?.start()
         }
         settle = done
         shown?.position?.let(clock::moveAwayFrom)
         if (duration == 0L) done.run() else playTransition(incoming, outgoing, duration, width.toFloat(), done)
         handler.removeCallbacks(next)
-        handler.postDelayed(next, Settings.screensaverSeconds * 1000L + duration)
+        handler.postDelayed(next, showFor + duration)
     }
 
     /**
      * Zoom in slowly while the wallpaper is shown, anchored at the side and height of its text (see
      * [Settings.POSITIONS]) so its logo and text stay in view.
      */
-    private fun slowZoom(view: ImageView) {
+    private fun slowZoom(view: ImageView, millis: Long) {
         if (!Settings.screensaverZoom) return
         val screen = (if (height > 0) height else resources.displayMetrics.heightPixels).toFloat()
         val place = shown?.position ?: blockPosition
@@ -246,7 +258,7 @@ class SofascreenView(context: Context) : FrameLayout(context) {
             place.startsWith("top") -> 0f
             else -> screen / 2f
         }
-        view.animate().scaleX(SLOW_ZOOM).scaleY(SLOW_ZOOM).setDuration(Settings.screensaverSeconds * 1000L)
+        view.animate().scaleX(SLOW_ZOOM).scaleY(SLOW_ZOOM).setDuration(millis)
             .setInterpolator(LinearInterpolator()).start()
     }
 
@@ -361,25 +373,27 @@ class SofascreenClock(private val context: Context) {
             Settings.CLOCK_FORMAT_12 -> false
             else -> DateFormat.is24HourFormat(context)
         }
-        val digits = ResourcesCompat.getFont(context, R.font.roboto_bold)
+        val digits = digitsFont()
         val light = ResourcesCompat.getFont(context, R.font.roboto_light)
-        val small = height * 0.045f
+        // The clock's size scales everything but the margins
+        val size = height * Settings.screensaverClockScale
+        val small = size * 0.045f
 
         if (style == Settings.CLOCK_STACKED) {
             // Hours, the date, minutes: one block that reads at a glance
             clock.gravity = Gravity.CENTER_HORIZONTAL
-            clock.addView(clockText(if (h24) "HH" else "h", height * 0.17f, digits))
+            clock.addView(clockText(if (h24) "HH" else "h", size * 0.17f, digits))
             if (Settings.screensaverDate) date = smallText(small, light).also { clock.addView(it) }
-            else clock.addView(divider(height), LinearLayout.LayoutParams((height * 0.13f).toInt(), (height * 0.004f).toInt().coerceAtLeast(2)).apply {
+            else clock.addView(divider(size), LinearLayout.LayoutParams((size * 0.13f).toInt(), (size * 0.004f).toInt().coerceAtLeast(2)).apply {
                 // Without the date: a thin line between hours and minutes
                 gravity = Gravity.CENTER_HORIZONTAL
-                topMargin = (height * 0.022f).toInt()
-                bottomMargin = (height * 0.026f).toInt()
+                topMargin = (size * 0.022f).toInt()
+                bottomMargin = (size * 0.026f).toInt()
             })
-            clock.addView(clockText("mm", height * 0.17f, digits))
+            clock.addView(clockText("mm", size * 0.17f, digits))
         } else {
             clock.gravity = side
-            clock.addView(clockText(if (h24) "HH:mm" else "h:mm", height * 0.11f, digits))
+            clock.addView(clockText(if (h24) "HH:mm" else "h:mm", size * 0.11f, digits))
             if (Settings.screensaverDate) date = smallText(small, light).also { clock.addView(it) }
         }
         if (Settings.screensaverWeather && Settings.weatherPlace.isNotEmpty()) {
@@ -391,7 +405,11 @@ class SofascreenClock(private val context: Context) {
         }
 
         val params = clock.layoutParams as FrameLayout.LayoutParams
-        params.gravity = side or (if (Settings.screensaverClockBottom) Gravity.BOTTOM else Gravity.TOP)
+        params.gravity = side or when (Settings.screensaverClockPosition) {
+            Settings.CLOCK_MIDDLE -> Gravity.CENTER_VERTICAL
+            Settings.CLOCK_BOTTOM -> Gravity.BOTTOM
+            else -> Gravity.TOP
+        }
         params.marginEnd = (width * 0.055f).toInt()
         params.marginStart = params.marginEnd
         params.topMargin = (height * 0.07f).toInt()
@@ -399,11 +417,15 @@ class SofascreenClock(private val context: Context) {
         clock.layoutParams = params
     }
 
-    /** To the corner away from text at [position], for wallpapers that each have theirs (the height stays with text in the middle). */
+    /**
+     * To the corner away from text at [position], for wallpapers that each have theirs (the height stays with text in
+     * the middle). A clock in the middle only changes sides: the text is already on the other one.
+     */
     fun moveAwayFrom(position: String) {
         val side = if (position.endsWith("_right")) Gravity.START else Gravity.END
         val params = clock.layoutParams as FrameLayout.LayoutParams
         val height = when {
+            Settings.screensaverClockPosition == Settings.CLOCK_MIDDLE -> Gravity.CENTER_VERTICAL
             position.startsWith("top") -> Gravity.BOTTOM
             position.startsWith("bottom") -> Gravity.TOP
             else -> params.gravity and Gravity.VERTICAL_GRAVITY_MASK
@@ -415,6 +437,15 @@ class SofascreenClock(private val context: Context) {
             if (Settings.screensaverClock == Settings.CLOCK_LINE) clock.gravity = side
             clock.animate().alpha(1f).setDuration(CLOCK_MOVE_MILLIS).start()
         }.start()
+    }
+
+    /** The typeface of [Settings.screensaverClockFont]; Android's own families fall back to Roboto where missing. */
+    private fun digitsFont(): Typeface? = when (Settings.screensaverClockFont) {
+        Settings.CLOCK_FONT_LIGHT -> ResourcesCompat.getFont(context, R.font.roboto_light)
+        Settings.CLOCK_FONT_ROUNDED -> ResourcesCompat.getFont(context, R.font.nunito_extrabold)
+        Settings.CLOCK_FONT_CONDENSED -> Typeface.create("sans-serif-condensed", Typeface.BOLD)
+        Settings.CLOCK_FONT_SERIF -> Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+        else -> ResourcesCompat.getFont(context, R.font.roboto_bold)
     }
 
     private fun clockText(pattern: String, sizePx: Float, font: android.graphics.Typeface?) = TextView(context).apply {
@@ -474,7 +505,7 @@ class SofascreenClock(private val context: Context) {
             handler.post {
                 val line = weather ?: return@post
                 line.visibility = if (now == null) View.GONE else View.VISIBLE
-                if (now != null) line.text = "${now.temperature}°  ·  ${context.getString(Weather.description(now.code))}"
+                if (now != null) line.text = "${Weather.degrees(now)}  ·${context.getString(Weather.description(now.code))}"
             }
         }
     }

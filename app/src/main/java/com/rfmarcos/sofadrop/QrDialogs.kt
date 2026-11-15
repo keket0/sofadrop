@@ -305,6 +305,123 @@ class SimklLoginDialog : QrDialog() {
     }
 }
 
+/**
+ * Jellyfin Quick Connect: a code approved on a device already signed in to the server. The QR opens the
+ * server's own Quick Connect page with the code filled in (from a phone on the same network).
+ */
+class JellyfinLoginDialog : QrDialog() {
+    override val titleRes = R.string.setting_jellyfin_title
+    override val iconRes = R.drawable.ic_act_phone
+
+    private val server get() = requireArguments().let {
+        JellyfinServer(it.getString(ARG_ADDRESS).orEmpty(), it.getString(ARG_ID).orEmpty(), it.getString(ARG_NAME).orEmpty())
+    }
+
+    override fun start() {
+        val server = server
+        val client = JellyfinClient(server.address)
+        background({ client.initiateQuickConnect() }) { result ->
+            result.onSuccess { code ->
+                showQr(
+                    "${server.address}/web/#/quickconnect?code=${code.code}",
+                    getString(R.string.jellyfin_quick_connect_instructions),
+                    code.code, server.address.substringAfter("://"), EXPIRES_SECONDS,
+                )
+                poll(server, client, code)
+            }.onFailure { finish(getString(R.string.jellyfin_failed, it.message)) }
+        }
+    }
+
+    private fun poll(server: JellyfinServer, client: JellyfinClient, code: JellyfinClient.QuickConnect) {
+        background({
+            val deadline = System.currentTimeMillis() + EXPIRES_SECONDS * 1000L
+            var session: JellyfinClient.Session? = null
+            while (active && session == null && System.currentTimeMillis() < deadline) {
+                Thread.sleep(3000)
+                // A dropped request (Wi-Fi, server restart) is tried again
+                if (runCatching { client.quickConnectApproved(code.secret) }.getOrDefault(false)) session = client.authenticate(code.secret)
+            }
+            session
+        }) { result ->
+            val session = result.getOrNull()
+            when {
+                session != null -> {
+                    Settings.saveJellyfinSession(server, session)
+                    finish(getString(R.string.jellyfin_login_ok, session.userName.ifBlank { server.name }))
+                }
+                result.isFailure -> finish(getString(R.string.jellyfin_failed, result.exceptionOrNull()?.message))
+                active -> finish(getString(R.string.trakt_login_expired))
+            }
+        }
+    }
+
+    companion object {
+        /** The server forgets a code it wasn't approved after 10 minutes. */
+        private const val EXPIRES_SECONDS = 10 * 60
+        private const val ARG_ADDRESS = "address"
+        private const val ARG_ID = "id"
+        private const val ARG_NAME = "name"
+
+        fun newInstance(server: JellyfinServer) = JellyfinLoginDialog().apply {
+            arguments = bundleOf(ARG_ADDRESS to server.address, ARG_ID to server.id, ARG_NAME to server.name)
+        }
+    }
+}
+
+/**
+ * Plex: the QR opens Plex's sign-in page with a long code in it; the short code is for typing at
+ * plex.tv/link instead. Either one, approved, gives the account's token. Then the server: the account's
+ * only one is picked here, several are chosen in [PlexServersFragment].
+ */
+class PlexLoginDialog : QrDialog() {
+    override val titleRes = R.string.setting_plex_title
+    override val iconRes = R.drawable.ic_act_phone
+
+    override fun start() {
+        background({ PlexClient.createPin(strong = true) to PlexClient.createPin(strong = false) }) { result ->
+            result.onSuccess { (qrPin, typedPin) ->
+                showQr(PlexClient.authUrl(qrPin.code), getString(R.string.plex_login_instructions), typedPin.code, LINK, typedPin.expiresIn)
+                poll(listOf(qrPin, typedPin), typedPin.expiresIn)
+            }.onFailure { finish(getString(R.string.plex_failed, it.message)) }
+        }
+    }
+
+    private fun poll(pins: List<PlexClient.Companion.Pin>, expiresIn: Int) {
+        background({
+            val deadline = System.currentTimeMillis() + expiresIn * 1000L
+            var token: String? = null
+            while (active && token == null && System.currentTimeMillis() < deadline) {
+                Thread.sleep(3000)
+                // A dropped request (Wi-Fi) is tried again
+                token = pins.firstNotNullOfOrNull { pin -> runCatching { PlexClient.pinToken(pin) }.getOrNull() }
+            }
+            token?.let { found ->
+                Settings.savePlexAccount(found, runCatching { PlexClient.accountName(found) }.getOrDefault(""))
+                // One server: nothing to choose
+                val servers = runCatching { PlexClient.servers(found) }.getOrDefault(emptyList())
+                servers.singleOrNull()?.let { server -> PlexClient.reachable(server)?.let { Settings.savePlexServer(server, it) } }
+                servers.size
+            }
+        }) { result ->
+            val servers = result.getOrNull()
+            when {
+                servers != null -> finish(getString(when {
+                    servers == 0 -> R.string.plex_no_servers
+                    Settings.plexConnected -> R.string.plex_login_ok
+                    servers == 1 -> R.string.plex_server_unreachable
+                    else -> R.string.plex_choose_server
+                }, Settings.plexUser.ifBlank { "Plex" }, Settings.plexServer))
+                result.isFailure -> finish(getString(R.string.plex_failed, result.exceptionOrNull()?.message))
+                active -> finish(getString(R.string.trakt_login_expired))
+            }
+        }
+    }
+
+    companion object {
+        private const val LINK = "plex.tv/link"
+    }
+}
+
 /** TMDB account: the QR opens the page where the user approves a request token. */
 class TmdbLoginDialog : QrDialog() {
     override val titleRes = R.string.setting_tmdb_account_title

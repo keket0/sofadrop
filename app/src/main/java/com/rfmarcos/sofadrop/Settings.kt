@@ -79,6 +79,7 @@ object Settings {
     private const val KEY_PREVIEW_PIN = "_preview_pin"
     private const val KEY_PREVIEW_PIN_TITLE = "_preview_pin_title"
     private const val KEY_WATCH_SOURCE = "watch_source"
+    private const val KEY_WATCH_SOURCES = "watch_sources"
     private const val KEY_BLOCKED = "blocked_titles"
     private const val KEY_MIX_LISTS = "mix_lists"
     private const val KEY_FOCUSED_CARD = "focused_card"
@@ -86,11 +87,16 @@ object Settings {
     private const val KEY_SCREENSAVER_SHUFFLE = "screensaver_shuffle"
     private const val KEY_ORDER_MOVED = "order_moved"
     private const val KEY_SCREENSAVER_SECONDS = "screensaver_seconds"
+    private const val KEY_SCREENSAVER_IDLE = "screensaver_idle_minutes"
     private const val KEY_SCREENSAVER_TRANSITION = "screensaver_transition"
     private const val KEY_SCREENSAVER_ZOOM = "screensaver_zoom"
     private const val KEY_SCREENSAVER_CLOCK = "screensaver_clock"
     private const val KEY_SCREENSAVER_DATE = "screensaver_date"
+    /** Before 1.2.2: true for the bottom; [KEY_SCREENSAVER_CLOCK_POSITION] replaces it. */
     private const val KEY_SCREENSAVER_CLOCK_BOTTOM = "screensaver_clock_bottom"
+    private const val KEY_SCREENSAVER_CLOCK_POSITION = "screensaver_clock_position"
+    private const val KEY_SCREENSAVER_CLOCK_FONT = "screensaver_clock_font"
+    private const val KEY_SCREENSAVER_CLOCK_SIZE = "screensaver_clock_size"
     private const val KEY_SCREENSAVER_CLOCK_FORMAT = "screensaver_clock_format"
     private const val KEY_SCREENSAVER_CLOCK_COLOR = "screensaver_clock_color"
     private const val KEY_SUPPORTER_BOUGHT = "_supporter_bought"
@@ -98,6 +104,7 @@ object Settings {
     private const val KEY_SCREENSAVER_WEATHER = "screensaver_weather"
     private const val KEY_WEATHER_PLACE = "weather_place"
     private const val KEY_WEATHER_COORDINATES = "weather_coordinates"
+    private const val KEY_WEATHER_UNIT = "weather_unit"
     private const val KEY_TRAILER_LANGUAGE = "trailer_language"
     private const val KEY_TRAILER_FALLBACK = "trailer_fallback"
     private const val KEY_TMDB_SESSION = "_tmdb_session_id"
@@ -127,7 +134,12 @@ object Settings {
     const val WATCHED_HIDE = "hide"
     const val WATCH_TRAKT = "trakt"
     const val WATCH_SIMKL = "simkl"
+    const val WATCH_PLEX = "plex"
+    const val WATCH_JELLYFIN = "jellyfin"
     const val WATCH_NONE = "none"
+
+    /** Services the watch history can come from, in the order they're offered. */
+    val WATCH_SOURCES = listOf(WATCH_TRAKT, WATCH_SIMKL, WATCH_PLEX, WATCH_JELLYFIN)
     /** With no logo in the logo language: write the title, use the original-language (or English) one, or skip the title. */
     const val LOGO_TEXT = "text"
     const val LOGO_ORIGINAL = "original"
@@ -139,11 +151,21 @@ object Settings {
     const val SYNOPSIS_ENGLISH = "english"
     const val SYNOPSIS_SKIP = "skip"
     val SYNOPSIS_MODES = listOf(SYNOPSIS_HIDE, SYNOPSIS_ENGLISH, SYNOPSIS_SKIP)
-    /** While a card is focused: leave the wallpaper alone, show its episode when it's known, or always its series (or movie). */
+    /**
+     * While a card is focused: leave the wallpaper alone; show its episode when it's known, with the episode's
+     * image ([FOCUSED_EPISODE], the series' when the episode's is low quality) or always the series'
+     * ([FOCUSED_EPISODE_SERIES_IMAGE]); or always its series (or movie).
+     */
     const val FOCUSED_OFF = "off"
     const val FOCUSED_EPISODE = "episode"
+    const val FOCUSED_EPISODE_SERIES_IMAGE = "episode_series_image"
     const val FOCUSED_SERIES = "series"
-    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_SERIES)
+    val FOCUSED_OPTIONS = listOf(FOCUSED_OFF, FOCUSED_EPISODE, FOCUSED_EPISODE_SERIES_IMAGE, FOCUSED_SERIES)
+    /** 1.2.2's betas had the low-quality swap as a mode of its own; it's what [FOCUSED_EPISODE] does now. */
+    private const val FOCUSED_EPISODE_SHARP_OLD = "episode_sharp"
+
+    /** The focused card's [mode] shows episodes. */
+    fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SERIES_IMAGE
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"
@@ -203,6 +225,19 @@ object Settings {
     private const val KEY_SIMKL_REFRESH = "_simkl_refresh_token"
     private const val KEY_SIMKL_EXPIRES = "_simkl_expires_at"
     private const val KEY_SIMKL_USER = "_simkl_user"
+    private const val KEY_JELLYFIN_ADDRESS = "_jellyfin_address"
+    private const val KEY_JELLYFIN_SERVER = "_jellyfin_server"
+    private const val KEY_JELLYFIN_TOKEN = "_jellyfin_token"
+    private const val KEY_JELLYFIN_USER_ID = "_jellyfin_user_id"
+    private const val KEY_JELLYFIN_USER = "_jellyfin_user"
+    private const val KEY_JELLYFIN_DEVICE = "_jellyfin_device_id"
+    private const val KEY_PLEX_TOKEN = "_plex_token"
+    private const val KEY_PLEX_USER = "_plex_user"
+    private const val KEY_PLEX_CLIENT = "_plex_client_id"
+    private const val KEY_PLEX_SERVER_ID = "_plex_server_id"
+    private const val KEY_PLEX_SERVER = "_plex_server"
+    private const val KEY_PLEX_SERVER_TOKEN = "_plex_server_token"
+    private const val KEY_PLEX_ADDRESS = "_plex_address"
 
     val COUNT_OPTIONS = listOf(5, 10, 20, 50, 100)
 
@@ -283,7 +318,8 @@ object Settings {
 
     /** What Projectivy shows while a movie, series or episode card is focused, see [FocusedWallpapers]. */
     var focusedCard: String
-        get() = preferences.getString(KEY_FOCUSED_CARD, null)?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
+        get() = preferences.getString(KEY_FOCUSED_CARD, null)
+            ?.let { if (it == FOCUSED_EPISODE_SHARP_OLD) FOCUSED_EPISODE else it }?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
         set(value) = preferences.edit { putString(KEY_FOCUSED_CARD, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */
@@ -410,19 +446,103 @@ object Settings {
         remove(KEY_SIMKL_ACCESS); remove(KEY_SIMKL_REFRESH); remove(KEY_SIMKL_EXPIRES); remove(KEY_SIMKL_USER)
     }
 
-    /** Connected trackers that can provide the watch history. */
-    val connectedTrackers: List<String> get() = listOfNotNull(WATCH_TRAKT.takeIf { traktConnected }, WATCH_SIMKL.takeIf { simklConnected })
+    // --- Jellyfin (the user's own server, signed in with Quick Connect or user and password) ---
 
-    /**
-     * Tracker whose history marks or hides watched titles: the chosen one while connected, null when off
-     * or disconnected. Until chosen, the first connected tracker (what earlier versions used).
-     */
-    val watchSource: String?
-        get() = preferences.getString(KEY_WATCH_SOURCE, null).let { chosen ->
-            if (chosen == null) connectedTrackers.firstOrNull() else chosen.takeIf { it in connectedTrackers }
+    /** Base URL of the server signed in to, "http://192.168.1.10:8096". */
+    val jellyfinAddress: String get() = string(KEY_JELLYFIN_ADDRESS)
+    val jellyfinServer: String get() = string(KEY_JELLYFIN_SERVER)
+    val jellyfinToken: String get() = string(KEY_JELLYFIN_TOKEN)
+    val jellyfinUserId: String get() = string(KEY_JELLYFIN_USER_ID)
+    val jellyfinUser: String get() = string(KEY_JELLYFIN_USER)
+
+    val jellyfinConnected: Boolean get() = jellyfinAddress.isNotBlank() && jellyfinToken.isNotBlank() && jellyfinUserId.isNotBlank()
+
+    /** Jellyfin keeps one session per device id: one per install, made the first time. */
+    val jellyfinDeviceId: String
+        get() = string(KEY_JELLYFIN_DEVICE).ifBlank {
+            java.util.UUID.randomUUID().toString().replace("-", "").also { id -> preferences.edit { putString(KEY_JELLYFIN_DEVICE, id) } }
         }
 
-    fun setWatchSource(value: String) = preferences.edit { putString(KEY_WATCH_SOURCE, value) }
+    fun saveJellyfinSession(server: JellyfinServer, session: JellyfinClient.Session) = preferences.edit {
+        putString(KEY_JELLYFIN_ADDRESS, server.address)
+        putString(KEY_JELLYFIN_SERVER, server.name)
+        putString(KEY_JELLYFIN_TOKEN, session.token)
+        putString(KEY_JELLYFIN_USER_ID, session.userId)
+        putString(KEY_JELLYFIN_USER, session.userName)
+    }
+
+    /** Signs out; the address stays, to sign in again without typing it. */
+    fun clearJellyfinSession() = preferences.edit {
+        remove(KEY_JELLYFIN_TOKEN); remove(KEY_JELLYFIN_USER_ID); remove(KEY_JELLYFIN_USER)
+    }
+
+    // --- Plex (the account on plex.tv, signed in with a PIN, and one of its servers) ---
+
+    /** The account's token: plex.tv (servers, Discover) and the servers it owns. */
+    val plexToken: String get() = string(KEY_PLEX_TOKEN)
+    val plexUser: String get() = string(KEY_PLEX_USER)
+    val plexServerId: String get() = string(KEY_PLEX_SERVER_ID)
+    val plexServer: String get() = string(KEY_PLEX_SERVER)
+    val plexServerToken: String get() = string(KEY_PLEX_SERVER_TOKEN)
+    /** The server's address that answered last, "https://192-168-1-10.….plex.direct:32400". */
+    val plexAddress: String get() = string(KEY_PLEX_ADDRESS)
+
+    /** Signed in to plex.tv; the lists also need [plexConnected]. */
+    val plexSignedIn: Boolean get() = plexToken.isNotBlank()
+    val plexConnected: Boolean get() = plexSignedIn && plexServerId.isNotBlank() && plexAddress.isNotBlank()
+
+    /** Plex shows the devices signed in by this id: one per install, made the first time. */
+    val plexClientId: String
+        get() = string(KEY_PLEX_CLIENT).ifBlank {
+            "sofadrop-" + java.util.UUID.randomUUID().toString().also { id -> preferences.edit { putString(KEY_PLEX_CLIENT, "sofadrop-$id") } }
+        }
+
+    fun savePlexAccount(token: String, user: String) = preferences.edit {
+        putString(KEY_PLEX_TOKEN, token)
+        putString(KEY_PLEX_USER, user)
+    }
+
+    fun savePlexServer(server: PlexServer, address: String) = preferences.edit {
+        putString(KEY_PLEX_SERVER_ID, server.id)
+        putString(KEY_PLEX_SERVER, server.name)
+        putString(KEY_PLEX_SERVER_TOKEN, server.token)
+        putString(KEY_PLEX_ADDRESS, address)
+    }
+
+    fun clearPlexSession() = preferences.edit {
+        listOf(KEY_PLEX_TOKEN, KEY_PLEX_USER, KEY_PLEX_SERVER_ID, KEY_PLEX_SERVER, KEY_PLEX_SERVER_TOKEN, KEY_PLEX_ADDRESS).forEach(::remove)
+    }
+
+    fun watchSourceConnected(source: String): Boolean = when (source) {
+        WATCH_TRAKT -> traktConnected
+        WATCH_SIMKL -> simklConnected
+        WATCH_PLEX -> plexConnected
+        WATCH_JELLYFIN -> jellyfinConnected
+        else -> false
+    }
+
+    /** Connected services that can provide the watch history. */
+    val connectedTrackers: List<String> get() = WATCH_SOURCES.filter(::watchSourceConnected)
+
+    /**
+     * The services chosen as watch history, connected or not. Until chosen, what earlier versions used: the
+     * one picked as "watch_source" (one at most, or "none"), else the first connected one.
+     */
+    private val chosenWatchSources: List<String>
+        get() = preferences.getString(KEY_WATCH_SOURCES, null)?.split(',')?.filter { it in WATCH_SOURCES }
+            ?: preferences.getString(KEY_WATCH_SOURCE, null)?.let { old -> listOf(old).filter { it in WATCH_SOURCES } }
+            ?: listOfNotNull(connectedTrackers.firstOrNull())
+
+    /** Services whose history marks or hides watched titles: the chosen ones while connected (none: off). */
+    val watchSources: List<String> get() = chosenWatchSources.filter(::watchSourceConnected)
+
+    val watchHistoryOn: Boolean get() = watchSources.isNotEmpty()
+
+    /** Adds or removes [source]; a disconnected one stays chosen, for when it's connected again. */
+    fun setWatchSource(source: String, on: Boolean) {
+        val chosen = chosenWatchSources.toSet().let { if (on) it + source else it - source }
+        preferences.edit { putString(KEY_WATCH_SOURCES, WATCH_SOURCES.filter { it in chosen }.joinToString(",")) }
+    }
 
     // --- TMDB account (optional, adds the user's watchlist / favourites) ---
 
@@ -444,7 +564,12 @@ object Settings {
 
     // --- Selection and watched content ---
 
-    val OVERVIEW_OPTIONS = listOf(4, 2, 0)
+    /**
+     * The whole synopsis in a 4-line window that scrolls by itself when it doesn't fit (see
+     * [ScrollingSynopsis]): Projectivy gets those wallpapers as videos, Sofascreen scrolls them live.
+     */
+    const val OVERVIEW_SCROLL = 99
+    val OVERVIEW_OPTIONS = listOf(4, 2, OVERVIEW_SCROLL, 0)
 
     /** Last time Projectivy asked for wallpapers (0 = never: Sofadrop isn't its wallpaper yet). */
     var projectivyAskedAt: Long
@@ -557,6 +682,12 @@ object Settings {
 
     // --- Screensaver ---
 
+    /** Minutes without a button pressed in Sofadrop's settings before Sofascreen starts; 0 never. */
+    val SCREENSAVER_IDLE_OPTIONS = listOf(0, 1, 2, 5, 10)
+    var screensaverIdleMinutes: Int
+        get() = preferences.getInt(KEY_SCREENSAVER_IDLE, 5).takeIf { it in SCREENSAVER_IDLE_OPTIONS } ?: 5
+        set(value) = preferences.edit { putInt(KEY_SCREENSAVER_IDLE, value) }
+
     // How Sofascreen shows the set (see SofascreenView), after PR #13 by schumi2004
     val SCREENSAVER_SECONDS_OPTIONS = listOf(10, 20, 30, 60, 120, 300)
     const val TRANSITION_FADE = "fade"
@@ -569,6 +700,22 @@ object Settings {
     const val CLOCK_STACKED = "stacked"
     const val CLOCK_LINE = "line"
     val CLOCK_STYLES = listOf(CLOCK_OFF, CLOCK_STACKED, CLOCK_LINE)
+    const val CLOCK_TOP = "top"
+    const val CLOCK_MIDDLE = "middle"
+    const val CLOCK_BOTTOM = "bottom"
+    val CLOCK_POSITIONS = listOf(CLOCK_TOP, CLOCK_MIDDLE, CLOCK_BOTTOM)
+    /** Roboto Bold, Roboto Light and Nunito are bundled; the condensed and serif ones are Android's own (all versions have them). */
+    const val CLOCK_FONT_BOLD = "bold"
+    const val CLOCK_FONT_LIGHT = "light"
+    const val CLOCK_FONT_ROUNDED = "rounded"
+    const val CLOCK_FONT_CONDENSED = "condensed"
+    const val CLOCK_FONT_SERIF = "serif"
+    val CLOCK_FONTS = listOf(CLOCK_FONT_BOLD, CLOCK_FONT_LIGHT, CLOCK_FONT_ROUNDED, CLOCK_FONT_CONDENSED, CLOCK_FONT_SERIF)
+    const val CLOCK_SIZE_SMALL = "small"
+    const val CLOCK_SIZE_NORMAL = "normal"
+    const val CLOCK_SIZE_LARGE = "large"
+    /** Each size and how much it scales the clock (digits, date and weather; not the margins). */
+    val CLOCK_SIZES = mapOf(CLOCK_SIZE_SMALL to 0.8f, CLOCK_SIZE_NORMAL to 1f, CLOCK_SIZE_LARGE to 1.25f)
     const val CLOCK_FORMAT_SYSTEM = "system"
     const val CLOCK_FORMAT_24 = "24"
     const val CLOCK_FORMAT_12 = "12"
@@ -642,10 +789,23 @@ object Settings {
         get() = preferences.getString(KEY_SCREENSAVER_CLOCK_FORMAT, null)?.takeIf { it in CLOCK_FORMATS } ?: CLOCK_FORMAT_SYSTEM
         set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_FORMAT, value) }
 
-    /** The clock at the bottom of its side instead of the top. */
-    var screensaverClockBottom: Boolean
-        get() = preferences.getBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, false)
-        set(value) = preferences.edit { putBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, value) }
+    /** Where on its side the clock goes, see [CLOCK_POSITIONS]; the old top/bottom switch still counts. */
+    var screensaverClockPosition: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_POSITION, null)?.takeIf { it in CLOCK_POSITIONS }
+            ?: if (preferences.getBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, false)) CLOCK_BOTTOM else CLOCK_TOP
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_POSITION, value); remove(KEY_SCREENSAVER_CLOCK_BOTTOM) }
+
+    /** See [CLOCK_SIZES]. */
+    var screensaverClockSize: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_SIZE, null)?.takeIf { it in CLOCK_SIZES } ?: CLOCK_SIZE_NORMAL
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_SIZE, value) }
+
+    val screensaverClockScale: Float get() = CLOCK_SIZES.getValue(screensaverClockSize)
+
+    /** The digits' typeface, see [CLOCK_FONTS]. */
+    var screensaverClockFont: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_FONT, null)?.takeIf { it in CLOCK_FONTS } ?: CLOCK_FONT_BOLD
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_FONT, value) }
 
     /** Percentage, see [SCREENSAVER_BRIGHTNESS_OPTIONS]. */
     var screensaverBrightness: Int
@@ -656,6 +816,16 @@ object Settings {
     var screensaverWeather: Boolean
         get() = preferences.getBoolean(KEY_SCREENSAVER_WEATHER, false)
         set(value) = preferences.edit { putBoolean(KEY_SCREENSAVER_WEATHER, value) }
+
+    const val UNIT_AUTO = "auto"
+    const val UNIT_CELSIUS = "celsius"
+    const val UNIT_FAHRENHEIT = "fahrenheit"
+    val WEATHER_UNITS = listOf(UNIT_AUTO, UNIT_CELSIUS, UNIT_FAHRENHEIT)
+
+    /** °C or °F for the weather; [UNIT_AUTO] follows the TV (see [Weather.regionFahrenheit]). */
+    var weatherUnit: String
+        get() = preferences.getString(KEY_WEATHER_UNIT, null)?.takeIf { it in WEATHER_UNITS } ?: UNIT_AUTO
+        set(value) = preferences.edit { putString(KEY_WEATHER_UNIT, value) }
 
     /** "Amsterdam, North Holland": the place found for the location the user typed; empty when not set. */
     val weatherPlace: String get() = preferences.getString(KEY_WEATHER_PLACE, null).orEmpty()

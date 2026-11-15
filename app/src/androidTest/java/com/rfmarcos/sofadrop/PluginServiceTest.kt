@@ -150,6 +150,111 @@ class PluginServiceTest {
         }
     }
 
+    /**
+     * Paramount+'s "Continue watching" cards are named "Series - Episode", with its own image (2026-11): the
+     * series is found by the name before " - ". A movie card isn't searched so: its subtitles follow a " - " too.
+     */
+    @Test
+    fun paramountCardsFindTheirSeries() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
+        FocusedLog.clear(context)
+        try {
+            val service = bindAsProjectivy()
+            val skyMed = Event.ProgramCardFocused(title = "SkyMed - Frau im Cockpit", type = 3, iconUri = "https://thumbnails.cbsig.net/example.jpg")
+            val wallpapers = answer(service, skyMed)
+            Log.i(TAG, "SkyMed: ${wallpapers.map { it.uri }} · ${FocusedLog.read(context)}")
+            assertEquals(1, wallpapers.size)
+            val bitmap = context.contentResolver.openInputStream(Uri.parse(wallpapers[0].uri)).use { BitmapFactory.decodeStream(it) }
+            assertNotNull(bitmap)
+            assertTrue(FocusedLog.read(context).any { "tv/133908 SkyMed" in it && "by series name" in it })
+
+            val movie = Event.ProgramCardFocused(title = "Mission: Impossible - Kein solcher Film", type = 0, iconUri = "https://thumbnails.cbsig.net/example.jpg")
+            answer(service, movie)
+            Log.i(TAG, "Movie: ${FocusedLog.read(context)}")
+            assertTrue(FocusedLog.read(context).any { "Kein solcher Film" in it && "nothing named so" in it })
+            assertFalse(FocusedLog.read(context).any { "Kein solcher Film" in it && "by series name" in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
+    /**
+     * kino.pub's cards (PR #31, 2026-11) name titles in Russian and originally ("Терапия / Shrinking") and say
+     * every one is a series: the series is found by either name, and a movie as a movie.
+     */
+    @Test
+    fun kinoPubCardsFindBilingualTitlesAndMovies() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
+        FocusedLog.clear(context)
+        try {
+            val service = bindAsProjectivy()
+            val series = Event.ProgramCardFocused(title = "Терапия / Shrinking", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
+            assertEquals(1, answer(service, series).size)
+            val movie = Event.ProgramCardFocused(title = "Хороший адвокат / Un bon avocat", type = 1, iconUri = "https://m.staticpop.net/example.jpg")
+            assertEquals(1, answer(service, movie).size)
+            val log = FocusedLog.read(context)
+            Log.i(TAG, "kino.pub: $log")
+            assertTrue(log.any { "Shrinking" in it && "→ tv/" in it && "card says" !in it })
+            assertTrue(log.any { "Un bon avocat" in it && "movie/1616419" in it && "(card says tv)" in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
+    /**
+     * "Episode": Doctor Who's first episode (1963) has a 480 px still on TMDB, which gives way to the series'
+     * backdrop; Breaking Bad's first has a 1920 px one, which stays (2026-11). "Episode, series image" takes
+     * the series' backdrop for Breaking Bad too.
+     */
+    @Test
+    fun lowQualityStillsGiveWayToTheSeries() {
+        Settings.init(context)
+        val mode = Settings.focusedCard
+        Settings.focusedCard = Settings.FOCUSED_EPISODE
+        FocusedLog.clear(context)
+        // Drawn by an earlier run they'd only be "cached" in the log
+        java.io.File(context.filesDir, "${WallpaperStore.DIR}/${FocusedWallpapers.DIR}").listFiles()
+            ?.filter { "-tv-121-" in it.name || "-tv-1396-" in it.name }?.forEach { it.delete() }
+        try {
+            val service = bindAsProjectivy()
+            val doctorWho = Event.ProgramCardFocused(title = "Doctor Who", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/geJKM80SjYZIG5XNwonRHIkKBrF.jpg")
+            assertEquals(1, answer(service, doctorWho).size)
+            val breakingBad = Event.ProgramCardFocused(title = "Breaking Bad", type = 3, iconUri = "https://image.tmdb.org/t/p/w500/ydlY3iPfeOAvu8gVqrxPoMvzNCn.jpg")
+            assertEquals(1, answer(service, breakingBad).size)
+            val log = FocusedLog.read(context)
+            Log.i(TAG, "Sharp: $log")
+            assertTrue(log.any { "tv/121 " in it && "S1E1 by still" in it && "low-quality still (480 px)" in it })
+            assertTrue(log.any { "tv/1396 " in it && "S1E1 by still" in it && "episode in" in it && "image" !in it.substringAfter("episode in") })
+
+            Settings.focusedCard = Settings.FOCUSED_EPISODE_SERIES_IMAGE
+            FocusedLog.clear(context)
+            assertEquals(1, answer(service, breakingBad).size)
+            Log.i(TAG, "Series image: ${FocusedLog.read(context)}")
+            assertTrue(FocusedLog.read(context).any { "tv/1396 " in it && "episode in" in it && "· series image" in it })
+        } finally {
+            Settings.focusedCard = mode
+        }
+    }
+
+    /** What the service answers [event] with once the card is drawn, or found to be nothing (asked again as Projectivy does). */
+    private fun answer(service: IWallpaperProviderService, event: Event.ProgramCardFocused): List<tv.projectivy.plugin.wallpaperprovider.api.Wallpaper> {
+        val card = FocusedWallpapers.card(event.title, event.type, event.iconUri)!!
+        val deadline = System.currentTimeMillis() + 90_000
+        while (System.currentTimeMillis() < deadline) {
+            val wallpapers = service.getWallpapers(event)
+            if (wallpapers.isNotEmpty() || FocusedWallpapers.matchesNothing(card)) return wallpapers
+            Thread.sleep(1000)
+        }
+        return emptyList()
+    }
+
+    /** Bound and already given the set, as Projectivy is after its first request: card events then wait for their card. */
+    private fun bindAsProjectivy(): IWallpaperProviderService = bind().also { it.getWallpapers(Event.TimeElapsed) }
+
     private fun bind(): IWallpaperProviderService {
         val latch = CountDownLatch(1)
         var binder: IBinder? = null

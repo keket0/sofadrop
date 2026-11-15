@@ -4,8 +4,8 @@ appId = "com.rfmarcos.sofadrop"
 compileSdk = "36"
 minSdk = "26"
 targetSdk = "36"
-versionCode = "6"
-versionName = "1.2.1"
+versionCode = "7"
+versionName = "1.2.2"
 
 # Kotlin
 kotlin = "2.3.21"  # https://github.com/JetBrains/kotlin/releases

@@ -1,6 +1,7 @@
 package com.rfmarcos.sofadrop
 
 import android.util.Log
+import androidx.core.text.util.LocalePreferences
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
@@ -19,8 +20,8 @@ import kotlin.math.roundToInt
 /** A place found for the location typed in the screensaver settings. */
 data class Place(val name: String, val latitude: Double, val longitude: Double)
 
-/** Current temperature (in the unit the locale uses) and WMO weather code. */
-data class CurrentWeather(val temperature: Int, val code: Int)
+/** Current temperature, always in °C (see [Weather.degrees] for the one shown), and WMO weather code. */
+data class CurrentWeather(val celsius: Double, val code: Int)
 
 /**
  * The weather for Sofascreen's clock, from Open-Meteo (free, no account or key, so nothing secret
@@ -67,11 +68,10 @@ object Weather {
             .addQueryParameter("latitude", coordinates.first.toString())
             .addQueryParameter("longitude", coordinates.second.toString())
             .addQueryParameter("current", "temperature_2m,weather_code")
-            .apply { if (fahrenheit) addQueryParameter("temperature_unit", "fahrenheit") }
             .build()
         return runCatching {
             val now = get(url.toString())["current"]!!.jsonObject
-            CurrentWeather(now["temperature_2m"]!!.jsonPrimitive.double.roundToInt(), now["weather_code"]!!.jsonPrimitive.int)
+            CurrentWeather(now["temperature_2m"]!!.jsonPrimitive.double, now["weather_code"]!!.jsonPrimitive.int)
         }.onFailure { Log.w(TAG, "Weather failed", it) }.getOrNull()?.also {
             cached = it
             cachedFor = coordinates
@@ -79,8 +79,20 @@ object Weather {
         } ?: cached.takeIf { cachedFor == coordinates && System.currentTimeMillis() - cachedAt < STALE_MAX_AGE }
     }
 
-    /** Countries that use °F. */
-    private val fahrenheit: Boolean get() = Locale.getDefault().country in setOf("US", "LR", "MM", "BS", "BZ", "KY", "PW")
+    /** "21°" in the unit [Settings.weatherUnit] asks for. */
+    fun degrees(weather: CurrentWeather): String =
+        "${(if (fahrenheit) weather.celsius * 9 / 5 + 32 else weather.celsius).roundToInt()}°"
+
+    /** Whether the weather shows in °F: as chosen, or as the TV prefers it. */
+    private val fahrenheit: Boolean get() = when (Settings.weatherUnit) {
+        Settings.UNIT_CELSIUS -> false
+        Settings.UNIT_FAHRENHEIT -> true
+        else -> regionFahrenheit
+    }
+
+    /** The TV's preferred unit (Android 14's setting, else its region): English (US) TVs outside the US get °F. */
+    val regionFahrenheit: Boolean
+        get() = LocalePreferences.getTemperatureUnit() == LocalePreferences.TemperatureUnit.FAHRENHEIT
 
     /** The text of a WMO weather code, as Open-Meteo gives them. */
     fun description(code: Int): Int = when (code) {

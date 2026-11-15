@@ -74,23 +74,20 @@ class WallpapersFragment : OutputFragment() {
         refresh()
     }
 
-    /** The focused card's wallpaper (beta), and what it made of the last cards, to send. */
+    /** The focused card's wallpaper (beta); what it made of the last cards is in About, with the generation log. */
     private fun focusedCardRows(): List<GuidedAction> {
         explanations[ID_FOCUSED_CARD] = getString(R.string.focused_card_explain)
-        explanations[ID_FOCUSED_LOG] = getString(R.string.focused_log_explain)
         val labels = Settings.FOCUSED_OPTIONS.map { focusedCardLabel(it) }
-        val cards = FocusedLog.read(requireContext()).size
-        return listOfNotNull(
-            choice(ID_FOCUSED_CARD, R.drawable.ic_act_play, R.string.focused_card_title, focusedCardLabel(Settings.focusedCard), labels),
-            action(ID_FOCUSED_LOG, R.drawable.ic_act_status, getString(R.string.focused_log_title),
-                if (cards == 0) getString(R.string.focused_log_none) else resources.getQuantityString(R.plurals.focused_log_cards, cards, cards))
-                .hasNext(cards > 0).enabled(cards > 0).build()
-                .takeIf { Settings.focusedCard != Settings.FOCUSED_OFF || cards > 0 },
+        return listOf(
+            action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), focusedCardLabel(Settings.focusedCard))
+                .subActions(options(ID_FOCUSED_CARD, labels, focusedCardLabel(Settings.focusedCard),
+                    Settings.FOCUSED_OPTIONS.map { if (it == Settings.FOCUSED_EPISODE) getString(R.string.focused_card_episode_desc) else null })).build(),
         )
     }
 
     private fun focusedCardLabel(mode: String) = getString(when (mode) {
         Settings.FOCUSED_EPISODE -> R.string.focused_card_episode
+        Settings.FOCUSED_EPISODE_SERIES_IMAGE -> R.string.focused_card_episode_series_image
         Settings.FOCUSED_SERIES -> R.string.focused_card_series
         else -> R.string.focused_card_off
     })
@@ -105,7 +102,6 @@ class WallpapersFragment : OutputFragment() {
         }
         if (action.id / SUB_ID_BASE != ID_FOCUSED_CARD) return super.onSubGuidedActionClicked(action)
         Settings.focusedCard = Settings.FOCUSED_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
-        // The log's row comes and goes with it
         refresh()
         return true
     }
@@ -124,7 +120,6 @@ class WallpapersFragment : OutputFragment() {
         when (action.id) {
             ID_USE -> Projectivy.openWallpaperSettings(requireContext())
             ID_VIEW -> startActivity(Intent(requireContext(), PreviewActivity::class.java).putExtra(PreviewActivity.EXTRA_PROFILE, profile.id))
-            ID_FOCUSED_LOG -> open(FocusedLogFragment())
             ID_GET -> LinkQrDialog.newInstance(Projectivy.URL, R.string.projectivy_get, R.string.projectivy_get_scan)
                 .show(parentFragmentManager, "projectivy")
             else -> super.onGuidedActionClicked(action)
@@ -136,7 +131,6 @@ class WallpapersFragment : OutputFragment() {
         private const val ID_GET = 4L
         private const val ID_VIEW = 5L
         private const val ID_FOCUSED_CARD = 6L
-        private const val ID_FOCUSED_LOG = 7L
         private const val ID_FOLDER = 8L
 
         private fun folderLabel(context: Context, on: Boolean) =

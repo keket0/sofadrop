@@ -187,12 +187,16 @@ class ClickActionFragment : PreviewSettingsFragment() {
 
         private fun clickDescription(context: Context, action: String): String? {
             val app = Settings.clickApp(action)
-            val reach = when (app?.reach) {
+            // Signed in to the server: the titles it has open their page
+            val reach = if (app == TitleApp.JELLYFIN && Settings.jellyfinConnected) context.getString(R.string.click_app_jellyfin_desc)
+            // Its pages are found with the account
+            else if (app == TitleApp.PLEX) context.getString(if (Settings.plexSignedIn) R.string.click_app_plex_desc else R.string.click_app_plex_sign_in)
+            else when (app?.reach) {
                 TitleApp.Reach.TITLE -> context.getString(R.string.click_app_title_desc)
                 TitleApp.Reach.SEARCH -> context.getString(R.string.click_app_search_desc)
                 null -> return if (action == Settings.CLICK_TRAILER) context.getString(R.string.click_trailer_desc) else null
             }
-            return if (app.installedPackage(context) == null) context.getString(R.string.click_app_not_installed, reach) else reach
+            return if (app?.installedPackage(context) == null) context.getString(R.string.click_app_not_installed, reach) else reach
         }
 
         fun fallbackLabel(context: Context, fallback: String) = context.getString(

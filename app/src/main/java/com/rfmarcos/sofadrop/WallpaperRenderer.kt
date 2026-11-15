@@ -73,6 +73,8 @@ class WallpaperRenderer(
     private val traktLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_trakt)!!
     private val simklLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_simkl)
     private val mdbListLogo: Bitmap = BitmapFactory.decodeResource(context.resources, R.drawable.logo_mdblist)
+    private val jellyfinLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_jellyfin)!!
+    private val plexLogo: Drawable = AppCompatResources.getDrawable(context, R.drawable.logo_plex)!!
     // Official marks of the rating platforms, unaltered (sources in each drawable)
     private val ratingLogos: Map<Int, Drawable> = listOf(
         R.drawable.rating_imdb, R.drawable.rating_tomatoes_fresh, R.drawable.rating_tomatoes_rotten, R.drawable.rating_popcorn_up,
@@ -85,11 +87,27 @@ class WallpaperRenderer(
 
     private val black = shade == Settings.SHADE_BLACK
 
-    /** [faces]: photos of the first [MAX_CAST_PHOTOS] actors of [WallpaperInfo.cast], null where there is none. */
-    fun render(info: WallpaperInfo, backdrop: Bitmap, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?> = emptyList()): Bitmap {
+    /** Synopsis lines drawn: with [Settings.OVERVIEW_SCROLL], the scrolling window's. */
+    private val overviewWindow = if (overviewLines == Settings.OVERVIEW_SCROLL) ScrollingSynopsis.WINDOW else overviewLines
+
+    /** What [drawOverview] found (a synopsis longer than its window) and whether to leave it out, for [onScroll]. */
+    private class OverviewCapture {
+        var lines: List<String>? = null
+        var top = 0f
+        var skip = false
+    }
+
+    /**
+     * [faces]: photos of the first [MAX_CAST_PHOTOS] actors of [WallpaperInfo.cast], null where there is none.
+     * With [Settings.OVERVIEW_SCROLL], [onScroll] gets the synopsis that didn't fit (see [ScrollingSynopsis]).
+     */
+    fun render(
+        info: WallpaperInfo, backdrop: Bitmap, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?> = emptyList(),
+        onScroll: ((ScrollingSynopsis) -> Unit)? = null,
+    ): Bitmap {
         val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         try {
-            draw(output, info, backdrop, logo, providerLogos, faces)
+            draw(output, info, backdrop, logo, providerLogos, faces, onScroll.takeIf { overviewLines == Settings.OVERVIEW_SCROLL })
         } catch (e: Throwable) {
             // A 4K wallpaper is ~33 MB: don't keep it waiting for the collector after running out of memory
             output.recycle()
@@ -98,7 +116,10 @@ class WallpaperRenderer(
         return output
     }
 
-    private fun draw(output: Bitmap, info: WallpaperInfo, backdrop: Bitmap, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>) {
+    private fun draw(
+        output: Bitmap, info: WallpaperInfo, backdrop: Bitmap, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>,
+        onScroll: ((ScrollingSynopsis) -> Unit)?,
+    ) {
         val canvas = Canvas(output)
 
         // Full-bleed backdrop
@@ -112,7 +133,7 @@ class WallpaperRenderer(
             min(width, s(2100).roundToInt()), min(height, s(1500).roundToInt()), Bitmap.Config.ARGB_8888
         )
         try {
-            drawInfo(canvas, layer, info, logo, providerLogos, faces)
+            drawInfo(canvas, output, layer, info, logo, providerLogos, faces, onScroll)
         } finally {
             layer.recycle()
         }
@@ -163,14 +184,61 @@ class WallpaperRenderer(
         alpha = 153
     }
 
-    private fun drawInfo(canvas: Canvas, layer: Bitmap, info: WallpaperInfo, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>) {
-        drawInfoContent(Canvas(layer), info, logo, providerLogos, faces)
+    private fun drawInfo(
+        canvas: Canvas, output: Bitmap, layer: Bitmap, info: WallpaperInfo, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>,
+        onScroll: ((ScrollingSynopsis) -> Unit)?,
+    ) {
+        val capture = onScroll?.let { OverviewCapture() }
+        drawInfoContent(Canvas(layer), info, logo, providerLogos, faces, capture)
         val (dx, dy) = blockOffset(layer)
+        val lines = capture?.lines
+        val box = if (capture != null && lines != null) scrollBox(capture.top + dy, dx) else null
+        // The backdrop under the synopsis box, before the block goes on
+        val patch = box?.let { Bitmap.createBitmap(it.width(), it.height(), Bitmap.Config.ARGB_8888) }
+        patch?.let { Canvas(it).drawBitmap(output, -box.left.toFloat(), -box.top.toFloat(), null) }
+        drawBlock(canvas, layer, dx, dy)
+        if (onScroll == null || capture == null || lines == null || box == null || patch == null) return
+        // The block again without the synopsis, over the patch: the box as it is with no text in it
+        layer.eraseColor(Color.TRANSPARENT)
+        capture.skip = true
+        drawInfoContent(Canvas(layer), info, logo, providerLogos, faces, capture)
+        drawBlock(Canvas(patch).apply { translate(-box.left.toFloat(), -box.top.toFloat()) }, layer, dx, dy)
+        onScroll(ScrollingSynopsis(patch, overviewStrip(lines, box, s(MARGIN_LEFT) + dx, capture.top + dy), box.left, box.top,
+            s(OVERVIEW_LINE_HEIGHT), overviewWindow, lines.size))
+    }
+
+    /** The info [layer] and its soft shadow on [canvas], moved to the block's position. */
+    private fun drawBlock(canvas: Canvas, layer: Bitmap, dx: Float, dy: Float) {
         val offset = IntArray(2)
         val shadow = layer.extractAlpha(blurPaint(), offset)
         canvas.drawBitmap(shadow, offset[0] + dx, offset[1] + dy, shadowPaint())
         canvas.drawBitmap(layer, dx, dy, Paint(Paint.FILTER_BITMAP_FLAG))
         shadow.recycle()
+    }
+
+    /** The scrolling synopsis' box on the wallpaper, its first line at [top]: its window, with room for the shadow. */
+    private fun scrollBox(top: Float, dx: Float): Rect? {
+        val pad = s(SCROLL_PAD)
+        val box = Rect(
+            (s(MARGIN_LEFT) + dx - pad).roundToInt(), (top - pad).roundToInt(),
+            (s(MARGIN_LEFT + CONTENT_WIDTH) + dx + pad).roundToInt(), (top + overviewWindow * s(OVERVIEW_LINE_HEIGHT) + pad).roundToInt(),
+        )
+        return box.takeIf { it.left >= 0 && it.top >= 0 && it.right <= width && it.bottom <= height }
+    }
+
+    /** All the synopsis [lines] with their shadow, as wide as [box], the first one at ([left], [top]) of the wallpaper. */
+    private fun overviewStrip(lines: List<String>, box: Rect, left: Float, top: Float): Bitmap {
+        val paint = overviewPaint()
+        val lineHeight = s(OVERVIEW_LINE_HEIGHT)
+        val x = left - box.left
+        val y = top - box.top
+        val text = Bitmap.createBitmap(box.width(), (y + lines.size * lineHeight + s(SCROLL_PAD)).roundToInt(), Bitmap.Config.ARGB_8888)
+        val textCanvas = Canvas(text)
+        lines.forEachIndexed { i, line -> textCanvas.drawText(line, x, y + i * lineHeight - paint.fontMetrics.ascent, paint) }
+        val strip = Bitmap.createBitmap(text.width, text.height, Bitmap.Config.ARGB_8888)
+        drawBlock(Canvas(strip), text, 0f, 0f)
+        text.recycle()
+        return strip
     }
 
     /**
@@ -218,12 +286,14 @@ class WallpaperRenderer(
         return if (top < 0) null else Rect(left, top, right + 1, bottom + 1)
     }
 
-    private fun drawInfoContent(layerCanvas: Canvas, info: WallpaperInfo, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>) {
+    private fun drawInfoContent(
+        layerCanvas: Canvas, info: WallpaperInfo, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>, capture: OverviewCapture? = null,
+    ) {
         if (logo != null) drawLogo(layerCanvas, logo) else drawTitle(layerCanvas, info.title)
         if (style == Settings.STYLE_FULL) {
             // With no header line the synopsis moves up into its place
             val overviewTop = s(if (drawMetadata(layerCanvas, info)) META_CENTER + 36 + 52 else LOGO_BOTTOM + 60)
-            val overviewBottom = drawOverview(layerCanvas, info.overview, overviewTop)
+            val overviewBottom = drawOverview(layerCanvas, info.overview, overviewTop, capture)
             // Without a synopsis, the cast or the footer starts where it would, not a synopsis gap lower
             val castBottom = drawCast(layerCanvas, overviewBottom, info.cast, faces, if (overviewBottom > overviewTop) s(CAST_GAP) else 0f)
             drawFooter(layerCanvas, if (castBottom > overviewTop) castBottom + s(40) else overviewTop, providerLogos, info)
@@ -527,13 +597,22 @@ class WallpaperRenderer(
         return x + width
     }
 
-    private fun drawOverview(canvas: Canvas, overview: String, start: Float): Float {
-        val paint = textPaint(regular, s(48f), Color.rgb(220, 220, 220))
+    private fun overviewPaint() = textPaint(regular, s(48f), Color.rgb(220, 220, 220))
+
+    /** The synopsis from [start], cut at its window; [capture] gets all of it when it's longer, or leaves it out. */
+    private fun drawOverview(canvas: Canvas, overview: String, start: Float, capture: OverviewCapture? = null): Float {
+        val paint = overviewPaint()
         var top = start
-        if (overviewLines <= 0 || overview.isBlank()) return top // hidden or untranslated: the streaming row moves up
-        for (line in wrap(overview, paint, s(CONTENT_WIDTH), overviewLines)) {
-            canvas.drawText(line, s(MARGIN_LEFT), top - paint.fontMetrics.ascent, paint)
-            top += s(66f)
+        if (overviewWindow <= 0 || overview.isBlank()) return top // hidden or untranslated: the streaming row moves up
+        if (capture != null && !capture.skip) {
+            wrap(overview, paint, s(CONTENT_WIDTH), Int.MAX_VALUE).takeIf { it.size > overviewWindow }?.let {
+                capture.lines = it
+                capture.top = start
+            }
+        }
+        for (line in wrap(overview, paint, s(CONTENT_WIDTH), overviewWindow)) {
+            if (capture?.skip != true) canvas.drawText(line, s(MARGIN_LEFT), top - paint.fontMetrics.ascent, paint)
+            top += s(OVERVIEW_LINE_HEIGHT)
         }
         return top
     }
@@ -676,17 +755,20 @@ class WallpaperRenderer(
             canvas?.drawBitmap(bitmap, null, RectF(left, center - height / 2, left + w, center + height / 2), bitmapPaint)
             return left + w
         }
-        return when (info.sourceProvider) {
-            SourceProvider.TRAKT -> {
-                // As tall as TMDB's two rows: its letters are bold and would look bigger
-                val height = h * 0.9f
-                val w = height * traktLogo.intrinsicWidth / traktLogo.intrinsicHeight
-                if (canvas != null) {
-                    traktLogo.setBounds(x.roundToInt(), (center - height / 2).roundToInt(), (x + w).roundToInt(), (center + height / 2).roundToInt())
-                    traktLogo.draw(canvas)
-                }
-                x + w
+        fun drawVector(logo: Drawable, height: Float): Float {
+            val w = height * logo.intrinsicWidth / logo.intrinsicHeight
+            if (canvas != null) {
+                logo.setBounds(x.roundToInt(), (center - height / 2).roundToInt(), (x + w).roundToInt(), (center + height / 2).roundToInt())
+                logo.draw(canvas)
             }
+            return x + w
+        }
+        return when (info.sourceProvider) {
+            // As tall as TMDB's two rows: its letters are bold and would look bigger
+            SourceProvider.TRAKT -> drawVector(traktLogo, h * 0.9f)
+            // Its icon is much taller than the wordmark's letters, which should match the list name's
+            SourceProvider.JELLYFIN -> drawVector(jellyfinLogo, h * 1.8f)
+            SourceProvider.PLEX -> drawVector(plexLogo, h * 1.1f)
             // A wide, heavy wordmark: lower than TMDB's to weigh the same
             SourceProvider.SIMKL -> drawBitmap(simklLogo, h * 0.6f, x)
             // MDBList has no wordmark: its app icon followed by the name, both about TMDB's size
@@ -810,6 +892,9 @@ class WallpaperRenderer(
     companion object {
         private const val MARGIN_LEFT = 210
         private const val CONTENT_WIDTH = 1550
+        private const val OVERVIEW_LINE_HEIGHT = 66f
+        /** Room around the scrolling synopsis' lines for their shadow (see [blurPaint]). */
+        private const val SCROLL_PAD = 24f
         private const val RATING_SPACING = 44f
         /** Between header blocks that aren't both text (ratings, the watched badge). */
         private const val BLOCK_GAP = 60f

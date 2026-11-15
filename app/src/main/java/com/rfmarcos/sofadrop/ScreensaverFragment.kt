@@ -174,7 +174,8 @@ class ScreensaverFragment : OutputFragment() {
         if (Projectivy.isInstalled(requireContext()) && ID_SYSTEM in explanations) {
             explanations[ID_SYSTEM] = "${explanations[ID_SYSTEM]}\n\n${getString(R.string.projectivy_screensaver_desc)}"
         }
-        explanations[ID_POSITION] = getString(R.string.screensaver_clock_explain)
+        explanations[ID_IDLE] = getString(R.string.screensaver_idle_explain)
+        explanations[ID_POSITION] =getString(R.string.screensaver_clock_explain)
         explanations[ID_WEATHER] = getString(R.string.screensaver_weather_explain)
         explanations[ID_LOCATION] = getString(R.string.screensaver_weather_explain)
     }
@@ -186,6 +187,8 @@ class ScreensaverFragment : OutputFragment() {
             // Says what it would show
             action(ID_START, R.drawable.ic_act_play, getString(R.string.sofascreen_start), sofascreenStatus())
                 .multilineDescription(true).enabled(canStart()).build(),
+            choice(ID_IDLE, R.drawable.ic_act_schedule, R.string.screensaver_idle_title, idleLabel(context, Settings.screensaverIdleMinutes),
+                Settings.SCREENSAVER_IDLE_OPTIONS.map { idleLabel(context, it) }),
             action(ID_SYSTEM, R.drawable.ic_act_tv, getString(R.string.sofascreen_switch_on), ScreensaverSetupFragment.status(context))
                 .multilineDescription(true).enabled(ScreensaverSetupFragment.canSwitchOn(context)).build()
                 // Only says something where it can't be switched on if it was, from a computer
@@ -206,17 +209,23 @@ class ScreensaverFragment : OutputFragment() {
             header(ID_HEADER_CLOCK, getString(R.string.screensaver_clock_header)),
             choice(ID_CLOCK, R.drawable.ic_act_schedule, R.string.screensaver_clock_title, clockLabel(context, Settings.screensaverClock),
                 Settings.CLOCK_STYLES.map { clockLabel(context, it) }),
+            choice(ID_FONT, R.drawable.ic_act_font, R.string.screensaver_clock_font_title, fontLabel(context, Settings.screensaverClockFont),
+                Settings.CLOCK_FONTS.map { fontLabel(context, it) }).also { it.isEnabled = clockOn },
+            choice(ID_SIZE, R.drawable.ic_act_font, R.string.screensaver_clock_size_title, sizeLabel(context, Settings.screensaverClockSize),
+                Settings.CLOCK_SIZES.keys.map { sizeLabel(context, it) }).also { it.isEnabled = clockOn },
             action(ID_DATE, R.drawable.ic_act_schedule, getString(R.string.screensaver_date_title), null)
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID).checked(Settings.screensaverDate).enabled(clockOn).build(),
             choice(ID_FORMAT, R.drawable.ic_act_schedule, R.string.screensaver_clock_format_title, formatLabel(context, Settings.screensaverClockFormat),
                 Settings.CLOCK_FORMATS.map { formatLabel(context, it) }).also { it.isEnabled = clockOn },
-            choice(ID_POSITION, R.drawable.ic_act_place, R.string.screensaver_clock_position_title, positionLabel(context, Settings.screensaverClockBottom),
-                listOf(false, true).map { positionLabel(context, it) }).also { it.isEnabled = clockOn },
+            choice(ID_POSITION, R.drawable.ic_act_place, R.string.screensaver_clock_position_title, positionLabel(context, Settings.screensaverClockPosition),
+                Settings.CLOCK_POSITIONS.map { positionLabel(context, it) }).also { it.isEnabled = clockOn },
             colorRow(clockOn),
             action(ID_WEATHER, R.drawable.ic_act_weather, getString(R.string.screensaver_weather_title),
                 Settings.weatherPlace.ifEmpty { getString(R.string.screensaver_weather_no_place) })
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID).checked(Settings.screensaverWeather)
                 .enabled(clockOn && Settings.weatherPlace.isNotEmpty()).build(),
+            choice(ID_UNIT, R.drawable.ic_act_weather, R.string.screensaver_weather_unit_title, unitLabel(context, Settings.weatherUnit),
+                Settings.WEATHER_UNITS.map { unitLabel(context, it) }).also { it.isEnabled = clockOn && Settings.screensaverWeather },
             editable(ID_LOCATION, R.drawable.ic_act_search, getString(R.string.screensaver_location_title), Settings.weatherPlace,
                 Settings.weatherPlace.ifEmpty { getString(R.string.not_set) }).also { it.isEnabled = clockOn },
         )
@@ -237,11 +246,7 @@ class ScreensaverFragment : OutputFragment() {
             .also { it.isEnabled = clockOn }
     }
 
-    /** Sofascreen makes its set when it starts: only without lists there would be nothing to wait for. */
-    private fun canStart(): Boolean {
-        val set = Profile.SCREENSAVER.source
-        return Sources.selected(set).isNotEmpty() || WallpaperStore(requireContext(), set).current().isNotEmpty()
-    }
+    private fun canStart() = canStart(requireContext())
 
     override fun onGuidedActionClicked(action: GuidedAction) {
         when (action.id) {
@@ -255,6 +260,7 @@ class ScreensaverFragment : OutputFragment() {
             ID_WEATHER -> {
                 Settings.screensaverWeather = action.isChecked
                 showClock()
+                refresh() // the unit's row follows the weather
             }
             ID_COLOR -> if (colorsLocked && supporterState != Supporter.State.PENDING) supporter?.buy(requireActivity())
             else -> super.onGuidedActionClicked(action)
@@ -292,15 +298,25 @@ class ScreensaverFragment : OutputFragment() {
         val index = (action.id % SUB_ID_BASE).toInt()
         when (action.id / SUB_ID_BASE) {
             ID_SECONDS -> Settings.screensaverSeconds = Settings.SCREENSAVER_SECONDS_OPTIONS[index]
+            ID_IDLE -> {
+                Settings.screensaverIdleMinutes = Settings.SCREENSAVER_IDLE_OPTIONS[index]
+                (activity as? SettingsActivity)?.waitIdle()
+            }
             ID_TRANSITION -> {
                 Settings.screensaverTransition = Settings.TRANSITIONS[index]
                 showTransition()
             }
             ID_CLOCK -> Settings.screensaverClock = Settings.CLOCK_STYLES[index]
-            ID_POSITION -> Settings.screensaverClockBottom = index == 1
+            ID_POSITION -> Settings.screensaverClockPosition = Settings.CLOCK_POSITIONS[index]
+            ID_FONT -> Settings.screensaverClockFont = Settings.CLOCK_FONTS[index]
+            ID_SIZE -> Settings.screensaverClockSize = Settings.CLOCK_SIZES.keys.elementAt(index)
             ID_FORMAT -> Settings.screensaverClockFormat = Settings.CLOCK_FORMATS[index]
             ID_COLOR -> Settings.screensaverClockColor = Settings.CLOCK_COLORS.keys.elementAt(index)
             ID_BRIGHTNESS -> Settings.screensaverBrightness = Settings.SCREENSAVER_BRIGHTNESS_OPTIONS[index]
+            ID_UNIT -> {
+                Settings.weatherUnit = Settings.WEATHER_UNITS[index]
+                showClock()
+            }
             else -> return super.onSubGuidedActionClicked(action)
         }
         refresh() // the clock's rows follow the clock
@@ -323,10 +339,31 @@ class ScreensaverFragment : OutputFragment() {
         private const val ID_WEATHER = 20L
         private const val ID_LOCATION = 21L
         private const val ID_COLOR = 22L
+        private const val ID_UNIT = 23L
+        private const val ID_IDLE = 24L
+        private const val ID_FONT = 25L
+        private const val ID_SIZE = 26L
         private const val TRANSITION_HOLD_MILLIS = 1500L
+
+        /** Sofascreen makes its set when it starts: only without lists there would be nothing to wait for. */
+        fun canStart(context: Context): Boolean {
+            val set = Profile.SCREENSAVER.source
+            return Sources.selected(set).isNotEmpty() || WallpaperStore(context, set).current().isNotEmpty()
+        }
+
+        /** "Off", or "After 5 min" without a button pressed in the settings. */
+        fun idleLabel(context: Context, minutes: Int) =
+            if (minutes == 0) context.getString(R.string.screensaver_idle_off) else context.getString(R.string.screensaver_idle_minutes, minutes)
 
         /** "com.rfmarcos.sofadrop/com.rfmarcos.sofadrop.SofascreenService", for the adb command. */
         fun component(context: Context) = "${context.packageName}/${SofascreenService::class.java.name}"
+
+        /** "°C", "°F", or "Automatic (°F)" with the unit it gives now. */
+        fun unitLabel(context: Context, unit: String) = when (unit) {
+            Settings.UNIT_CELSIUS -> "°C"
+            Settings.UNIT_FAHRENHEIT -> "°F"
+            else -> context.getString(R.string.screensaver_weather_unit_auto, if (Weather.regionFahrenheit) "°F" else "°C")
+        }
 
         fun secondsLabel(context: Context, seconds: Int) =
             if (seconds < 60) context.getString(R.string.screensaver_seconds, seconds)
@@ -368,8 +405,31 @@ class ScreensaverFragment : OutputFragment() {
             }
         )
 
-        private fun positionLabel(context: Context, bottom: Boolean) =
-            context.getString(if (bottom) R.string.clock_bottom else R.string.clock_top)
+        private fun positionLabel(context: Context, position: String) = context.getString(
+            when (position) {
+                Settings.CLOCK_MIDDLE -> R.string.clock_middle
+                Settings.CLOCK_BOTTOM -> R.string.clock_bottom
+                else -> R.string.clock_top
+            }
+        )
+
+        private fun sizeLabel(context: Context, size: String) = context.getString(
+            when (size) {
+                Settings.CLOCK_SIZE_SMALL -> R.string.clock_size_small
+                Settings.CLOCK_SIZE_LARGE -> R.string.clock_size_large
+                else -> R.string.clock_size_normal
+            }
+        )
+
+        private fun fontLabel(context: Context, font: String) = context.getString(
+            when (font) {
+                Settings.CLOCK_FONT_LIGHT -> R.string.clock_font_light
+                Settings.CLOCK_FONT_ROUNDED -> R.string.clock_font_rounded
+                Settings.CLOCK_FONT_CONDENSED -> R.string.clock_font_condensed
+                Settings.CLOCK_FONT_SERIF -> R.string.clock_font_serif
+                else -> R.string.clock_font_bold
+            }
+        )
 
         /** "On · Own lists · 30 s · clock" for the main screen. */
         fun summary(context: Context): String = listOfNotNull(

@@ -6,6 +6,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -95,7 +96,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
                 log.finish("Cancelled")
                 return Result.success()
             }
-            val stored = withPlatformLinks(drawn, log)
+            val stored = withPlexSlugs(withJellyfinItems(withPlatformLinks(drawn, log), log), log)
             // Every list failing (e.g. no network) or no title fitting in memory is that error, not "no titles"
             if (stored.isEmpty()) throw when {
                 listErrors.isNotEmpty() -> listErrors.first()
@@ -116,6 +117,8 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             if (!profile.isScreensaver) {
                 notifyProjectivy(applicationContext)
                 WallpaperFolder.update(applicationContext)
+                // The set is out with its JPEGs; the videos replace them as they're made
+                withVideos(generation, stored, log)?.let { store.publish(generation, it) }
             }
             Log.i(TAG, "Generated ${stored.size} wallpapers${" for the screensaver".takeIf { profile.isScreensaver }.orEmpty()} (${Settings.language}) in ${System.currentTimeMillis() - start} ms")
             // What a generation costs TMDB (a preview open at the same time counts too)
@@ -249,20 +252,108 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
         return linked
     }
 
+    /**
+     * [stored] with their items on the user's Jellyfin server, when wallpapers open Jellyfin: its page then,
+     * instead of its search. Without the server they open the search: not worth failing the generation for.
+     */
+    private fun withJellyfinItems(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
+        if (Settings.clickApp(profile.clickFallback) != TitleApp.JELLYFIN) return stored
+        val client = JellyfinClient.fromSettings() ?: return stored
+        val index = try {
+            client.libraryIndex()
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not read the Jellyfin library", e)
+            log.add("Jellyfin library failed: ${GenerationLog.describe(e)}")
+            return stored
+        }
+        val linked = stored.map { wallpaper ->
+            val type = MediaType.entries.first { it.path == wallpaper.type }
+            wallpaper.copy(jellyfinId = index[TitleRef(type, wallpaper.tmdbId)])
+        }
+        log.add("Jellyfin: ${linked.count { it.jellyfinId != null }} of ${stored.size} titles in the library (${index.size} there)")
+        return linked
+    }
+
+    /**
+     * [stored] with their pages on watch.plex.tv, when wallpapers open Plex: the server's titles bring
+     * theirs, the rest are asked to Plex once and remembered. Without one, the fallback after the app opens.
+     */
+    private fun withPlexSlugs(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
+        if (Settings.clickApp(profile.clickFallback) != TitleApp.PLEX || !Settings.plexSignedIn) return stored
+        val slugs = PlexSlugs(applicationContext)
+        try {
+            PlexClient.connect()?.librarySlugs()?.forEach { (ref, slug) -> slugs[ref] = slug }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not read the Plex library", e)
+            log.add("Plex library failed: ${GenerationLog.describe(e)}")
+        }
+        val refs = stored.associateWith { wallpaper -> TitleRef(MediaType.entries.first { it.path == wallpaper.type }, wallpaper.tmdbId) }
+        val failed = slugs.fetch(refs.values.filter { slugs[it] == null }) { ref -> PlexClient.slug(Settings.plexToken, ref) }
+        slugs.save()
+        val linked = stored.map { wallpaper -> wallpaper.copy(plexSlug = slugs[refs.getValue(wallpaper)]) }
+        log.add("Plex: ${linked.count { it.plexSlug != null }} of ${stored.size} titles with a page" + if (failed > 0) " ($failed failed)" else "")
+        return linked
+    }
+
+    /**
+     * [stored] with an MP4 for each wallpaper whose synopsis scrolls (see [ScrollingSynopsis]), for
+     * Projectivy; null when none has one. One at a time: TV encoders take few sessions. Stopped by
+     * Android, the ones left keep their JPEG.
+     */
+    private fun withVideos(generation: File, stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper>? {
+        if (stored.none { it.scroll != null } || !Projectivy.isInstalled(applicationContext)) return null
+        val start = System.currentTimeMillis()
+        var made = 0
+        var bytes = 0L
+        var codec = ""
+        val result = stored.map { wallpaper ->
+            val box = wallpaper.scroll
+            if (box == null || isStopped) return@map wallpaper
+            val video = wallpaper.file.removeSuffix(".jpg") + ".mp4"
+            val file = File(generation, video)
+            val image = runCatching { BitmapFactory.decodeFile(File(generation, wallpaper.file).path) }.getOrNull()
+            val synopsis = ScrollingSynopsis.load(generation, box)
+            try {
+                if (image == null || synopsis == null) return@map wallpaper
+                codec = ScrollVideo.encode(synopsis, image, file)
+                made++
+                bytes += file.length()
+                wallpaper.copy(video = video)
+            } catch (e: Throwable) {
+                // Out of memory too: the wallpaper stays a still one
+                Log.w(TAG, "Could not encode the video of ${wallpaper.file}", e)
+                log.add("Video of ${wallpaper.file} failed: ${GenerationLog.describe(e)}")
+                file.delete()
+                wallpaper
+            } finally {
+                image?.recycle()
+                synopsis?.recycle()
+            }
+        }
+        val millis = System.currentTimeMillis() - start
+        log.add("Scrolling synopses: $made videos in ${millis / 1000} s (${if (made > 0) millis / made else 0} ms each), ${bytes / 1024} KB, $codec" +
+            if (isStopped) " (stopped by Android)" else "")
+        return result.takeIf { made > 0 }
+    }
+
     /** Render one title into [generation]; null when it can't be drawn. */
     private fun store(factory: WallpaperFactory, plan: ListPlan, ref: TitleRef, generation: File, log: GenerationLog): StoredWallpaper? =
         try {
             factory.build(ref, plan)?.let { info ->
                 val position = profile.positionAt(started.getAndIncrement())
-                val bitmap = render(factory, info, ref, log, position) ?: return null
-                val name = "${info.type.path}-${info.id}.jpg"
-                try {
+                var synopsis: ScrollingSynopsis? = null
+                val bitmap = render(factory, info, ref, log, position) { synopsis = it } ?: return null
+                val base = "${info.type.path}-${info.id}"
+                val name = "$base.jpg"
+                val scroll = try {
                     FileOutputStream(File(generation, name)).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+                    synopsis?.save(generation, base, bitmap.width)
                 } finally {
                     bitmap.recycle()
+                    synopsis?.recycle()
                 }
                 StoredWallpaper(name, info.title, info.type.path, info.id, plan.source.key, info.trailerKey, info.imdbId, info.providerIds,
-                    position = position.takeIf { profile.position == Settings.POSITION_ROTATE })
+                    position = position.takeIf { profile.position == Settings.POSITION_ROTATE }, scroll = scroll)
             }
         } catch (e: TmdbException) {
             throw e
@@ -280,10 +371,12 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
      * [info] drawn at [width]. A 4K wallpaper that doesn't fit in memory is drawn again at 1920, and after
      * the second one the rest of the generation goes straight to 1920. Null when not even that fits.
      */
-    private fun render(factory: WallpaperFactory, info: WallpaperInfo, ref: TitleRef, log: GenerationLog, position: String): Bitmap? {
+    private fun render(
+        factory: WallpaperFactory, info: WallpaperInfo, ref: TitleRef, log: GenerationLog, position: String, onScroll: (ScrollingSynopsis) -> Unit,
+    ): Bitmap? {
         val width = this.width
         try {
-            return factory.render(info, width, position)
+            return factory.render(info, width, position, onScroll)
         } catch (e: OutOfMemoryError) {
             Log.w(TAG, "Out of memory drawing ${ref.type.path}/${ref.tmdbId} at $width px", e)
             log.titleFailed(ref, e, width)
@@ -297,7 +390,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             }
         }
         return try {
-            factory.render(info, FALLBACK_WIDTH, position)
+            factory.render(info, FALLBACK_WIDTH, position, onScroll)
         } catch (e: OutOfMemoryError) {
             log.titleFailed(ref, e, FALLBACK_WIDTH)
             outOfMemory = true

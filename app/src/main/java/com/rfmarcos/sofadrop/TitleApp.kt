@@ -1,6 +1,7 @@
 package com.rfmarcos.sofadrop
 
 import android.app.SearchManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,9 +26,17 @@ enum class TitleApp(
     STREMIO("stremio", "Stremio", listOf("com.stremio.one"), Reach.TITLE, "stremio:///detail/movie/tt0133093"),
     /** wuplay://detail/movie/tt0133093, or tmdb:603 without an IMDb id. */
     WUPLAY("wuplay", "WuPlay", listOf("app.wuplay.androidtv"), Reach.TITLE, "wuplay://detail/movie/tt0133093"),
-    /** Its search screen with the title, through ACTION_SEARCH; items need the server's own ids. */
+    /**
+     * The title's page on watch.plex.tv, which Plex's app takes (the page of an item on the server doesn't
+     * open since Plex's May 2025 update); none without its slug, which needs the account.
+     */
+    PLEX("plex", "Plex", listOf("com.plexapp.android"), Reach.TITLE),
+    /**
+     * The title's page when it is on the server Sofadrop is signed in to (by the server's item id), else its
+     * search with the title. Its StartupActivity takes both, but has no DEFAULT category: named explicitly.
+     */
     JELLYFIN("jellyfin", "Jellyfin", listOf("org.jellyfin.androidtv"), Reach.SEARCH);
-    // Plex and Kodi have no way in to a title: only opening the app, which isn't worth a wallpaper click
+    // Kodi has no way in to a title: only opening the app, which isn't worth a wallpaper click
 
     /** How close to the title the app gets. */
     enum class Reach { TITLE, SEARCH }
@@ -54,11 +63,19 @@ enum class TitleApp(
             STREMIO -> Intent(Intent.ACTION_VIEW, (wallpaper.imdbId?.let { "stremio:///detail/${if (series) "series" else "movie"}/$it" }
                 ?: "stremio:///search?search=${Uri.encode(wallpaper.title)}").toUri())
             WUPLAY -> Intent(Intent.ACTION_VIEW, "wuplay://detail/${if (series) "series" else "movie"}/${wallpaper.imdbId ?: "tmdb:${wallpaper.tmdbId}"}".toUri())
-            JELLYFIN -> Intent(Intent.ACTION_SEARCH).putExtra(SearchManager.QUERY, wallpaper.title)
+            JELLYFIN -> (wallpaper.jellyfinId?.let { Intent(Intent.ACTION_VIEW).putExtra(JELLYFIN_ITEM_ID, it) }
+                ?: Intent(Intent.ACTION_SEARCH).putExtra(SearchManager.QUERY, wallpaper.title))
+                .setComponent(ComponentName(packageName, JELLYFIN_STARTUP))
+                // Jellyfin 0.20 crashes if its task is still open (NPE in its startup); a fresh task works
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            PLEX -> Intent(Intent.ACTION_VIEW, "https://watch.plex.tv/${if (series) "show" else "movie"}/${wallpaper.plexSlug ?: return null}".toUri())
         }.setPackage(packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     companion object {
+        private const val JELLYFIN_STARTUP = "org.jellyfin.androidtv.ui.startup.StartupActivity"
+        private const val JELLYFIN_ITEM_ID = "ItemId"
+
         fun of(key: String): TitleApp? = entries.firstOrNull { it.key == key }
 
         /** The apps installed on this device, in [entries] order. */

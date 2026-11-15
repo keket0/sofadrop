@@ -25,6 +25,14 @@ data class StoredWallpaper(
     val platformLinks: Map<String, String> = emptyMap(),
     /** Where its text is, when each wallpaper has its own place (see [Settings.POSITION_ROTATE]). */
     val position: String? = null,
+    /** Its item on the user's Jellyfin server, when it is there and Jellyfin opens it (see [TitleApp.JELLYFIN]). */
+    val jellyfinId: String? = null,
+    /** Its page on watch.plex.tv ("the-matrix-1999"), when Plex opens it (see [TitleApp.PLEX]). */
+    val plexSlug: String? = null,
+    /** Its synopsis didn't fit and scrolls (see [Settings.OVERVIEW_SCROLL]): Sofascreen scrolls it live. */
+    val scroll: ScrollBox? = null,
+    /** The MP4 of [file] with its synopsis scrolling, which Projectivy gets instead of the JPEG. */
+    val video: String? = null,
 )
 
 /**
@@ -94,11 +102,17 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
 
     fun fileOf(wallpaper: StoredWallpaper): File? = currentDir()?.let { File(it, wallpaper.file) }
 
-    /** content:// URI of a current wallpaper, served by [WallpaperContentProvider]. */
-    fun uriOf(wallpaper: StoredWallpaper): Uri? {
+    /** content:// URI of a current wallpaper ([name] is one of its files), served by [WallpaperContentProvider]. */
+    fun uriOf(wallpaper: StoredWallpaper, name: String = wallpaper.file): Uri? {
         val dir = currentDir() ?: return null
         return Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
-            .appendPath(dir.name).appendPath(wallpaper.file).build()
+            .appendPath(dir.name).appendPath(name).build()
+    }
+
+    /** The URI of [wallpaper]'s video, when it has one. */
+    fun videoUriOf(wallpaper: StoredWallpaper): Uri? {
+        val video = wallpaper.video ?: return null
+        return currentDir()?.takeIf { File(it, video).isFile }?.let { uriOf(wallpaper, video) }
     }
 
     companion object {

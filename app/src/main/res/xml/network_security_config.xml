@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A Jellyfin server at home is usually plain HTTP on the local network (http://192.168.1.10:8096).
+     Every other service Sofadrop uses is HTTPS by its URL. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

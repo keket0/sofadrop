@@ -44,9 +44,12 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
     val trakt: TraktClient? = if (Settings.traktConfigured) TraktClient(Settings.traktClientId, Settings.traktClientSecret) else null
     val simkl = SimklClient(Settings.simklClientId, client)
     val mdbList: MdbListClient? = MdbListClient.fromSettings()
+    val jellyfin: JellyfinClient? = JellyfinClient.fromSettings()
+    /** The Plex server, checked (and found again if it moved) the first time a Plex list is read. */
+    val plex: PlexClient? by lazy { runCatching { PlexClient.connect() }.getOrNull() }
 
-    /** Trakt and Simkl history, loaded on first use (null when not needed). */
-    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl) }
+    /** The watch history, loaded on first use (null when not needed). */
+    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl, { plex }, jellyfin) }
 
     /**
      * Titles of a list with every rule applied: filters, watched content, titles already taken by a
@@ -68,7 +71,8 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
             }
         }.takeIf { skipTaken || hideWatched }
         // Twice as many as needed for titles that fail to draw, but the list is only read further for the ones needed
-        val candidates = catalog.candidates(source, perList * 2, trakt, simkl, mdbList, shuffle = random, runExclusion = runExclusion, enough = perList)
+        val candidates = catalog.candidates(source, perList * 2, trakt, simkl, mdbList, shuffle = random, runExclusion = runExclusion, enough = perList,
+            jellyfin = jellyfin, plex = { plex })
         // History is only loaded when some list shows or hides watched titles
         if (watchedMode != Settings.WATCHED_SHOW) candidates.forEach { candidate ->
             if (candidate.exclusion == null) watched?.status(candidate.ref)?.let { statuses[candidate.ref] = it }
@@ -132,7 +136,9 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
      * titles; decoding and drawing go one at a time: in the background Android runs the app on a single
      * core of the TV.
      */
-    fun render(info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0)): Bitmap {
+    fun render(
+        info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0), onScroll: ((ScrollingSynopsis) -> Unit)? = null,
+    ): Bitmap {
         // Previews are 1280 px wide: TMDB's 1280 size instead of decoding the (often 4K) original
         val backdropBytes = client.image(info.backdropPath, if (width <= 1280) "w1280" else "original")
         val logoBytes = info.logoPath?.let { client.image(it, if (width > 1920) "original" else "w500") }
@@ -160,7 +166,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
                 providerBytes.mapNotNullTo(providers) { decode(it) }
                 val faceSize = WallpaperRenderer.castPhotoSize(width)
                 faceBytes.mapTo(faces) { bytes -> bytes?.let { decode(it, faceSize, faceSize) } }
-                return renderer(width, position).render(info, backdrop, logo, providers, faces)
+                return renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
             } finally {
                 backdrop?.recycle()
                 logo?.recycle()

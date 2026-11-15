@@ -92,7 +92,7 @@ class TmdbCatalog(
      */
     fun candidates(
         source: ListSource, pool: Int, trakt: TraktClient?, simkl: SimklClient?, mdbList: MdbListClient?,
-        shuffle: Boolean = false, runExclusion: ((TitleRef) -> Exclusion?)? = null, enough: Int = pool,
+        shuffle: Boolean = false, runExclusion: ((TitleRef) -> Exclusion?)? = null, enough: Int = pool, jellyfin: JellyfinClient? = null, plex: (() -> PlexClient?)? = null,
     ): List<Candidate> {
         val filters = profile.filtersFor(source)
         val cutoff = cutoff(filters.maxAgeMonths)
@@ -100,6 +100,8 @@ class TmdbCatalog(
             SourceProvider.TMDB -> tmdbRefs(source.key, count, cutoff)
             SourceProvider.TRAKT -> trakt?.titles(source.key, count).orEmpty()
             SourceProvider.SIMKL -> simkl?.titles(source.key, count).orEmpty()
+            SourceProvider.JELLYFIN -> jellyfin?.titles(source.key, count).orEmpty()
+            SourceProvider.PLEX -> plex?.invoke()?.titles(source.key, count).orEmpty()
             SourceProvider.MDBLIST -> source.key.removePrefix("mdblist:").let { list ->
                 if ('/' in list) MdbListClient.publicTitles(list, count)
                 else list.toLongOrNull()?.let { mdbList?.titles(it, count, client) }.orEmpty()

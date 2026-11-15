@@ -2,30 +2,40 @@ package com.rfmarcos.sofadrop
 
 import android.util.Log
 
-/** What the user has watched, according to Trakt and/or Simkl. */
+/** What the user has watched, according to Trakt, Simkl, Plex and/or Jellyfin. */
 sealed class WatchStatus {
     data object Watched : WatchStatus()
     data class InProgress(val completed: Int, val aired: Int) : WatchStatus()
+
+    companion object {
+        /** A series by its episodes: watched when all of them are, in progress when some are. */
+        fun episodes(completed: Int, aired: Int): WatchStatus? = when {
+            aired > 0 && completed >= aired -> Watched
+            completed > 0 -> InProgress(completed, aired)
+            else -> null
+        }
+    }
 }
 
-/** Watched titles of the tracker chosen as watch history ([Settings.watchSource]), loaded once per generation. */
+/**
+ * Watched titles of the services chosen as watch history ([Settings.watchSources]), loaded once per
+ * generation. With several, a title watched on any of them is watched; otherwise the most advanced one counts.
+ */
 class WatchedContent private constructor(
     private val trakt: TraktClient?,
     private val traktMovies: Set<Int>,
     private val traktShows: Map<Int, Int>,
-    private val simkl: Map<TitleRef, WatchStatus>,
+    /** Simkl, Plex and Jellyfin: their whole history in one go. */
+    private val others: List<Map<TitleRef, WatchStatus>>,
 ) {
     private val traktProgress = mutableMapOf<Int, WatchStatus?>()
 
     fun status(ref: TitleRef): WatchStatus? {
-        val fromTrakt = traktStatus(ref)
-        val fromSimkl = simkl[ref]
-        return when {
-            fromTrakt is WatchStatus.Watched || fromSimkl is WatchStatus.Watched -> WatchStatus.Watched
-            fromTrakt is WatchStatus.InProgress && fromSimkl is WatchStatus.InProgress ->
-                if (fromSimkl.completed > fromTrakt.completed) fromSimkl else fromTrakt
-            else -> fromTrakt ?: fromSimkl
-        }
+        val known = others.mapNotNull { it[ref] }
+        // Trakt asks for each series' progress: not when another source already settles it
+        known.firstOrNull { it is WatchStatus.Watched }?.let { return it }
+        val all = known + listOfNotNull(traktStatus(ref))
+        return all.firstOrNull { it is WatchStatus.Watched } ?: all.filterIsInstance<WatchStatus.InProgress>().maxByOrNull { it.completed }
     }
 
     private fun traktStatus(ref: TitleRef): WatchStatus? = when (ref.type) {
@@ -36,27 +46,26 @@ class WatchedContent private constructor(
             if (traktId == null || client == null) null
             else traktProgress.getOrPut(ref.tmdbId) {
                 val (completed, aired) = runCatching { client.showProgress(traktId) }.getOrNull() ?: return@getOrPut null
-                when {
-                    aired > 0 && completed >= aired -> WatchStatus.Watched
-                    completed > 0 -> WatchStatus.InProgress(completed, aired)
-                    else -> null
-                }
+                WatchStatus.episodes(completed, aired)
             }
         }
     }
 
     companion object {
-        /** Null when no watch history is chosen (or its tracker isn't connected). */
-        fun load(trakt: TraktClient?, simkl: SimklClient?): WatchedContent? {
-            val source = Settings.watchSource ?: return null
-            val traktData = trakt?.takeIf { source == Settings.WATCH_TRAKT }?.let { client ->
-                runCatching { client.watchedMovies() to client.watchedShows() }
-                    .onFailure { Log.w("WatchedContent", "Could not load Trakt history", it) }.getOrNull()
-            }
-            val simklData = if (simkl == null || source != Settings.WATCH_SIMKL) null else runCatching { simkl.watched() }
-                .onFailure { Log.w("WatchedContent", "Could not load Simkl history", it) }.getOrNull()
-            if (traktData == null && simklData == null) return null
-            return WatchedContent(trakt.takeIf { traktData != null }, traktData?.first.orEmpty(), traktData?.second.orEmpty(), simklData.orEmpty())
+        /** Null when no watch history is chosen (or none of its services could be read). */
+        fun load(trakt: TraktClient?, simkl: SimklClient?, plex: () -> PlexClient?, jellyfin: JellyfinClient?): WatchedContent? {
+            val sources = Settings.watchSources
+            if (sources.isEmpty()) return null
+            fun <T> read(name: String, chosen: String, block: () -> T?): T? = if (chosen !in sources) null
+                else runCatching(block).onFailure { Log.w("WatchedContent", "Could not load $name history", it) }.getOrNull()
+            val traktData = read("Trakt", Settings.WATCH_TRAKT) { trakt?.let { it.watchedMovies() to it.watchedShows() } }
+            val others = listOfNotNull(
+                read("Simkl", Settings.WATCH_SIMKL) { simkl?.watched() },
+                read("Plex", Settings.WATCH_PLEX) { plex()?.watched() },
+                read("Jellyfin", Settings.WATCH_JELLYFIN) { jellyfin?.watched() },
+            )
+            if (traktData == null && others.isEmpty()) return null
+            return WatchedContent(trakt.takeIf { traktData != null }, traktData?.first.orEmpty(), traktData?.second.orEmpty(), others)
         }
     }
 }

@@ -184,6 +184,7 @@ class DetailsFragment : PreviewSettingsFragment() {
             when (profile.overviewLines) {
                 0 -> context.getString(R.string.synopsis_summary_hidden)
                 2 -> context.getString(R.string.synopsis_summary_short)
+                Settings.OVERVIEW_SCROLL -> context.getString(R.string.synopsis_summary_scroll)
                 else -> null
             }?.takeIf { profile.drawsDetails },
             (if (profile.showProviders) context.getString(R.string.streaming_summary, Languages.countryName(Settings.region))

@@ -28,7 +28,7 @@ class DebugNotifyReceiver : BroadcastReceiver() {
             val result = goAsync()
             Thread {
                 val start = System.currentTimeMillis()
-                val title = runCatching { PreviewSettingsFragment.renderPreview(context.applicationContext, profile)?.second }.getOrElse { it.toString() }
+                val title = runCatching { PreviewSettingsFragment.renderPreview(context.applicationContext, profile)?.title }.getOrElse { it.toString() }
                 Log.i("DebugNotify", "Preview of $title in ${System.currentTimeMillis() - start} ms")
                 result.finish()
             }.start()
