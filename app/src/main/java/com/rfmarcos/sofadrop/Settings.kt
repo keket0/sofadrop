@@ -92,7 +92,11 @@ object Settings {
     private const val KEY_SCREENSAVER_ZOOM = "screensaver_zoom"
     private const val KEY_SCREENSAVER_CLOCK = "screensaver_clock"
     private const val KEY_SCREENSAVER_DATE = "screensaver_date"
+    /** Before 1.2.2: true for the bottom; [KEY_SCREENSAVER_CLOCK_POSITION] replaces it. */
     private const val KEY_SCREENSAVER_CLOCK_BOTTOM = "screensaver_clock_bottom"
+    private const val KEY_SCREENSAVER_CLOCK_POSITION = "screensaver_clock_position"
+    private const val KEY_SCREENSAVER_CLOCK_FONT = "screensaver_clock_font"
+    private const val KEY_SCREENSAVER_CLOCK_SIZE = "screensaver_clock_size"
     private const val KEY_SCREENSAVER_CLOCK_FORMAT = "screensaver_clock_format"
     private const val KEY_SCREENSAVER_CLOCK_COLOR = "screensaver_clock_color"
     private const val KEY_SUPPORTER_BOUGHT = "_supporter_bought"
@@ -692,6 +696,22 @@ object Settings {
     const val CLOCK_STACKED = "stacked"
     const val CLOCK_LINE = "line"
     val CLOCK_STYLES = listOf(CLOCK_OFF, CLOCK_STACKED, CLOCK_LINE)
+    const val CLOCK_TOP = "top"
+    const val CLOCK_MIDDLE = "middle"
+    const val CLOCK_BOTTOM = "bottom"
+    val CLOCK_POSITIONS = listOf(CLOCK_TOP, CLOCK_MIDDLE, CLOCK_BOTTOM)
+    /** Roboto Bold, Roboto Light and Nunito are bundled; the condensed and serif ones are Android's own (all versions have them). */
+    const val CLOCK_FONT_BOLD = "bold"
+    const val CLOCK_FONT_LIGHT = "light"
+    const val CLOCK_FONT_ROUNDED = "rounded"
+    const val CLOCK_FONT_CONDENSED = "condensed"
+    const val CLOCK_FONT_SERIF = "serif"
+    val CLOCK_FONTS = listOf(CLOCK_FONT_BOLD, CLOCK_FONT_LIGHT, CLOCK_FONT_ROUNDED, CLOCK_FONT_CONDENSED, CLOCK_FONT_SERIF)
+    const val CLOCK_SIZE_SMALL = "small"
+    const val CLOCK_SIZE_NORMAL = "normal"
+    const val CLOCK_SIZE_LARGE = "large"
+    /** Each size and how much it scales the clock (digits, date and weather; not the margins). */
+    val CLOCK_SIZES = mapOf(CLOCK_SIZE_SMALL to 0.8f, CLOCK_SIZE_NORMAL to 1f, CLOCK_SIZE_LARGE to 1.25f)
     const val CLOCK_FORMAT_SYSTEM = "system"
     const val CLOCK_FORMAT_24 = "24"
     const val CLOCK_FORMAT_12 = "12"
@@ -765,10 +785,23 @@ object Settings {
         get() = preferences.getString(KEY_SCREENSAVER_CLOCK_FORMAT, null)?.takeIf { it in CLOCK_FORMATS } ?: CLOCK_FORMAT_SYSTEM
         set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_FORMAT, value) }
 
-    /** The clock at the bottom of its side instead of the top. */
-    var screensaverClockBottom: Boolean
-        get() = preferences.getBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, false)
-        set(value) = preferences.edit { putBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, value) }
+    /** Where on its side the clock goes, see [CLOCK_POSITIONS]; the old top/bottom switch still counts. */
+    var screensaverClockPosition: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_POSITION, null)?.takeIf { it in CLOCK_POSITIONS }
+            ?: if (preferences.getBoolean(KEY_SCREENSAVER_CLOCK_BOTTOM, false)) CLOCK_BOTTOM else CLOCK_TOP
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_POSITION, value); remove(KEY_SCREENSAVER_CLOCK_BOTTOM) }
+
+    /** See [CLOCK_SIZES]. */
+    var screensaverClockSize: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_SIZE, null)?.takeIf { it in CLOCK_SIZES } ?: CLOCK_SIZE_NORMAL
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_SIZE, value) }
+
+    val screensaverClockScale: Float get() = CLOCK_SIZES.getValue(screensaverClockSize)
+
+    /** The digits' typeface, see [CLOCK_FONTS]. */
+    var screensaverClockFont: String
+        get() = preferences.getString(KEY_SCREENSAVER_CLOCK_FONT, null)?.takeIf { it in CLOCK_FONTS } ?: CLOCK_FONT_BOLD
+        set(value) = preferences.edit { putString(KEY_SCREENSAVER_CLOCK_FONT, value) }
 
     /** Percentage, see [SCREENSAVER_BRIGHTNESS_OPTIONS]. */
     var screensaverBrightness: Int
