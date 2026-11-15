@@ -40,7 +40,7 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
             pendingNotice = view.findViewById(R.id.pending_notice)
             view.findViewById<View>(R.id.preview_frame).clipToOutline = true
             if (showsProjectivyNotice) view.findViewById<View>(R.id.projectivy_notice).visibility = View.VISIBLE
-            cachedPreviews[profile.id]?.let { (key, bitmap, title) -> if (key == previewKey()) showPreview(bitmap, title) }
+            cachedPreviews[profile.id]?.let { (key, preview) -> if (key == previewKey()) showPreview(preview) }
             return view
         }
     }
@@ -106,8 +106,8 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
                 if (preview == null) {
                     showPreviewMessage(getString(R.string.preview_no_titles))
                 } else {
-                    cachedPreviews[profile.id] = Triple(key, preview.first, preview.second)
-                    showPreview(preview.first, preview.second)
+                    cachedPreviews[profile.id] = key to preview
+                    showPreview(preview)
                 }
             }.onFailure {
                 showPreviewMessage(getString(R.string.preview_error, it.message ?: it.javaClass.simpleName))
@@ -115,10 +115,13 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
         }
     }
 
-    private fun showPreview(bitmap: Bitmap, title: String) {
-        previewImage?.setImageBitmap(bitmap)
+    private fun showPreview(preview: Preview) {
+        // A synopsis that scrolls in Projectivy scrolls here too, over and over like the video
+        val synopsis = preview.synopsis
+        if (synopsis == null) previewImage?.setImageBitmap(preview.image)
+        else previewImage?.setImageDrawable(ScrollingWallpaper(preview.image, synopsis, preview.image.width, loop = true).also { it.start() })
         val pinned = Settings.previewPin.isNotEmpty()
-        previewLabel?.text = getString(if (pinned) R.string.preview_label_pinned else R.string.preview_label, title)
+        previewLabel?.text = getString(if (pinned) R.string.preview_label_pinned else R.string.preview_label, preview.title)
     }
 
     private fun showPreviewMessage(message: String) {
@@ -128,11 +131,14 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
         previewLabel?.text = message
     }
 
+    /** The preview's image, its title and, when its synopsis scrolls, the parts that make it move. */
+    class Preview(val image: Bitmap, val title: String, val synopsis: ScrollingSynopsis?)
+
     companion object {
         private const val PREVIEW_WIDTH = 1280
 
         /** Last preview of each profile (key, image, title), kept while the process lives so reopening is instant. */
-        private val cachedPreviews = mutableMapOf<String, Triple<String, Bitmap, String>>()
+        private val cachedPreviews = mutableMapOf<String, Pair<String, Preview>>()
 
         /** "type:tmdbId" pins for what the user typed: "tv 1399", "tv:1399" or a TMDB URL; a bare number may be either type. */
         fun pinCandidates(text: String): List<String> {
@@ -161,9 +167,14 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
          * else the first title of the current set whose list is still selected, else one of the first
          * selected list that has a usable title. Changing a setting redraws the same title.
          */
-        fun renderPreview(context: Context, profile: Profile): Pair<Bitmap, String>? {
+        fun renderPreview(context: Context, profile: Profile): Preview? {
             Settings.init(context)
             val factory = WallpaperFactory(context, PREVIEW_WIDTH, profile)
+            fun preview(info: WallpaperInfo): Preview {
+                var synopsis: ScrollingSynopsis? = null
+                val image = factory.render(info, onScroll = { synopsis = it })
+                return Preview(image, info.title, synopsis)
+            }
             val stored = WallpaperStore(context, profile).current()
             val pin = Settings.previewPin
             pinRef(pin)?.let { ref ->
@@ -171,7 +182,7 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
                 val source = Sources.available().firstOrNull { it.key == sourceKey }
                 // A pin that fails says so instead of silently showing another title
                 val info = factory.build(ref, source = source) ?: error(context.getString(R.string.preview_pin_not_found, pin))
-                return factory.render(info) to info.title
+                return preview(info)
             }
             val selected = Sources.selected(profile)
             // Sets made before the list was stored have no source: they still came from the user's lists
@@ -179,17 +190,17 @@ abstract class PreviewSettingsFragment : BaseSettingsFragment() {
             for (wallpaper in fromSet.take(4)) {
                 val ref = pinRef("${wallpaper.type}:${wallpaper.tmdbId}") ?: continue
                 val info = factory.build(ref, source = selected.firstOrNull { it.key == wallpaper.source }) ?: continue
-                return factory.render(info) to info.title
+                return preview(info)
             }
             autoPick?.takeIf { (_, source) -> selected.any { it.key == source.key } }?.let { (ref, source) ->
-                factory.build(ref, source = source)?.let { return factory.render(it) to it.title }
+                factory.build(ref, source = source)?.let { return preview(it) }
             }
             for (source in selected) {
                 val plan = runCatching { factory.plan(source, 3) }.getOrNull() ?: continue
                 for (ref in plan.usable.take(4)) {
                     val info = factory.build(ref, plan) ?: continue
                     autoPick = ref to source
-                    return factory.render(info) to info.title
+                    return preview(info)
                 }
             }
             return null

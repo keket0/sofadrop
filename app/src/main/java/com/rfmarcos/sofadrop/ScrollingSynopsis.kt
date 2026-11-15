@@ -123,9 +123,12 @@ class ScrollingSynopsis(
 
 /**
  * Sofascreen's wallpaper with its synopsis scrolling live: [image] (maybe subsampled) and [synopsis] in
- * the pixels of the full [imageWidth] JPEG. It holds at the top until [start].
+ * the pixels of the full [imageWidth] JPEG. It holds at the top until [start]. Sofascreen's slide lasts the
+ * scroll; the previews [loop] it, as Projectivy loops the video.
  */
-class ScrollingWallpaper(private val image: Bitmap, val synopsis: ScrollingSynopsis, private val imageWidth: Int) : Drawable() {
+class ScrollingWallpaper(
+    private val image: Bitmap, val synopsis: ScrollingSynopsis, private val imageWidth: Int, private val loop: Boolean = false,
+) : Drawable() {
 
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
     private var startedAt = -1L
@@ -138,7 +141,12 @@ class ScrollingWallpaper(private val image: Bitmap, val synopsis: ScrollingSynop
 
     override fun draw(canvas: Canvas) {
         canvas.drawBitmap(image, null, bounds, paint)
-        val elapsed = if (startedAt < 0) 0L else SystemClock.uptimeMillis() - startedAt
+        var elapsed = if (startedAt < 0) 0L else SystemClock.uptimeMillis() - startedAt
+        val duration = ScrollingSynopsis.START_HOLD_MILLIS + synopsis.scrollMillis + ScrollingSynopsis.END_HOLD_MILLIS
+        if (loop && elapsed >= duration) {
+            startedAt += elapsed / duration * duration
+            elapsed %= duration
+        }
         canvas.save()
         canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
         val scale = bounds.width() / imageWidth.toFloat()
@@ -150,6 +158,7 @@ class ScrollingWallpaper(private val image: Bitmap, val synopsis: ScrollingSynop
         when {
             elapsed < ScrollingSynopsis.START_HOLD_MILLIS -> scheduleSelf(wake, startedAt + ScrollingSynopsis.START_HOLD_MILLIS)
             elapsed < ScrollingSynopsis.START_HOLD_MILLIS + synopsis.scrollMillis -> invalidateSelf()
+            loop -> scheduleSelf(wake, startedAt + duration)
         }
     }
 

@@ -106,7 +106,12 @@ class PreviewActivity : AppCompatActivity() {
         BitmapFactory.decodeFile(file?.path, options)
         var sample = 1
         while (options.outWidth / (sample * 2) >= metrics.widthPixels) sample *= 2
-        image.setImageBitmap(BitmapFactory.decodeFile(file?.path, BitmapFactory.Options().apply { inSampleSize = sample }))
+        val bitmap = BitmapFactory.decodeFile(file?.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        // A synopsis that scrolls in Projectivy scrolls here too, over and over like the video
+        val box = wallpaper.scroll
+        val synopsis = if (bitmap == null || box == null) null else runCatching { ScrollingSynopsis.load(file!!.parentFile!!, box) }.getOrNull()
+        if (synopsis != null) image.setImageDrawable(ScrollingWallpaper(bitmap!!, synopsis, box!!.imageWidth, loop = true).also { it.start() })
+        else image.setImageBitmap(bitmap)
 
         val pinned = pinOf(wallpaper) == Settings.previewPin
         findViewById<View>(R.id.viewer_pinned).visibility = if (pinned) View.VISIBLE else View.GONE
