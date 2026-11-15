@@ -507,7 +507,10 @@
     <string name="update_desc">Versión %1$s (tienes la %2$s) · instálala ahora\nSi Play Protect la bloquea: Más detalles → Instalar de todos modos</string>
     <string name="update_downloading">Descargando la versión %1$s…</string>
     <string name="update_failed">No se pudo actualizar: %1$s</string>
-    <string name="update_allow">Permite que Sofadrop instale aplicaciones y vuelve a elegir la actualización</string>
+    <string name="update_allow">Permite que Sofadrop instale aplicaciones. Si Android cierra Sofadrop, ábrelo de nuevo y elige la actualización</string>
+    <string name="update_allow_where">Permite que Sofadrop instale aplicaciones: en los ajustes de la tele, Seguridad y restricciones → Fuentes desconocidas. Si Android cierra Sofadrop, ábrelo de nuevo y elige la actualización</string>
+    <string name="update_no_confirm">Android no mostró la instalación. Vuelve a elegir la actualización</string>
+    <string name="update_downloader">O instálala con la app Downloader: código %1$s</string>
     <string name="update_desc_notes">Versión %1$s (tienes la %2$s) · mira las novedades e instálala</string>
     <string name="update_notes_title">Versión %1$s</string>
     <string name="update_notes_desc">Novedades de esta versión (en inglés). Tienes la %1$s; tus ajustes se conservan.\n\nSi Play Protect la bloquea: Más detalles → Instalar de todos modos</string>

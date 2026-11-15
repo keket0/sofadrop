@@ -515,7 +515,10 @@
     <string name="update_desc">Versie %1$s (je hebt %2$s) · installeer hem nu\nAls Play Protect hem blokkeert: Meer details → Toch installeren</string>
     <string name="update_downloading">Versie %1$s downloaden…</string>
     <string name="update_failed">Bijwerken mislukt: %1$s</string>
-    <string name="update_allow">Sta Sofadrop toe apps te installeren en kies daarna opnieuw de update</string>
+    <string name="update_allow">Sta Sofadrop toe apps te installeren. Als Android Sofadrop dan sluit, open het opnieuw en kies de update</string>
+    <string name="update_allow_where">Sta Sofadrop toe apps te installeren: in de instellingen van de tv, Beveiliging en beperkingen → Onbekende bronnen. Als Android Sofadrop dan sluit, open het opnieuw en kies de update</string>
+    <string name="update_no_confirm">Android heeft de installatie niet getoond. Kies opnieuw de update</string>
+    <string name="update_downloader">Of installeer hem met de app Downloader: code %1$s</string>
     <string name="update_desc_notes">Versie %1$s (je hebt %2$s) · bekijk wat er nieuw is en installeer hem</string>
     <string name="update_notes_title">Versie %1$s</string>
     <string name="update_notes_desc">Wat er nieuw is in deze versie (in het Engels). Je hebt %1$s; je instellingen blijven bewaard.\n\nAls Play Protect hem blokkeert: Meer details → Toch installeren</string>

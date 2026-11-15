@@ -48,22 +48,40 @@ object UpdateInstaller {
         }
     }
 
-    /** Result of [install]: shows the system's confirmation, or says why it failed. */
+    /**
+     * Result of [install]: the system's confirmation, started from the open settings screen ([Updater.installListener]):
+     * started from here, in the background, Android may not show it (seen on an NVIDIA Shield as nothing happening).
+     * Or why it failed. Nothing is ever dropped without a word.
+     */
     class InstallResultReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
                 PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                     @Suppress("DEPRECATION")
-                    val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
-                    context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                    val listener = Updater.installListener
+                    when {
+                        confirm == null -> fail(context, "no confirmation from Android")
+                        listener != null -> listener.confirm(confirm)
+                        else -> try {
+                            context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } catch (e: Exception) {
+                            fail(context, e.message ?: e.javaClass.simpleName)
+                        }
+                    }
                 }
-                PackageInstaller.STATUS_SUCCESS -> Unit // the app restarts as the new version
-                else -> {
-                    val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty()
-                    Log.w("SofadropUpdater", "Install failed ($status): $message")
-                    Toast.makeText(context, context.getString(R.string.update_failed, message.ifBlank { status.toString() }), Toast.LENGTH_LONG).show()
-                }
+                PackageInstaller.STATUS_SUCCESS -> Unit // Android replaces the app, which closes (Android TV 11 goes home)
+                else -> fail(context, intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE).orEmpty().ifBlank { status.toString() })
             }
+        }
+
+        private fun fail(context: Context, message: String) {
+            Log.w("SofadropUpdater", "Install failed: $message")
+            val listener = Updater.installListener
+            if (listener != null) return listener.failed(message)
+            // Behind the system installer: a toast now, and the update row once Sofadrop's back in front
+            Updater.unheardFailure = message
+            Toast.makeText(context, context.getString(R.string.update_failed, message), Toast.LENGTH_LONG).show()
         }
     }
 }

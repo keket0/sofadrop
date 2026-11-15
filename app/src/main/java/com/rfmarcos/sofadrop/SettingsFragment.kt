@@ -99,13 +99,19 @@ class SettingsFragment : PreviewSettingsFragment() {
         updateDescription(ID_ORDER, orderText())
         updateDescription(ID_ACCOUNTS, AccountsFragment.summary(context))
         handler.post(statusRefresher)
-        // Back from the system installer (cancelled, or blocked by Play Protect): offer the update again
-        updateDescription(ID_APP_UPDATE, updateText())
+        // Back from the system installer (cancelled, or blocked by Play Protect): offer the update again; back from
+        // the settings without allowing Sofadrop to install apps: where to allow it
+        val allowed = !askedToAllow || requireContext().packageManager.canRequestPackageInstalls()
+        updateDescription(ID_APP_UPDATE, if (allowed) updateText() else allowText())
+        Updater.installListener = installListener
+        Updater.unheardFailure?.let { Updater.unheardFailure = null; installListener.failed(it) }
         background({ Updater.check() }) { showUpdate() }
     }
 
     override fun onPause() {
         handler.removeCallbacks(statusRefresher)
+        handler.removeCallbacks(confirmMissing)
+        if (Updater.installListener === installListener) Updater.installListener = null
         val context = requireContext()
         GenerateWallpapersWorker.schedule(context, settingsChanged = true)
         // First run: nothing to show in Projectivy yet, so generate right away (the wizard does it with its answers)
@@ -191,20 +197,65 @@ class SettingsFragment : PreviewSettingsFragment() {
         actions = actions.toMutableList().apply { add(0, updateAction()) }
     }
 
-    /** Download and install the new version; Android first asks to allow Sofadrop to install apps. */
+    /**
+     * Download and install the new version; Android first asks to allow Sofadrop to install apps. Whatever stops
+     * it is said on the update row, with the other way to update (Downloader).
+     */
     private fun installUpdate() {
         val context = requireContext().applicationContext
         if (!context.packageManager.canRequestPackageInstalls()) {
-            Toast.makeText(context, R.string.update_allow, Toast.LENGTH_LONG).show()
-            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:${context.packageName}")))
+            askedToAllow = true
+            updateDescription(ID_APP_UPDATE, allowText())
+            // Not every TV has the per-app screen: then the list of apps, then the security settings
+            val app = android.net.Uri.parse("package:${context.packageName}")
+            val opened = listOf(
+                Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, app),
+                Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS),
+            ).any { intent -> runCatching { startActivity(intent) }.isSuccess }
+            if (opened) Toast.makeText(context, R.string.update_allow, Toast.LENGTH_LONG).show()
             return
         }
+        askedToAllow = false
         updateDescription(ID_APP_UPDATE, getString(R.string.update_downloading, Settings.updateVersion))
         background({ UpdateInstaller.install(context) }) { result ->
-            result.onFailure {
-                updateDescription(ID_APP_UPDATE, getString(R.string.update_failed, it.message ?: it.javaClass.simpleName))
-            }
+            result.onFailure { installListener.failed(it.message ?: it.javaClass.simpleName) }
         }
+    }
+
+    /** Sofadrop was sent to allow installing apps: until it is, the update row says where. */
+    private var askedToAllow = false
+
+    private fun allowText() = withDownloader(getString(R.string.update_allow_where))
+
+    private fun withDownloader(text: String) =
+        Updater.downloaderCode?.let { text + "\n" + getString(R.string.update_downloader, it) } ?: text
+
+    /**
+     * What comes of an install while this screen is open: Android's confirmation starts from here, an activity
+     * on screen; started from the background it may not show. If this screen is still in front a while later,
+     * it didn't: the row says so.
+     */
+    private val installListener = object : Updater.InstallListener {
+        override fun confirm(intent: Intent) {
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                failed(e.message ?: e.javaClass.simpleName)
+                return
+            }
+            handler.postDelayed(confirmMissing, CONFIRM_WAIT_MILLIS)
+        }
+
+        override fun failed(message: String) {
+            handler.removeCallbacks(confirmMissing)
+            if (isAdded) updateDescription(ID_APP_UPDATE, withDownloader(getString(R.string.update_failed, message)))
+        }
+    }
+
+    /** Cancelled by [onPause]: the confirmation came up. */
+    private val confirmMissing = Runnable {
+        if (isResumed) updateDescription(ID_APP_UPDATE, withDownloader(getString(R.string.update_no_confirm)))
     }
 
     // --- Status and pending changes ---
@@ -235,5 +286,7 @@ class SettingsFragment : PreviewSettingsFragment() {
         private const val ID_HEADER_MORE = 27L
         private const val ID_WALLPAPERS = 28L
         private const val ID_ORDER = 29L
+        /** Android's install confirmation takes a moment on a slow TV; not up by then, it didn't come. */
+        private const val CONFIRM_WAIT_MILLIS = 10_000L
     }
 }

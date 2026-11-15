@@ -1,5 +1,6 @@
 package com.rfmarcos.sofadrop
 
+import android.content.Intent
 import android.util.Log
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -21,6 +22,27 @@ object Updater {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
+
+    /** The official releases, which the Downloader code installs. */
+    private const val OFFICIAL_REPO = "rfmarcos/sofadrop"
+    private const val DOWNLOADER_CODE = "7882519"
+
+    /**
+     * The screen that started an install, told what comes of it ([UpdateInstaller]): the system's confirmation, to
+     * start from that screen, or why it failed. Null while none is open: the installer's receiver shows them itself.
+     */
+    interface InstallListener {
+        fun confirm(intent: Intent)
+        fun failed(message: String)
+    }
+
+    @Volatile var installListener: InstallListener? = null
+
+    /** Why the last install failed while no screen listened (behind the system installer): said once back. */
+    @Volatile var unheardFailure: String? = null
+
+    /** The Downloader app's code for the latest release, the other way to update; null in a fork's builds (it installs ours). */
+    val downloaderCode: String? get() = DOWNLOADER_CODE.takeIf { repo() == OFFICIAL_REPO }
 
     /** "owner/repo" from the source code link; null in builds without one (no updates). */
     fun repo(): String? =

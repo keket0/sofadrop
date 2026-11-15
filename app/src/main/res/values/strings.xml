@@ -525,7 +525,10 @@
     <string name="update_desc">Version %1$s (you have %2$s) · install it now\nIf Play Protect blocks it: More details → Install anyway</string>
     <string name="update_downloading">Downloading version %1$s…</string>
     <string name="update_failed">Couldn\'t update: %1$s</string>
-    <string name="update_allow">Allow Sofadrop to install apps, then choose the update again</string>
+    <string name="update_allow">Allow Sofadrop to install apps. If Android closes Sofadrop then, open it again and choose the update</string>
+    <string name="update_allow_where">Allow Sofadrop to install apps: in the TV\'s settings, Security &amp; restrictions → Unknown sources. If Android closes Sofadrop then, open it again and choose the update</string>
+    <string name="update_no_confirm">Android didn\'t show the installation. Choose the update again</string>
+    <string name="update_downloader">Or install it with the Downloader app: code %1$s</string>
     <string name="update_desc_notes">Version %1$s (you have %2$s) · see what\'s new and install it</string>
     <string name="update_notes_title">Version %1$s</string>
     <string name="update_notes_desc">What\'s new in this version (in English). You have %1$s; your settings are kept.\n\nIf Play Protect blocks it: More details → Install anyway</string>
