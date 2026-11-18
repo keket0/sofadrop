@@ -5,16 +5,19 @@ import android.content.pm.PackageManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 /**
  * Streaming services a wallpaper can open its title on (the ones the user picks, in their order: see
  * [Profile.clickPlatforms]). TMDB says which ones have it in the streaming country (by provider id),
- * Wikidata gives the title's id on each one (when someone added it: TMDB and JustWatch don't share them)
- * and the service's app opens that page.
+ * [JustWatch] gives the title's page on each one in that country (Wikidata when it hasn't: someone may
+ * have added the title's id there) and the service's app opens that page.
  */
 enum class Platform(
     val key: String,
@@ -163,4 +166,61 @@ object Wikidata {
     }
 
     private const val BATCH = 100
+}
+
+/**
+ * Pages of titles on the streaming platforms of a country, from JustWatch (where TMDB's "where to watch"
+ * comes from, so its package ids are TMDB's provider ids). It's the API of its website, not a public one:
+ * Wikidata stays behind it. It can't look a title up by its TMDB id, so each one is searched by name and
+ * picked by its TMDB id; several searches go in one request.
+ */
+object JustWatch {
+    private const val URL = "https://apis.justwatch.com/graphql"
+    private val USER_AGENT = "Sofadrop/${BuildConfig.VERSION_NAME} (https://github.com/rfmarcos/sofadrop)"
+
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    /** Pages of [titles] (by their names) in [country], by [Platform.key]; only the titles it has on a platform. */
+    fun links(titles: Map<TitleRef, String>, country: String): Map<TitleRef, Map<String, String>> =
+        // The country goes into the query as it is
+        if (!country.matches(Regex("[A-Z]{2}"))) emptyMap() else titles.entries.chunked(BATCH).flatMap { batch ->
+            val body = JsonObject(mapOf("query" to JsonPrimitive(query(batch.map { it.value }, country)))).toString()
+            val request = Request.Builder().url(URL).post(body.toRequestBody("application/json".toMediaType()))
+                .header("User-Agent", USER_AGENT).build()
+            val text = http.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw java.io.IOException("JustWatch: HTTP ${response.code}")
+                response.body?.string().orEmpty()
+            }
+            parse(text, batch.map { it.key }).toList()
+        }.toMap()
+
+    /** One search per name ("t0", "t1"…): its first results, with their TMDB id and their offers in [country]. */
+    internal fun query(names: List<String>, country: String): String = names.withIndex().joinToString(" ", "{ ", " }") { (i, name) ->
+        // A JSON string is a valid GraphQL string
+        "t$i: popularTitles(country: $country, first: 5, filter: {searchQuery: ${JsonPrimitive(name)}}) " +
+            "{ edges { node { objectType content(country: $country, language: en) { externalIds { tmdbId } } " +
+            "offers(country: $country, platform: WEB) { package { packageId } standardWebURL } } } }"
+    }
+
+    /** Pages of [refs] (in the order of [query]'s names) in a response, by [Platform.key]. */
+    internal fun parse(text: String, refs: List<TitleRef>): Map<TitleRef, Map<String, String>> {
+        val data = (Json.parseToJsonElement(text) as? JsonObject)?.obj("data") ?: return emptyMap()
+        return refs.withIndex().mapNotNull { (i, ref) ->
+            val title = data.obj("t$i")?.objects("edges").orEmpty().mapNotNull { it.obj("node") }.firstOrNull { node ->
+                node.str("objectType") == (if (ref.type == MediaType.TV) "SHOW" else "MOVIE") &&
+                    node.obj("content")?.obj("externalIds")?.str("tmdbId") == ref.tmdbId.toString()
+            } ?: return@mapNotNull null
+            val links = linkedMapOf<String, String>()
+            for (offer in title.objects("offers")) {
+                val platform = offer.obj("package")?.int("packageId")?.let(Platform::ofProvider) ?: continue
+                offer.str("standardWebURL")?.let { links.putIfAbsent(platform.key, it) }
+            }
+            if (links.isEmpty()) null else ref to links
+        }.toMap()
+    }
+
+    private const val BATCH = 20
 }

@@ -58,6 +58,40 @@ class PlatformTest {
     }
 
     @Test
+    fun justWatchQueryHasOneSearchPerTitle() {
+        val query = JustWatch.query(listOf("Severance", "Say \"hi\""), "NL")
+        assertTrue(query.contains("t0: popularTitles(country: NL, first: 5, filter: {searchQuery: \"Severance\"})"))
+        // Quotes in a name stay inside its string
+        assertTrue(query.contains("t1: popularTitles(country: NL, first: 5, filter: {searchQuery: \"Say \\\"hi\\\"\"})"))
+        assertTrue(query.contains("offers(country: NL, platform: WEB)"))
+    }
+
+    @Test
+    fun justWatchLinksOfTheTitleWithThatTmdbId() {
+        val json = """
+            {"data":{
+              "t0":{"edges":[
+                {"node":{"objectType":"MOVIE","content":{"externalIds":{"tmdbId":"760195"}},"offers":[{"package":{"packageId":8},"standardWebURL":"https://www.netflix.com/title/wrong"}]}},
+                {"node":{"objectType":"SHOW","content":{"externalIds":{"tmdbId":"95396"}},"offers":[
+                  {"package":{"packageId":2243},"standardWebURL":"https://app.primevideo.com/detail?gti=channel"},
+                  {"package":{"packageId":350},"standardWebURL":"https://tv.apple.com/nl/show/first"},
+                  {"package":{"packageId":350},"standardWebURL":"https://tv.apple.com/nl/show/second"}
+                ]}}
+              ]},
+              "t1":{"edges":[{"node":{"objectType":"SHOW","content":{"externalIds":{"tmdbId":"1"}},"offers":[]}}]},
+              "t2":{"edges":[{"node":{"objectType":"MOVIE","content":{"externalIds":{"tmdbId":"872585"}},"offers":[{"package":{"packageId":71},"standardWebURL":"https://www.pathe-thuis.nl/film/35369"}]}}]}
+            }}
+        """.trimIndent()
+        val severance = TitleRef(MediaType.TV, 95396)
+        val refs = listOf(severance, TitleRef(MediaType.TV, 1), TitleRef(MediaType.MOVIE, 872585))
+        // The show, not the movie found first; its first page on each platform; a channel inside Prime isn't Prime;
+        // no title without a page on a known platform (Pathé Thuis isn't one)
+        assertEquals(mapOf(severance to mapOf("apple" to "https://tv.apple.com/nl/show/first")), JustWatch.parse(json, refs))
+        assertTrue(JustWatch.parse("""{"errors":[{"message":"bad country"}],"data":null}""", refs).isEmpty())
+        assertTrue(JustWatch.links(mapOf(severance to "Severance"), "nl\"){").isEmpty())
+    }
+
+    @Test
     fun picksTheUsersPlatformsInTheirOrder() {
         val links = mapOf("netflix" to "https://www.netflix.com/title/1", "max" to "https://play.hbomax.com/x", "apple" to "https://tv.apple.com/movie/y")
         val providers = listOf(149, 350, 1796, 1899)

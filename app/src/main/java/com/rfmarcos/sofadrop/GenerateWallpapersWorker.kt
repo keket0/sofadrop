@@ -230,25 +230,34 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
 
     /**
      * [stored] with their pages on the streaming platforms that have them, when the wallpaper opens its
-     * platform. Without Wikidata they open the fallback instead: not worth failing the generation for.
+     * platform: JustWatch's, then Wikidata's for the platforms it has none of. Without either they open the
+     * fallback instead: not worth failing the generation for.
      */
     private fun withPlatformLinks(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
         if (!profile.opensPlatforms) return stored
         val refs = stored.filter { wallpaper -> wallpaper.providerIds.any { Platform.ofProvider(it) != null } }
             .associateWith { wallpaper -> TitleRef(MediaType.entries.first { it.path == wallpaper.type }, wallpaper.tmdbId) }
         if (refs.isEmpty()) return stored
+        val justWatch = try {
+            JustWatch.links(refs.entries.associate { (wallpaper, ref) -> ref to wallpaper.title }, Settings.region)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not read the JustWatch links", e)
+            log.add("JustWatch links failed: ${GenerationLog.describe(e)}")
+            emptyMap()
+        }
         val ids = try {
             Wikidata.ids(refs.values)
         } catch (e: Exception) {
             Log.w(TAG, "Could not read the platform ids", e)
             log.add("Platform links failed: ${GenerationLog.describe(e)}")
-            return stored
+            emptyMap()
         }
         val linked = stored.map { wallpaper ->
             val ref = refs[wallpaper] ?: return@map wallpaper
-            wallpaper.copy(platformLinks = Platform.links(ref.type, ids[ref].orEmpty()))
+            wallpaper.copy(platformLinks = Platform.links(ref.type, ids[ref].orEmpty()) + justWatch[ref].orEmpty())
         }
-        log.add("Platform links: ${linked.count { it.platformLinks.isNotEmpty() }} of ${refs.size} titles on a known platform")
+        log.add("Platform links: ${linked.count { it.platformLinks.isNotEmpty() }} of ${refs.size} titles on a known platform" +
+            " (JustWatch ${justWatch.size}, Wikidata ${ids.count { it.value.isNotEmpty() }})")
         return linked
     }
 
