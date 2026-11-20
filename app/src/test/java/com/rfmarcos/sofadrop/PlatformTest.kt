@@ -174,4 +174,12 @@ class PlatformTest {
         // A channel inside another service (HBO Max Amazon Channel) isn't that service
         assertTrue(Platform.pick(Platform.entries, listOf(1825), links) { true }.isEmpty())
     }
+
+    @Test
+    fun everyPlatformAppIsVisible() {
+        // Without a <queries> entry, Android 11+ hides the app: the platform would never be offered nor opened
+        val manifest = java.io.File("src/main/AndroidManifest.xml").readText()
+        val hidden = Platform.entries.flatMap { it.packages }.filter { "<package android:name=\"$it\" />" !in manifest }
+        assertEquals(emptyList<String>(), hidden)
+    }
 }

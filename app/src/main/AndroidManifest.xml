@@ -67,6 +67,21 @@
         <package android:name="no.nrk.tv" />
         <package android:name="se.svt.android.svtplay" />
         <package android:name="com.yle.webtv" />
+        <package android:name="com.cbs.ott" />
+        <package android:name="com.cbs.ca" />
+        <package android:name="com.cbs.app" />
+        <package android:name="com.skyshowtime.skyshowtime.google" />
+        <package android:name="nl.rtl.videoland.v2" />
+        <package android:name="com.viaplay.android" />
+        <package android:name="de.rtli.tvnow" />
+        <package android:name="bbc.iplayer.android" />
+        <package android:name="com.peacocktv.peacockandroid" />
+        <package android:name="com.bydeluxe.d3.android.program.starz" />
+        <package android:name="com.bskyb.nowtv.beta" />
+        <package android:name="ca.bellmedia.cravetv" />
+        <package android:name="au.com.stan.and" />
+        <package android:name="com.osn.go" />
+        <package android:name="com.viki.android" />
         <!-- Android's screensaver picker, missing on Google TV (ScreensaverSetupFragment) -->
         <intent>
             <action android:name="android.settings.DREAM_SETTINGS" />

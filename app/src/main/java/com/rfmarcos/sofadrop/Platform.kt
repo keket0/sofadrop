@@ -26,7 +26,7 @@ enum class Platform(
     /** TMDB watch provider ids, with their ad tiers and older ids (not channels inside another service). */
     private val providerIds: Set<Int>,
     /** Android TV app first. */
-    private val packages: List<String>,
+    internal val packages: List<String>,
     /** Wikidata properties of its ids, best first; none: its pages only come from [JustWatch]. */
     val ids: List<WikidataId>,
     /** Countries where TMDB lists it, for a service of a few; null: most of the world. */
@@ -88,7 +88,14 @@ enum class Platform(
     VIDEOLAND("videoland", "Videoland", setOf(72), listOf("nl.rtl.videoland.v2"), emptyList(), setOf("NL")),
     VIAPLAY("viaplay", "Viaplay", setOf(76), listOf("com.viaplay.android"), emptyList(), setOf("DK", "FI", "IS", "NL", "NO", "SE")),
     RTL_PLUS("rtlplus", "RTL+", setOf(2750), listOf("de.rtli.tvnow"), emptyList(), setOf("AT", "DE")),
-    IPLAYER("iplayer", "BBC iPlayer", setOf(38), listOf("bbc.iplayer.android"), emptyList(), setOf("GB"));
+    IPLAYER("iplayer", "BBC iPlayer", setOf(38), listOf("bbc.iplayer.android"), emptyList(), setOf("GB")),
+    PEACOCK("peacock", "Peacock", setOf(386, 387), listOf("com.peacocktv.peacockandroid"), emptyList(), setOf("US")),
+    STARZ("starz", "Starz", setOf(43), listOf("com.bydeluxe.d3.android.program.starz"), emptyList(), setOf("US")),
+    NOW("now", "NOW", setOf(39, 591), listOf("com.bskyb.nowtv.beta"), emptyList(), setOf("GB", "IE")),
+    CRAVE("crave", "Crave", setOf(230), listOf("ca.bellmedia.cravetv"), emptyList(), setOf("CA")),
+    STAN("stan", "Stan", setOf(21), listOf("au.com.stan.and"), emptyList(), setOf("AU")),
+    OSN("osn", "OSN+", setOf(629), listOf("com.osn.go"), emptyList(), setOf("AE", "BH", "EG", "IQ", "JO", "KW", "LB", "OM", "QA", "SA")),
+    VIKI("viki", "Rakuten Viki", setOf(344), listOf("com.viki.android"), emptyList());
 
     /** A Wikidata property holding the title's id on a platform, and the page of an id. */
     class WikidataId(val property: String, val movies: Boolean = true, val series: Boolean = true, val url: (String) -> String)
