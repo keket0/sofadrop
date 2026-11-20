@@ -66,6 +66,8 @@ class HeaderFragment : PreviewSettingsFragment() {
         val certification = checkbox(ID_CERTIFICATION, getString(R.string.header_certification),
             getString(R.string.header_certification_desc, Languages.countryName(Settings.region)),
             profile.showsInHeader(Settings.HEADER_CERTIFICATION)).build()
+        val releaseDate = checkbox(ID_RELEASE_DATE, getString(R.string.header_release_date),
+            getString(R.string.header_release_date_desc, Languages.countryName(Settings.region)), profile.showReleaseDate).build()
         val minLabels = Settings.MIN_RATINGS_OPTIONS.map { it.toString() }
         val minRatings = action(ID_MIN_RATINGS, R.drawable.ic_act_count, getString(R.string.header_min_ratings),
             getString(R.string.header_min_ratings_desc, profile.minRatings))
@@ -86,7 +88,7 @@ class HeaderFragment : PreviewSettingsFragment() {
             builder.description(if (position >= 0) getString(R.string.ratings_position, position + 1, shown.size) else getString(R.string.ratings_hidden))
                 .subActions(options(ID_PLATFORM + index, labels, labels[position + 1])).build()
         }
-        return listOf(header(ID_BLOCKS_HEADER, getString(R.string.header_show))) + blocks + certification + minRatings +
+        return listOf(header(ID_BLOCKS_HEADER, getString(R.string.header_show))) + blocks + certification + releaseDate + minRatings +
             header(ID_RATINGS_HEADER, getString(R.string.ratings_header)) + source + platforms
     }
 
@@ -96,6 +98,10 @@ class HeaderFragment : PreviewSettingsFragment() {
             ID_CERTIFICATION -> {
                 profile.headerHidden = if (action.isChecked) profile.headerHidden - Settings.HEADER_CERTIFICATION
                 else profile.headerHidden + Settings.HEADER_CERTIFICATION
+                schedulePreview()
+            }
+            ID_RELEASE_DATE -> {
+                profile.showReleaseDate = action.isChecked
                 schedulePreview()
             }
         }
@@ -176,6 +182,7 @@ class HeaderFragment : PreviewSettingsFragment() {
         private const val ID_RATINGS_HEADER = 3L
         private const val ID_CERTIFICATION = 5L
         private const val ID_MIN_RATINGS = 6L
+        private const val ID_RELEASE_DATE = 7L
         private const val ID_BLOCK = 10L
         private const val ID_PLATFORM = 100L
 
@@ -204,6 +211,7 @@ class HeaderFragment : PreviewSettingsFragment() {
                     Settings.HEADER_YEAR -> listOfNotNull(
                         blockTitle(context, block, short = true).takeIf { profile.showsInHeader(block) },
                         context.getString(R.string.header_certification_short).takeIf { profile.showsInHeader(Settings.HEADER_CERTIFICATION) },
+                        context.getString(R.string.header_release_date_short).takeIf { profile.showReleaseDate },
                     ).joinToString(", ").ifEmpty { null }
                     else -> blockTitle(context, block, short = true).takeIf { profile.showsInHeader(block) }
                 }

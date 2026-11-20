@@ -3,7 +3,10 @@ package com.rfmarcos.sofadrop
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.text.format.DateFormat
 import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -114,11 +117,23 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
         return info.copy(
             watchStatus = status?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) },
             ratings = ratings,
-            year = info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }.orEmpty(),
+            // The date includes the year, so it takes the year's place (and its certification box)
+            year = info.releaseDate?.takeIf { profile.showReleaseDate }?.let(::localDate)
+                ?: info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }.orEmpty(),
             extraInfo = info.extraInfo.takeIf { profile.showsInHeader(Settings.HEADER_RUNTIME) }.orEmpty(),
             genres = info.genres.takeIf { profile.showsInHeader(Settings.HEADER_GENRES) }.orEmpty(),
             certification = info.certification.takeIf { profile.showsInHeader(Settings.HEADER_CERTIFICATION) },
         )
+    }
+
+    /**
+     * "12 dic 2026", "Dec 12, 2026": absolute (the wallpaper stays up for hours, "in 3 days" would go stale),
+     * in the wallpaper language, with the month in words so day and month can't be swapped.
+     */
+    private fun localDate(iso: String): String {
+        val locale = Locale.forLanguageTag(Settings.language)
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(iso) ?: return iso
+        return SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "dMMMy"), locale).format(date)
     }
 
     /** IMDb (its public dataset) and Trakt scores, for titles MDBList didn't give: no account needed. */
