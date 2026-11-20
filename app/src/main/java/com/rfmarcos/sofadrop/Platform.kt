@@ -26,7 +26,7 @@ enum class Platform(
     private val providerIds: Set<Int>,
     /** Android TV app first. */
     private val packages: List<String>,
-    /** Wikidata properties of its ids, best first. */
+    /** Wikidata properties of its ids, best first; none: its pages only come from [JustWatch]. */
     val ids: List<WikidataId>,
     /** Countries where TMDB lists it, for a service of a few; null: most of the world. */
     private val countries: Set<String>? = null,
@@ -52,6 +52,12 @@ enum class Platform(
             WikidataId("P9586", series = false) { "https://tv.apple.com/movie/$it" },
             WikidataId("P9751", movies = false) { "https://tv.apple.com/show/$it" },
         )),
+    // com.cbs.ott: US TV app; com.cbs.ca: the international one
+    PARAMOUNT("paramount", "Paramount+", setOf(531, 2303, 2304, 2616), listOf("com.cbs.ott", "com.cbs.ca", "com.cbs.app"), emptyList(),
+        setOf("AR", "AT", "AU", "BO", "BR", "CA", "CH", "CL", "CO", "CR", "DE", "DO", "EC", "FR", "GB", "GT", "HN", "IE", "IT",
+            "MX", "NI", "PA", "PE", "PY", "SV", "US", "UY", "VE")),
+    SKYSHOWTIME("skyshowtime", "SkyShowtime", setOf(1773), listOf("com.skyshowtime.skyshowtime.google"), emptyList(),
+        setOf("AD", "AL", "BA", "BG", "CZ", "DK", "ES", "FI", "HR", "HU", "MK", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK")),
     MUBI("mubi", "MUBI", setOf(11), listOf("com.mubi"),
         listOf(WikidataId("P7299") { "https://mubi.com/films/$it" })),
     CRUNCHYROLL("crunchyroll", "Crunchyroll", setOf(283), listOf("com.crunchyroll.crunchyroid"),
@@ -77,7 +83,11 @@ enum class Platform(
     SVT("svt", "SVT Play", setOf(493), listOf("se.svt.android.svtplay"),
         listOf(WikidataId("P6817") { "https://www.svtplay.se/$it" }), setOf("SE")),
     YLE("yle", "Yle Areena", setOf(323), listOf("com.yle.webtv"),
-        listOf(WikidataId("P3414") { "https://areena.yle.fi/$it" }), setOf("FI"));
+        listOf(WikidataId("P3414") { "https://areena.yle.fi/$it" }), setOf("FI")),
+    VIDEOLAND("videoland", "Videoland", setOf(72), listOf("nl.rtl.videoland.v2"), emptyList(), setOf("NL")),
+    VIAPLAY("viaplay", "Viaplay", setOf(76), listOf("com.viaplay.android"), emptyList(), setOf("DK", "FI", "IS", "NL", "NO", "SE")),
+    RTL_PLUS("rtlplus", "RTL+", setOf(2750), listOf("de.rtli.tvnow"), emptyList(), setOf("AT", "DE")),
+    IPLAYER("iplayer", "BBC iPlayer", setOf(38), listOf("bbc.iplayer.android"), emptyList(), setOf("GB"));
 
     /** A Wikidata property holding the title's id on a platform, and the page of an id. */
     class WikidataId(val property: String, val movies: Boolean = true, val series: Boolean = true, val url: (String) -> String)

@@ -92,6 +92,25 @@ class PlatformTest {
     }
 
     @Test
+    fun platformsWithoutWikidataIdsTakeJustWatchPages() {
+        val json = """
+            {"data":{"t0":{"edges":[{"node":{"objectType":"SHOW","content":{"externalIds":{"tmdbId":"73586"}},"offers":[
+              {"package":{"packageId":1773},"standardWebURL":"https://www.skyshowtime.com/nl/stream/tv/yellowstone/x"},
+              {"package":{"packageId":72},"standardWebURL":"https://v2.videoland.com/yellowstone-p_1"},
+              {"package":{"packageId":2624},"standardWebURL":"https://tv2.dk/skyshowtime"}
+            ]}}]}}}
+        """.trimIndent()
+        val yellowstone = TitleRef(MediaType.TV, 73586)
+        // TV 2's SkyShowtime bundle (2624) isn't SkyShowtime
+        val links = JustWatch.parse(json, listOf(yellowstone)).getValue(yellowstone)
+        assertEquals(setOf("skyshowtime", "videoland"), links.keys)
+        assertEquals(listOf(Platform.VIDEOLAND, Platform.SKYSHOWTIME),
+            Platform.pick(listOf(Platform.VIDEOLAND, Platform.MUBI, Platform.SKYSHOWTIME), listOf(72, 1773, 11), links) { true }.map { it.first })
+        assertEquals(Platform.PARAMOUNT, Platform.ofProvider(2303))
+        assertNull(Platform.ofProvider(582)) // Paramount+ Amazon Channel
+    }
+
+    @Test
     fun picksTheUsersPlatformsInTheirOrder() {
         val links = mapOf("netflix" to "https://www.netflix.com/title/1", "max" to "https://play.hbomax.com/x", "apple" to "https://tv.apple.com/movie/y")
         val providers = listOf(149, 350, 1796, 1899)
