@@ -136,6 +136,15 @@ class TraktClient(private val clientId: String, private val clientSecret: String
             "trakt:recommended_shows" -> Triple("recommendations/shows?ignore_collected=true", MediaType.TV, true)
             "trakt:watchlist_movies" -> Triple("sync/watchlist/movies/rank/asc", MediaType.MOVIE, true)
             "trakt:watchlist_shows" -> Triple("sync/watchlist/shows/rank/asc", MediaType.TV, true)
+            "trakt:favorites_movies" -> Triple("users/me/favorites/movies", MediaType.MOVIE, true)
+            "trakt:favorites_shows" -> Triple("users/me/favorites/shows", MediaType.TV, true)
+            "trakt:collection_movies" -> Triple("sync/collection/movies", MediaType.MOVIE, true)
+            "trakt:collection_shows" -> Triple("sync/collection/shows", MediaType.TV, true)
+            WATCHING -> return if (!Settings.traktConnected) emptyList() else parseWatching(
+                // Shows of the last episodes watched, and movies left halfway
+                get("sync/history/episodes?limit=${limit * 5}", auth = true) as? JsonArray ?: JsonArray(emptyList()),
+                get("sync/playback/movies?limit=$limit", auth = true) as? JsonArray ?: JsonArray(emptyList()),
+            ).take(limit * 2)
             else -> return emptyList()
         }
         if (auth && !Settings.traktConnected) return emptyList()
@@ -321,6 +330,19 @@ class TraktClient(private val clientId: String, private val clientSecret: String
                 }
                 item.obj(field)?.obj("ids")?.int("tmdb")?.let { TitleRef(type, it) }
             }
+
+        const val WATCHING = "trakt:watching"
+
+        /** "Continue watching": shows of the [history] of episodes and paused movies ([playback]), latest first, once each. */
+        fun parseWatching(history: JsonArray, playback: JsonArray): List<TitleRef> {
+            fun of(items: JsonArray, time: String, field: String, type: MediaType) = items.filterIsInstance<JsonObject>().mapNotNull { item ->
+                val at = item.str(time) ?: return@mapNotNull null
+                item.obj(field)?.obj("ids")?.int("tmdb")?.let { at to TitleRef(type, it) }
+            }
+            // ISO times in UTC ("2026-11-20T10:00:00.000Z") sort as text
+            return (of(history, "watched_at", "show", MediaType.TV) + of(playback, "paused_at", "movie", MediaType.MOVIE))
+                .sortedByDescending { it.first }.map { it.second }.distinct()
+        }
 
         /** Items are either `{ "movie": {...} }` / `{ "show": {...} }` or the object itself. */
         fun parseTitles(items: JsonArray, type: MediaType): List<TitleRef> =

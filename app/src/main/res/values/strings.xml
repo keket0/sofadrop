@@ -84,6 +84,11 @@
     <string name="list_trakt_recommended_shows">Trakt · Recommended shows for you</string>
     <string name="list_trakt_watchlist_movies">Trakt · Your watchlist (movies)</string>
     <string name="list_trakt_watchlist_shows">Trakt · Your watchlist (shows)</string>
+    <string name="list_trakt_watching">Trakt · Continue watching</string>
+    <string name="list_trakt_favorites_movies">Trakt · Your favourites (movies)</string>
+    <string name="list_trakt_favorites_shows">Trakt · Your favourites (shows)</string>
+    <string name="list_trakt_collection_movies">Trakt · Your collection (movies)</string>
+    <string name="list_trakt_collection_shows">Trakt · Your collection (shows)</string>
     <string name="list_mdblist">MDBList · %1$s</string>
     <string name="list_trakt_user">Trakt · %1$s</string>
 

@@ -82,6 +82,11 @@
     <string name="list_trakt_recommended_shows">Trakt · Aanbevolen series voor jou</string>
     <string name="list_trakt_watchlist_movies">Trakt · Jouw kijklijst (films)</string>
     <string name="list_trakt_watchlist_shows">Trakt · Jouw kijklijst (series)</string>
+    <string name="list_trakt_watching">Trakt · Verder kijken</string>
+    <string name="list_trakt_favorites_movies">Trakt · Jouw favorieten (films)</string>
+    <string name="list_trakt_favorites_shows">Trakt · Jouw favorieten (series)</string>
+    <string name="list_trakt_collection_movies">Trakt · Jouw collectie (films)</string>
+    <string name="list_trakt_collection_shows">Trakt · Jouw collectie (series)</string>
     <string name="list_mdblist">MDBList · %1$s</string>
     <string name="list_trakt_user">Trakt · %1$s</string>
 
