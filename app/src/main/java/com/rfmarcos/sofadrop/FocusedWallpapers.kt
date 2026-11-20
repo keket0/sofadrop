@@ -258,10 +258,14 @@ object FocusedWallpapers {
     private fun dir(context: Context) = File(File(context.filesDir, WallpaperStore.DIR), DIR)
 
     /** Drawn with other settings, it's another file. */
-    private fun filePrefix() = Integer.toHexString(
-        // With the release date, a card's wallpaper is drawn again each day: the date it shows may have passed
-        (Profile.WALLPAPER.signature + if (Profile.WALLPAPER.showReleaseDate) java.time.LocalDate.now() else "").hashCode()
-    )
+    private fun filePrefix(): String {
+        val profile = Profile.WALLPAPER
+        // With a release date or a watched badge, a card's wallpaper is drawn again each day: the date may have
+        // passed, and the episodes watched changed
+        val daily = profile.showReleaseDate ||
+            (Settings.watchHistoryOn && profile.watchedMode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED))
+        return Integer.toHexString((profile.signature + if (daily) java.time.LocalDate.now() else "").hashCode())
+    }
 
     /**
      * "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3-sharp.jpg" for an episode (its image,

@@ -92,17 +92,22 @@ class TraktClient(private val clientId: String, private val clientSecret: String
 
     /** Refresh the access token when it expires in less than a day (tokens last 7 days). */
     private fun refreshIfNeeded() {
-        if (Settings.traktRefreshToken.isBlank()) return
-        if (Settings.traktExpiresAt - System.currentTimeMillis() > 24 * 3_600_000L) return
-        val (code, body) = post("oauth/token", buildJsonObject {
-            put("refresh_token", Settings.traktRefreshToken)
-            put("client_id", clientId)
-            if (clientSecret.isNotBlank()) put("client_secret", clientSecret)
-            put("redirect_uri", REDIRECT_URI)
-            put("grant_type", "refresh_token")
-        })
-        if (code == 200) saveTokens(body as JsonObject)
-        else if (code == 400 || code == 401) Settings.clearTraktSession()
+        // One at a time: refresh tokens are single-use, a second refresh with the same one is rejected
+        synchronized(TraktClient::class.java) {
+            val refreshToken = Settings.traktRefreshToken
+            if (refreshToken.isBlank()) return
+            if (Settings.traktExpiresAt - System.currentTimeMillis() > 24 * 3_600_000L) return
+            val (code, body) = post("oauth/token", buildJsonObject {
+                put("refresh_token", refreshToken)
+                put("client_id", clientId)
+                if (clientSecret.isNotBlank()) put("client_secret", clientSecret)
+                put("redirect_uri", REDIRECT_URI)
+                put("grant_type", "refresh_token")
+            })
+            if (code == 200) saveTokens(body as JsonObject)
+            // Rejected: signed out, unless another refresh (another process) replaced it meanwhile
+            else if ((code == 400 || code == 401) && Settings.traktRefreshToken == refreshToken) Settings.clearTraktSession()
+        }
     }
 
     private fun saveTokens(body: JsonObject) {

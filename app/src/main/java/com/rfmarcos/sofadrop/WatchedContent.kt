@@ -52,8 +52,11 @@ class WatchedContent private constructor(
     }
 
     companion object {
-        /** Focused cards are drawn one by one, each with its own factory: they share the history for a while. */
-        private const val REUSE_MILLIS = 10 * 60_000L
+        /**
+         * Focused cards are drawn one by one, each with its own factory: they share the history for an hour.
+         * A drawn card keeps its badge until the next day anyway (see FocusedWallpapers.filePrefix).
+         */
+        private const val REUSE_MILLIS = 60 * 60_000L
         @Volatile private var recent: Triple<Long, List<String>, WatchedContent>? = null
 
         /** Null when no watch history is chosen (or none of its services could be read). */
