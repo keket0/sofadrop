@@ -67,8 +67,11 @@ class WallpaperProviderService : Service() {
             }
             // Away from the card: its wallpaper gives way to the set; otherwise card events change nothing
             if (event !is Event.TimeElapsed && !showingCard && servedSet) return emptyList()
+            val leftCard = showingCard
             showingCard = false
-            return wallpapers()
+            // Given the set, Projectivy would show any of it: back to the one the card's replaced, and the
+            // set again on the next TimeElapsed
+            return wallpapers().let { set -> if (leftCard) shownBefore(set, WallpaperContentProvider.lastShown) else set }
         }
 
         /**
@@ -132,6 +135,10 @@ class WallpaperProviderService : Service() {
          */
         private const val CARD_WAIT_MILLIS = 15000L
         private const val ASKED_AT_EVERY_MILLIS = 60_000L
+
+        /** The wallpaper of [set] at [path] (see [WallpaperContentProvider.lastShown]) alone; the set when it's not there. */
+        internal fun shownBefore(set: List<Wallpaper>, path: String?): List<Wallpaper> =
+            path?.let { set.filter { wallpaper -> wallpaper.uri.endsWith(path) } }.orEmpty().ifEmpty { set }
 
         /**
          * What Projectivy opens from [wallpaper] (see [ClickTargets]); applied when served, without
