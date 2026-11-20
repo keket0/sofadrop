@@ -117,14 +117,19 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
         return info.copy(
             watchStatus = status?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) },
             ratings = ratings,
-            // The date includes the year, so it takes the year's place (and its certification box)
-            year = info.releaseDate?.takeIf { profile.showReleaseDate }?.let(::localDate)
-                ?: info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }.orEmpty(),
+            year = yearAndDate(info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }, info.releaseDate?.takeIf { profile.showReleaseDate }),
             extraInfo = info.extraInfo.takeIf { profile.showsInHeader(Settings.HEADER_RUNTIME) }.orEmpty(),
             genres = info.genres.takeIf { profile.showsInHeader(Settings.HEADER_GENRES) }.orEmpty(),
             certification = info.certification.takeIf { profile.showsInHeader(Settings.HEADER_CERTIFICATION) },
         )
     }
+
+    /**
+     * The year block (it keeps the certification box after it): the date (see [TmdbCatalog.upcomingDate]) takes
+     * the year's place when it's the same year, and goes after it when not ("1989 · 22 nov 2026", a long series).
+     */
+    private fun yearAndDate(year: String?, date: String?): String =
+        joinedYearAndDate(year, date?.let { it.take(4) to localDate(it) })
 
     /**
      * "12 dic 2026", "Dec 12, 2026": absolute (the wallpaper stays up for hours, "in 3 days" would go stale),
@@ -193,6 +198,14 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
 
     companion object {
         private const val TAG = "WallpaperFactory"
+
+        /** The year block from [year] and a [date] (its year, how it reads): see [yearAndDate]. */
+        internal fun joinedYearAndDate(year: String?, date: Pair<String, String>?): String = when {
+            date == null -> year.orEmpty()
+            year.isNullOrEmpty() || year == date.first -> date.second
+            // Spaced like the separators between the header's blocks
+            else -> "$year  ·  ${date.second}"
+        }
 
         /** Shared by every factory; only callers outside it may wait on it (a task waiting on another could deadlock). */
         private val pool = Executors.newFixedThreadPool(4)

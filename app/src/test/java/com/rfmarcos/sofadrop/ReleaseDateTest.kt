@@ -55,4 +55,16 @@ class ReleaseDateTest {
         val undated = obj("""{"next_episode_to_air":{"air_date":null}}""")
         assertNull(TmdbCatalog.upcomingDate(MediaType.TV, undated, "ES", today))
     }
+
+    @Test
+    fun dateTakesTheYearsPlaceOnlyInTheSameYear() {
+        val date = "2026" to "22 nov 2026"
+        // An upcoming movie or a new series: the year would repeat
+        assertEquals("22 nov 2026", WallpaperFactory.joinedYearAndDate("2026", date))
+        // A series that started long before keeps its year
+        assertEquals("1989  ·  22 nov 2026", WallpaperFactory.joinedYearAndDate("1989", date))
+        // Year hidden, or no date
+        assertEquals("22 nov 2026", WallpaperFactory.joinedYearAndDate(null, date))
+        assertEquals("1989", WallpaperFactory.joinedYearAndDate("1989", null))
+    }
 }
