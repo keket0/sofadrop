@@ -27,7 +27,9 @@ object ClickTargets {
         /** An installed app takes [intent]; links of one app and kind are taken alike. */
         fun opens(intent: Intent): Boolean {
             val data = intent.data
-            val key = "${intent.`package`}|${intent.action}|${data?.scheme}|${data?.host}|${data?.pathSegments?.firstOrNull()}"
+            // The kind of link is its first path segment, past a country one ("tv.apple.com/es/movie/…")
+            val kind = data?.pathSegments?.firstOrNull { it.length != 2 }
+            val key = "${intent.`package`}|${intent.action}|${data?.scheme}|${data?.host}|$kind"
             return opens.getOrPut(key) { intent.resolveActivity(context.packageManager) != null }
         }
 

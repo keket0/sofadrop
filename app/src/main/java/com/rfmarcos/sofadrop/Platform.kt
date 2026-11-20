@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -114,6 +115,15 @@ enum class Platform(
 
         fun ofProvider(providerId: Int): Platform? = entries.firstOrNull { providerId in it.providerIds }
 
+        /**
+         * A title's pages from both sources: [justWatch]'s (of the streaming country), except a playback or
+         * episode link (series on Apple TV, HBO Max, Crunchyroll) where [wikidata] has the title's own page.
+         */
+        fun merged(wikidata: Map<String, String>, justWatch: Map<String, String>): Map<String, String> =
+            wikidata + justWatch.filterNot { (key, url) -> key in wikidata && PLAYBACK.containsMatchIn(url) }
+
+        private val PLAYBACK = Regex("/(episode|watch)/")
+
         /** Pages of a title on every platform Wikidata knows it on, by [key]. */
         fun links(type: MediaType, ids: Map<String, String>): Map<String, String> =
             entries.mapNotNull { platform -> platform.link(type, ids)?.let { platform.key to it } }.toMap()
@@ -193,31 +203,46 @@ object JustWatch {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    /** Pages of [titles] (by their names) in [country], by [Platform.key]; only the titles it has on a platform. */
-    fun links(titles: Map<TitleRef, String>, country: String): Map<TitleRef, Map<String, String>> =
+    /**
+     * Pages of [titles] (by their names) in [country], by [Platform.key]; only the titles it has on a platform.
+     * A batch that fails (a timeout, a 429) doesn't lose the others; it throws only when every batch failed.
+     */
+    fun links(titles: Map<TitleRef, String>, country: String): Map<TitleRef, Map<String, String>> {
         // The country goes into the query as it is
-        if (!country.matches(Regex("[A-Z]{2}"))) emptyMap() else titles.entries.chunked(BATCH).flatMap { batch ->
-            val body = JsonObject(mapOf("query" to JsonPrimitive(query(batch.map { it.value }, country)))).toString()
-            val request = Request.Builder().url(URL).post(body.toRequestBody("application/json".toMediaType()))
-                .header("User-Agent", USER_AGENT).build()
-            val text = http.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw java.io.IOException("JustWatch: HTTP ${response.code}")
-                response.body?.string().orEmpty()
-            }
-            parse(text, batch.map { it.key }).toList()
-        }.toMap()
+        if (!country.matches(Regex("[A-Z]{2}"))) return emptyMap()
+        val batches = titles.entries.chunked(BATCH).map { batch -> runCatching { fetch(batch.map { it.key }, batch.map { it.value }, country) } }
+        if (batches.isNotEmpty() && batches.all { it.isFailure }) throw batches.first().exceptionOrNull()!!
+        return batches.flatMap { it.getOrNull().orEmpty().toList() }.toMap()
+    }
 
-    /** One search per name ("t0", "t1"…): its first results, with their TMDB id and their offers in [country]. */
+    private fun fetch(refs: List<TitleRef>, names: List<String>, country: String): Map<TitleRef, Map<String, String>> {
+        val body = JsonObject(mapOf("query" to JsonPrimitive(query(names, country)))).toString()
+        val request = Request.Builder().url(URL).post(body.toRequestBody("application/json".toMediaType()))
+            .header("User-Agent", USER_AGENT).build()
+        val text = http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw java.io.IOException("JustWatch: HTTP ${response.code}")
+            response.body?.string().orEmpty()
+        }
+        return parse(text, refs)
+    }
+
+    /** One search per name ("t0", "t1"…): its first results, with their TMDB id and their streaming offers in [country]. */
     internal fun query(names: List<String>, country: String): String = names.withIndex().joinToString(" ", "{ ", " }") { (i, name) ->
         // A JSON string is a valid GraphQL string
         "t$i: popularTitles(country: $country, first: 5, filter: {searchQuery: ${JsonPrimitive(name)}}) " +
             "{ edges { node { objectType content(country: $country, language: en) { externalIds { tmdbId } } " +
-            "offers(country: $country, platform: WEB) { package { packageId } standardWebURL } } } }"
+            // Not rent or buy: a third of the response, and never a store's page
+            "offers(country: $country, platform: WEB, filter: {monetizationTypes: [FLATRATE, FREE, ADS]}) { package { packageId } standardWebURL } } } }"
     }
 
-    /** Pages of [refs] (in the order of [query]'s names) in a response, by [Platform.key]. */
+    /**
+     * Pages of [refs] (in the order of [query]'s names) in a response, by [Platform.key]. A query JustWatch
+     * rejects (a country it doesn't cover, a field it renamed) comes back without data: that throws, to be logged.
+     */
     internal fun parse(text: String, refs: List<TitleRef>): Map<TitleRef, Map<String, String>> {
-        val data = (Json.parseToJsonElement(text) as? JsonObject)?.obj("data") ?: return emptyMap()
+        val response = Json.parseToJsonElement(text) as? JsonObject
+        val data = response?.obj("data") ?: throw java.io.IOException(
+            "JustWatch: " + (response?.objects("errors")?.firstOrNull()?.str("message") ?: "no data"))
         return refs.withIndex().mapNotNull { (i, ref) ->
             val title = data.obj("t$i")?.objects("edges").orEmpty().mapNotNull { it.obj("node") }.firstOrNull { node ->
                 node.str("objectType") == (if (ref.type == MediaType.TV) "SHOW" else "MOVIE") &&
@@ -226,11 +251,15 @@ object JustWatch {
             val links = linkedMapOf<String, String>()
             for (offer in title.objects("offers")) {
                 val platform = offer.obj("package")?.int("packageId")?.let(Platform::ofProvider) ?: continue
-                offer.str("standardWebURL")?.let { links.putIfAbsent(platform.key, it) }
+                offer.str("standardWebURL")?.let { links.putIfAbsent(platform.key, unwrapped(it)) }
             }
             if (links.isEmpty()) null else ref to links
         }.toMap()
     }
+
+    /** An affiliate redirect (crunchyroll.pxf.io/…?u=<page>) is the page it leads to: no app takes the redirect's host. */
+    internal fun unwrapped(url: String): String =
+        url.toHttpUrlOrNull()?.takeIf { it.host.endsWith(".pxf.io") }?.queryParameter("u") ?: url
 
     private const val BATCH = 20
 }

@@ -2,6 +2,7 @@ package com.rfmarcos.sofadrop
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,7 +64,35 @@ class PlatformTest {
         assertTrue(query.contains("t0: popularTitles(country: NL, first: 5, filter: {searchQuery: \"Severance\"})"))
         // Quotes in a name stay inside its string
         assertTrue(query.contains("t1: popularTitles(country: NL, first: 5, filter: {searchQuery: \"Say \\\"hi\\\"\"})"))
-        assertTrue(query.contains("offers(country: NL, platform: WEB)"))
+        assertTrue(query.contains("offers(country: NL, platform: WEB, filter: {monetizationTypes: [FLATRATE, FREE, ADS]})"))
+    }
+
+    @Test
+    fun justWatchQueryEscapesNames() {
+        assertTrue(JustWatch.query(listOf("a\\b\nc\u0001"), "NL").contains("searchQuery: \"a\\\\b\\nc\\u0001\""))
+    }
+
+    @Test
+    fun justWatchUnwrapsAffiliateRedirects() {
+        assertEquals("https://www.crunchyroll.com/watch/X",
+            JustWatch.unwrapped("https://crunchyroll.pxf.io/xk92Nv?u=https%3A%2F%2Fwww.crunchyroll.com%2Fwatch%2FX&subId3=y"))
+        assertEquals("https://www.netflix.com/title/1", JustWatch.unwrapped("https://www.netflix.com/title/1"))
+    }
+
+    @Test
+    fun seriesKeepWikidataPagesOverJustWatchPlayback() {
+        val wikidata = mapOf("apple" to "https://tv.apple.com/show/S", "max" to "https://play.hbomax.com/series/urn:hbo:series:X")
+        val justWatch = mapOf(
+            "apple" to "https://tv.apple.com/es/episode/pilot/umc.1?showId=S",
+            "max" to "https://play.hbomax.com/video/watch/uuid",
+            "netflix" to "https://www.netflix.com/title/1",
+        )
+        assertEquals(mapOf("apple" to "https://tv.apple.com/show/S", "max" to "https://play.hbomax.com/series/urn:hbo:series:X",
+            "netflix" to "https://www.netflix.com/title/1"), Platform.merged(wikidata, justWatch))
+        // JustWatch's page of the country wins otherwise, and its playback link is better than none
+        assertEquals("https://www.disneyplus.com/browse/entity-nl",
+            Platform.merged(mapOf("disney" to "https://www.disneyplus.com/browse/entity-old"), mapOf("disney" to "https://www.disneyplus.com/browse/entity-nl"))["disney"])
+        assertEquals("https://play.hbomax.com/video/watch/uuid", Platform.merged(emptyMap(), justWatch)["max"])
     }
 
     @Test
@@ -87,7 +116,16 @@ class PlatformTest {
         // The show, not the movie found first; its first page on each platform; a channel inside Prime isn't Prime;
         // no title without a page on a known platform (Pathé Thuis isn't one)
         assertEquals(mapOf(severance to mapOf("apple" to "https://tv.apple.com/nl/show/first")), JustWatch.parse(json, refs))
-        assertTrue(JustWatch.parse("""{"errors":[{"message":"bad country"}],"data":null}""", refs).isEmpty())
+        // A rejected query is reported, not taken for "no links"
+        val error = assertThrows(java.io.IOException::class.java) {
+            JustWatch.parse("""{"errors":[{"message":"bad country"}],"data":null}""", refs)
+        }
+        assertEquals("JustWatch: bad country", error.message)
+        // One alias failing (null) leaves the others
+        val partial = """{"data":{"t0":null,"t1":{"edges":[{"node":{"objectType":"SHOW","content":{"externalIds":{"tmdbId":"95396"}},
+            "offers":[{"package":{"packageId":350},"standardWebURL":"https://tv.apple.com/nl/show/s"}]}}]}}}"""
+        assertEquals(mapOf(severance to mapOf("apple" to "https://tv.apple.com/nl/show/s")),
+            JustWatch.parse(partial, listOf(TitleRef(MediaType.MOVIE, 1), severance)))
         assertTrue(JustWatch.links(mapOf(severance to "Severance"), "nl\"){").isEmpty())
     }
 

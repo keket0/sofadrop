@@ -254,7 +254,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
         }
         val linked = stored.map { wallpaper ->
             val ref = refs[wallpaper] ?: return@map wallpaper
-            wallpaper.copy(platformLinks = Platform.links(ref.type, ids[ref].orEmpty()) + justWatch[ref].orEmpty())
+            wallpaper.copy(platformLinks = Platform.merged(Platform.links(ref.type, ids[ref].orEmpty()), justWatch[ref].orEmpty()))
         }
         log.add("Platform links: ${linked.count { it.platformLinks.isNotEmpty() }} of ${refs.size} titles on a known platform" +
             " (JustWatch ${justWatch.size}, Wikidata ${ids.count { it.value.isNotEmpty() }})")
