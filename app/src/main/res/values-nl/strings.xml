@@ -271,6 +271,9 @@
     <string name="header_certification">Leeftijdsclassificatie</string>
     <string name="header_certification_short">leeftijd</string>
     <string name="header_certification_desc">Die van %1$s, het streamingland · niet getoond als die er niet is</string>
+    <string name="header_release_date">Releasedatum</string>
+    <string name="header_release_date_short">releasedatum</string>
+    <string name="header_release_date_desc">Wanneer een titel in %1$s uitkomt (in de bioscoop of op streaming) of de volgende aflevering, naast het jaar of in plaats ervan als het hetzelfde is</string>
     <string name="header_ratings">Scores</string>
     <string name="header_ratings_short">scores</string>
     <string name="header_min_ratings">Scores die altijd getoond worden</string>

@@ -217,16 +217,25 @@ object JustWatch {
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
         .build()
+
+    /** No new batch after this long: a slow or unreachable site mustn't hold the generation for minutes. */
+    private const val BUDGET_MILLIS = 90_000L
 
     /**
      * Pages of [titles] (by their names) in [country], by [Platform.key]; only the titles it has on a platform.
      * A batch that fails (a timeout, a 429) doesn't lose the others; it throws only when every batch failed.
+     * Titles left out of time keep their Wikidata pages.
      */
     fun links(titles: Map<TitleRef, String>, country: String): Map<TitleRef, Map<String, String>> {
         // The country goes into the query as it is
         if (!country.matches(Regex("[A-Z]{2}"))) return emptyMap()
-        val batches = titles.entries.chunked(BATCH).map { batch -> runCatching { fetch(batch.map { it.key }, batch.map { it.value }, country) } }
+        val deadline = System.currentTimeMillis() + BUDGET_MILLIS
+        val batches = titles.entries.chunked(BATCH).map { batch ->
+            if (System.currentTimeMillis() > deadline) Result.failure(java.io.IOException("JustWatch: out of time"))
+            else runCatching { fetch(batch.map { it.key }, batch.map { it.value }, country) }
+        }
         if (batches.isNotEmpty() && batches.all { it.isFailure }) throw batches.first().exceptionOrNull()!!
         return batches.flatMap { it.getOrNull().orEmpty().toList() }.toMap()
     }

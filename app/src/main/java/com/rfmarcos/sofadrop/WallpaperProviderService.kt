@@ -91,7 +91,8 @@ class WallpaperProviderService : Service() {
         private fun wallpapers(): List<Wallpaper> {
             // Never block Projectivy: return what we have and refresh in the background if needed
             val store = WallpaperStore(this@WallpaperProviderService)
-            val current = store.current()
+            val dir = store.currentDir()
+            val current = store.current(dir)
             // Settings changes wait for the next scheduled update (or "Update now"): only an empty
             // or expired set is regenerated from here, as a safety net for the periodic job
             val stale = System.currentTimeMillis() - Profile.WALLPAPER.lastGeneration > Settings.refreshIntervalMillis
@@ -101,11 +102,11 @@ class WallpaperProviderService : Service() {
             GenerateWallpapersWorker.schedule(this@WallpaperProviderService)
 
             Log.i(TAG, "getWallpapers: ${current.size} wallpapers, stale=$stale, pendingChanges=${Profile.WALLPAPER.hasPendingChanges}")
-            store.markServed()
+            store.markServed(dir)
             val apps = ClickTargets.Apps(this@WallpaperProviderService)
             return (if (Profile.WALLPAPER.mixed) current.shuffled() else current).mapNotNull { wallpaper ->
-                val video = store.videoUriOf(wallpaper)
-                val uri = video ?: store.uriOf(wallpaper) ?: return@mapNotNull null
+                val video = store.videoUriOf(wallpaper, dir)
+                val uri = video ?: store.uriOf(wallpaper, dir = dir) ?: return@mapNotNull null
                 Wallpaper(
                     uri = uri.toString(),
                     type = if (video != null) WallpaperType.VIDEO else WallpaperType.IMAGE,
