@@ -122,6 +122,17 @@ enum class Platform(
         fun merged(wikidata: Map<String, String>, justWatch: Map<String, String>): Map<String, String> =
             wikidata + justWatch.filterNot { (key, url) -> key in wikidata && PLAYBACK.containsMatchIn(url) }
 
+        /**
+         * The other page of the platforms both sources have, when it's another kind of link: an app may take
+         * one and not the other ("app.primevideo.com/detail" and "watch.amazon.de/detail").
+         */
+        fun others(wikidata: Map<String, String>, justWatch: Map<String, String>): Map<String, String> {
+            val first = merged(wikidata, justWatch)
+            return wikidata.keys.intersect(justWatch.keys).mapNotNull { key ->
+                (if (first[key] == wikidata[key]) justWatch[key] else wikidata[key])?.takeIf { it != first[key] }?.let { key to it }
+            }.toMap()
+        }
+
         private val PLAYBACK = Regex("/(episode|watch)/")
 
         /** Pages of a title on every platform Wikidata knows it on, by [key]. */
@@ -130,11 +141,16 @@ enum class Platform(
 
         /**
          * The platforms of [order] (the user's, best first) that have the title in the streaming country
-         * ([providerIds]), a page for it in [links] and are [installed], with that page.
+         * ([providerIds]), a page for it in [links] and are [installed], with that page (and then its
+         * page in [others], for an app that doesn't take the first).
          */
-        fun pick(order: List<Platform>, providerIds: List<Int>, links: Map<String, String>, installed: (Platform) -> Boolean): List<Pair<Platform, String>> {
+        fun pick(
+            order: List<Platform>, providerIds: List<Int>, links: Map<String, String>, others: Map<String, String> = emptyMap(),
+            installed: (Platform) -> Boolean,
+        ): List<Pair<Platform, String>> {
             val available = providerIds.mapNotNull(::ofProvider).toSet()
-            return order.filter { it in available && installed(it) }.mapNotNull { platform -> links[platform.key]?.let { platform to it } }
+            return order.filter { it in available && installed(it) }
+                .flatMap { platform -> listOfNotNull(links[platform.key], others[platform.key]).map { platform to it } }
         }
     }
 }

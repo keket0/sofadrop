@@ -109,8 +109,10 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
             if (source == null || !profile.showSource || (profile.sourceFallback && profile.showProviders && info.providerLogoPaths.isNotEmpty())) info
             else info.copy(sourceLabel = Languages.sourceLabel(Settings.language, source), sourceProvider = source.provider)
         } ?: return null
-        val status = if (plan != null) plan.statuses[ref] else watched?.status(ref)
         val mode = source?.let { profile.filtersFor(it).watched } ?: profile.watchedMode
+        // The history is only read when the badge is drawn (a focused card has no plan)
+        val status = if (plan != null) plan.statuses[ref]
+            else watched?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) }?.status(ref)
         val fromMdbList = if (plan != null) plan.ratings[ref] else mdbListRatings(listOf(ref))[ref]
         val ratings = Rating.pick(profile.ratingSources, fromMdbList ?: keylessRatings(ref, info), info.rating)
         // Header items the user hid are left empty, and the renderer skips empty ones

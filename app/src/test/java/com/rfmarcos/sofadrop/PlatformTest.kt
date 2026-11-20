@@ -96,6 +96,17 @@ class PlatformTest {
     }
 
     @Test
+    fun theOtherPageIsTriedWhenTheAppDoesNotTakeTheFirst() {
+        val wikidata = mapOf("prime" to "https://app.primevideo.com/detail?gti=G", "netflix" to "https://www.netflix.com/title/1")
+        val justWatch = mapOf("prime" to "https://watch.amazon.de/detail?gti=G", "netflix" to "https://www.netflix.com/title/1")
+        // The same page isn't kept twice
+        assertEquals(mapOf("prime" to "https://app.primevideo.com/detail?gti=G"), Platform.others(wikidata, justWatch))
+        val links = Platform.merged(wikidata, justWatch)
+        assertEquals(listOf("https://watch.amazon.de/detail?gti=G", "https://app.primevideo.com/detail?gti=G"),
+            Platform.pick(listOf(Platform.PRIME), listOf(119), links, Platform.others(wikidata, justWatch)) { true }.map { it.second })
+    }
+
+    @Test
     fun justWatchLinksOfTheTitleWithThatTmdbId() {
         val json = """
             {"data":{

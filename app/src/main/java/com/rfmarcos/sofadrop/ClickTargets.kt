@@ -39,7 +39,7 @@ object ClickTargets {
 
     /** Intents that open [wallpaper] in [profile]'s place, best first; only those an installed app takes. */
     fun candidates(context: Context, wallpaper: StoredWallpaper, profile: Profile, apps: Apps = Apps(context)): List<Intent> {
-        val platforms = Platform.pick(profile.clickPlatforms, wallpaper.providerIds, wallpaper.platformLinks) { apps.of(it) != null }
+        val platforms = Platform.pick(profile.clickPlatforms, wallpaper.providerIds, wallpaper.platformLinks, wallpaper.platformOthers) { apps.of(it) != null }
             .map { (platform, link) -> Intent(Intent.ACTION_VIEW, link.toUri()).setPackage(apps.of(platform)) }
         val fallback = profile.clickFallback
         val app = Settings.clickApp(fallback)?.let { app -> apps.of(app)?.let { app.intent(context, it, wallpaper) } }

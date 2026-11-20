@@ -23,6 +23,8 @@ data class StoredWallpaper(
     val providerIds: List<Int> = emptyList(),
     /** Its pages on the streaming platforms, by [Platform.key] (only when the user has platforms). */
     val platformLinks: Map<String, String> = emptyMap(),
+    /** Another page on some of those platforms, tried when the app doesn't take the first (see [Platform.others]). */
+    val platformOthers: Map<String, String> = emptyMap(),
     /** Where its text is, when each wallpaper has its own place (see [Settings.POSITION_ROTATE]). */
     val position: String? = null,
     /** Its item on the user's Jellyfin server, when it is there and Jellyfin opens it (see [TitleApp.JELLYFIN]). */

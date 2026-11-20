@@ -242,7 +242,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             JustWatch.links(refs.entries.associate { (wallpaper, ref) -> ref to wallpaper.title }, Settings.region)
         } catch (e: Exception) {
             Log.w(TAG, "Could not read the JustWatch links", e)
-            log.add("JustWatch links failed: ${GenerationLog.describe(e)}")
+            log.add("Platform pages failed: ${GenerationLog.describe(e)}")
             emptyMap()
         }
         val ids = try {
@@ -254,10 +254,12 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
         }
         val linked = stored.map { wallpaper ->
             val ref = refs[wallpaper] ?: return@map wallpaper
-            wallpaper.copy(platformLinks = Platform.merged(Platform.links(ref.type, ids[ref].orEmpty()), justWatch[ref].orEmpty()))
+            val wikidata = Platform.links(ref.type, ids[ref].orEmpty())
+            val pages = justWatch[ref].orEmpty()
+            wallpaper.copy(platformLinks = Platform.merged(wikidata, pages), platformOthers = Platform.others(wikidata, pages))
         }
         log.add("Platform links: ${linked.count { it.platformLinks.isNotEmpty() }} of ${refs.size} titles on a known platform" +
-            " (JustWatch ${justWatch.size}, Wikidata ${ids.count { it.value.isNotEmpty() }})")
+            " (sources: ${justWatch.size}, ${ids.count { it.value.isNotEmpty() }})")
         return linked
     }
 

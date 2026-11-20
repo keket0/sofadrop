@@ -258,7 +258,10 @@ object FocusedWallpapers {
     private fun dir(context: Context) = File(File(context.filesDir, WallpaperStore.DIR), DIR)
 
     /** Drawn with other settings, it's another file. */
-    private fun filePrefix() = Integer.toHexString(Profile.WALLPAPER.signature.hashCode())
+    private fun filePrefix() = Integer.toHexString(
+        // With the release date, a card's wallpaper is drawn again each day: the date it shows may have passed
+        (Profile.WALLPAPER.signature + if (Profile.WALLPAPER.showReleaseDate) java.time.LocalDate.now() else "").hashCode()
+    )
 
     /**
      * "1a2b3c-tv-1399.jpg" for a series or a movie, "1a2b3c-tv-1399-s1e3-sharp.jpg" for an episode (its image,
