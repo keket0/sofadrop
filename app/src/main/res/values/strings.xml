@@ -1,6 +1,6 @@
 <resources>
     <string name="plugin_name">Sofadrop</string>
-    <string name="plugin_description">Wallpapers of movies and TV shows from TMDB, Trakt, Simkl or MDBList lists, generated on this device.</string>
+    <string name="plugin_description">Wallpapers of movies and TV shows from your TMDB, Trakt, Simkl, MDBList, Plex or Jellyfin lists, made on this device, and a screensaver with them.</string>
     <string name="plugin_uuid" translatable="false">9b151d4e-9849-4ae0-8495-3347b7c47150</string>
 
     <string name="projectivy_not_installed">Warning, this plugin requires Projectivy Launcher which does not seem to be installed.</string>
@@ -309,7 +309,7 @@
     <string name="rating_popcorn_short">RT audience</string>
     <string name="streaming_summary_none">no streaming services</string>
     <string name="streaming_summary">streaming in %1$s</string>
-    <string name="lists_hub_description">How many titles to take from each list and in what order, then the lists themselves and, at the end, the filters. A title in several lists is only used once.</string>
+    <string name="lists_hub_description">The lists of each service, then the filters and, at the end, how many titles to take from each list and in what order. A title in several lists is only used once.</string>
     <string name="lists_summary">%1$s · %2$s</string>
     <string name="provider_summary_connected">%1$d selected · connected as %2$s</string>
     <string name="provider_summary_disconnected">%1$d selected · account not connected</string>
@@ -610,7 +610,7 @@
     <string name="wizard_import">Import settings from another TV</string>
     <string name="accounts_reconnect">Settings imported. Connect again what the other TV had: %1$s. Accounts aren\'t in the settings file.</string>
     <string name="wallpapers_title">Wallpapers</string>
-    <string name="main_more_header">General</string>
+    <string name="main_more_header">App</string>
     <string name="projectivy_description">Wallpapers for the home screen of Projectivy Launcher (wallpaper plugins are one of its Premium features), or of another launcher through a folder. The screensaver doesn\'t need either.</string>
     <string name="projectivy_status_in_use">In use in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy installed: choose Sofadrop</string>

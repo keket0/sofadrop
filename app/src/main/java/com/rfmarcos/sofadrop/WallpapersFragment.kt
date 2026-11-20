@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.net.toUri
 import androidx.leanback.widget.GuidanceStylist.Guidance
 import androidx.leanback.widget.GuidedAction
 
@@ -120,8 +121,13 @@ class WallpapersFragment : OutputFragment() {
         when (action.id) {
             ID_USE -> Projectivy.openWallpaperSettings(requireContext())
             ID_VIEW -> startActivity(Intent(requireContext(), PreviewActivity::class.java).putExtra(PreviewActivity.EXTRA_PROFILE, profile.id))
-            ID_GET -> LinkQrDialog.newInstance(Projectivy.URL, R.string.projectivy_get, R.string.projectivy_get_scan)
-                .show(parentFragmentManager, "projectivy")
+            // The TV's store page; the QR of its site where there's no store that opens it
+            ID_GET -> try {
+                startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=${Projectivy.PACKAGE}".toUri()))
+            } catch (_: android.content.ActivityNotFoundException) {
+                LinkQrDialog.newInstance(Projectivy.URL, R.string.projectivy_get, R.string.projectivy_get_scan)
+                    .show(parentFragmentManager, "projectivy")
+            }
             else -> super.onGuidedActionClicked(action)
         }
     }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="plugin_description">Achtergronden van films en series uit lijsten van TMDB, Trakt, Simkl of MDBList, gemaakt op dit apparaat.</string>
+    <string name="plugin_description">Achtergronden van films en series uit je lijsten van TMDB, Trakt, Simkl, MDBList, Plex of Jellyfin, gemaakt op dit apparaat, en een schermbeveiliging ermee.</string>
 
     <string name="projectivy_not_installed">Let op: deze plug-in heeft Projectivy Launcher nodig, en die lijkt niet geïnstalleerd te zijn.</string>
     <string name="settings">Instellingen</string>
@@ -301,7 +301,7 @@
     <string name="rating_popcorn_short">RT publiek</string>
     <string name="streaming_summary_none">geen streamingdiensten</string>
     <string name="streaming_summary">streaming in %1$s</string>
-    <string name="lists_hub_description">Hoeveel titels uit elke lijst komen en in welke volgorde, dan de lijsten zelf en tot slot de filters. Een titel die in meerdere lijsten staat, wordt maar één keer gebruikt.</string>
+    <string name="lists_hub_description">De lijsten van elke dienst, dan de filters en tot slot hoeveel titels uit elke lijst komen en in welke volgorde. Een titel die in meerdere lijsten staat, wordt maar één keer gebruikt.</string>
     <string name="lists_summary">%1$s · %2$s</string>
     <string name="provider_summary_connected">%1$d gekozen · verbonden als %2$s</string>
     <string name="provider_summary_disconnected">%1$d gekozen · account niet verbonden</string>
@@ -600,7 +600,7 @@
     <string name="wizard_import">Instellingen van een andere tv importeren</string>
     <string name="accounts_reconnect">Instellingen geïmporteerd. Verbind opnieuw wat de andere tv had: %1$s. Accounts staan niet in het instellingenbestand.</string>
     <string name="wallpapers_title">Achtergronden</string>
-    <string name="main_more_header">Algemeen</string>
+    <string name="main_more_header">App</string>
     <string name="projectivy_description">Achtergronden voor het startscherm van Projectivy Launcher (achtergrondplug-ins zijn een Premium-functie), of van een andere launcher via een map. De screensaver heeft geen van beide nodig.</string>
     <string name="projectivy_status_in_use">In gebruik in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy geïnstalleerd: kies Sofadrop</string>

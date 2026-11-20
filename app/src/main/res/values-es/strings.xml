@@ -1,6 +1,6 @@
 <resources>
     <string name="plugin_name">Sofadrop</string>
-    <string name="plugin_description">Fondos de pantalla de películas y series de listas de TMDB, Trakt, Simkl o MDBList, generados en este dispositivo.</string>
+    <string name="plugin_description">Fondos de pantalla de películas y series de tus listas de TMDB, Trakt, Simkl, MDBList, Plex o Jellyfin, generados en este dispositivo, y un salvapantallas con ellos.</string>
 
     <string name="projectivy_not_installed">Atención: este plugin necesita Projectivy Launcher, que no parece estar instalado.</string>
     <string name="settings">Ajustes</string>
@@ -293,7 +293,7 @@
     <string name="rating_popcorn_short">RT público</string>
     <string name="streaming_summary_none">sin plataformas</string>
     <string name="streaming_summary">plataformas de %1$s</string>
-    <string name="lists_hub_description">Cuántos títulos coger de cada lista y en qué orden, después las listas y, al final, los filtros. Un título que está en varias listas solo se usa una vez.</string>
+    <string name="lists_hub_description">Las listas de cada servicio, después los filtros y, al final, cuántos títulos coger de cada lista y en qué orden. Un título que está en varias listas solo se usa una vez.</string>
     <string name="lists_summary">%1$s · %2$s</string>
     <string name="provider_summary_connected">%1$d elegidas · conectado como %2$s</string>
     <string name="provider_summary_disconnected">%1$d elegidas · cuenta sin conectar</string>
@@ -592,7 +592,7 @@
     <string name="wizard_import">Importar los ajustes de otra TV</string>
     <string name="accounts_reconnect">Ajustes importados. Conecta de nuevo lo que tenía la otra TV: %1$s. Las cuentas no van en el archivo de ajustes.</string>
     <string name="wallpapers_title">Fondos de pantalla</string>
-    <string name="main_more_header">General</string>
+    <string name="main_more_header">Aplicación</string>
     <string name="projectivy_description">Fondos para la pantalla de inicio de Projectivy Launcher (los plugins de fondos son una función de su versión Premium), o de otro launcher mediante una carpeta. El salvapantallas no necesita ninguno de los dos.</string>
     <string name="projectivy_status_in_use">En uso en Projectivy</string>
     <string name="projectivy_status_pick">Projectivy instalado: elige Sofadrop</string>
