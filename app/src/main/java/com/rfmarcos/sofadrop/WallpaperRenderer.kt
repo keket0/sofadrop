@@ -125,7 +125,8 @@ class WallpaperRenderer(
         // Full-bleed backdrop
         drawCover(canvas, backdrop)
 
-        drawGradients(canvas, if (black) Color.BLACK else tintOf(backdrop), right = position.endsWith("_right"))
+        val tint = if (black) Color.BLACK else tintOf(backdrop)
+        drawGradients(canvas, tint, right = Settings.onRight(position), side = !Settings.centred(position))
         if (style == Settings.STYLE_BACKDROP) return
 
         // Info block on its own layer, so it can cast a soft shadow
@@ -133,7 +134,7 @@ class WallpaperRenderer(
             min(width, s(2100).roundToInt()), min(height, s(1500).roundToInt()), Bitmap.Config.ARGB_8888
         )
         try {
-            drawInfo(canvas, output, layer, info, logo, providerLogos, faces, onScroll)
+            drawInfo(canvas, output, layer, info, logo, providerLogos, faces, onScroll, tint)
         } finally {
             layer.recycle()
         }
@@ -154,8 +155,8 @@ class WallpaperRenderer(
      * lighter one at full screen), top (clock). Black ones reach full black at the edges, so an OLED screen
      * turns those pixels off.
      */
-    private fun drawGradients(canvas: Canvas, tint: Int, right: Boolean) {
-        drawSideGradient(canvas, tint, right)
+    private fun drawGradients(canvas: Canvas, tint: Int, right: Boolean, side: Boolean = true) {
+        if (side) drawSideGradient(canvas, tint, right)
         if (bottomShade > 0) {
             val alpha = if (black) 1f else if (fullScreen) 0.7f else 0.98f
             val (start, end) = if (fullScreen) 0.62f to 1f else 0.42f to 0.88f
@@ -186,11 +187,15 @@ class WallpaperRenderer(
 
     private fun drawInfo(
         canvas: Canvas, output: Bitmap, layer: Bitmap, info: WallpaperInfo, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>,
-        onScroll: ((ScrollingSynopsis) -> Unit)?,
+        onScroll: ((ScrollingSynopsis) -> Unit)?, tint: Int,
     ) {
         val capture = onScroll?.let { OverviewCapture() }
         drawInfoContent(Canvas(layer), info, logo, providerLogos, faces, capture)
         val (dx, dy) = blockOffset(layer)
+        // Before the patch: the scrolling synopsis' box keeps the shading under it
+        if (Settings.centred(position)) opaqueBox(layer)?.let { box ->
+            drawHalo(canvas, tint, box.left + dx, box.top + dy, box.right + dx, box.bottom + dy)
+        }
         val lines = capture?.lines
         val box = if (capture != null && lines != null) scrollBox(capture.top + dy, dx) else null
         // The backdrop under the synopsis box, before the block goes on
@@ -205,6 +210,21 @@ class WallpaperRenderer(
         drawBlock(Canvas(patch).apply { translate(-box.left.toFloat(), -box.top.toFloat()) }, layer, dx, dy)
         onScroll(ScrollingSynopsis(patch, overviewStrip(lines, box, s(MARGIN_LEFT) + dx, capture.top + dy), box.left, box.top,
             s(OVERVIEW_LINE_HEIGHT), overviewWindow, lines.size))
+    }
+
+    /**
+     * Shading around a block away from the sides (see [Settings.centred]), where the side one wouldn't be behind
+     * all of it: a soft-edged patch of the side one's colour, so the backdrop still shows on both sides.
+     */
+    private fun drawHalo(canvas: Canvas, tint: Int, left: Float, top: Float, right: Float, bottom: Float) {
+        val pad = s(HALO_PAD)
+        val strength = if (style == Settings.STYLE_LOGO) 0.65f else if (black) 0.92f else 0.88f
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = tint
+            alpha = (strength * 255).roundToInt()
+            maskFilter = BlurMaskFilter(s(HALO_BLUR).coerceAtLeast(1f), BlurMaskFilter.Blur.NORMAL)
+        }
+        canvas.drawRoundRect(RectF(left - pad, top - pad, right + pad, bottom + pad), pad, pad, paint)
     }
 
     /** The info [layer] and its soft shadow on [canvas], moved to the block's position. */
@@ -248,13 +268,53 @@ class WallpaperRenderer(
     private fun blockOffset(layer: Bitmap): Pair<Float, Float> {
         if (position == Settings.POSITION_TOP_LEFT) return 0f to 0f
         val box = opaqueBox(layer) ?: return 0f to 0f
+        Settings.customPoint(position)?.let { (x, y) -> return customOffset(box, width, height, x, y) }
         val dx = if (position.endsWith("_right")) width - box.right - box.left else 0
         val dy = when {
             position.startsWith("center") -> (height - box.height()) / 2 - box.top
-            position.startsWith("bottom") -> height - s(LOGO_BOTTOM - LOGO_MAX_HEIGHT).roundToInt() - box.bottom
+            position.startsWith("bottom") -> height - bottomMargin - box.bottom
             else -> 0
         }
         return dx.toFloat() to dy.toFloat()
+    }
+
+    /** Room left under a block at the bottom: the top's margin. */
+    private val bottomMargin get() = s(LOGO_BOTTOM - LOGO_MAX_HEIGHT).roundToInt()
+
+    /**
+     * The info block alone, drawn top left on a transparent wallpaper, its shading for the middle ([halo], the same
+     * way), the box of its visible pixels and how far a custom position moves it.
+     */
+    class InfoBlock(val image: Bitmap, val halo: Bitmap, val haloLeft: Int, val haloTop: Int, val box: Rect) {
+        fun offset(x: Int, y: Int) = customOffset(box, image.width, image.height, x, y)
+    }
+
+    /** For placing the block by hand: the backdrop with its shading ([side] for a block at the sides), without the block. */
+    fun renderBackground(backdrop: Bitmap, side: Boolean = true): Bitmap {
+        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        drawCover(canvas, backdrop)
+        drawGradients(canvas, if (black) Color.BLACK else tintOf(backdrop), right = Settings.onRight(position), side = side)
+        return output
+    }
+
+    /** The block to move over [renderBackground]. */
+    fun renderBlock(info: WallpaperInfo, backdrop: Bitmap, logo: Bitmap?, providerLogos: List<Bitmap>, faces: List<Bitmap?>): InfoBlock {
+        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val layer = Bitmap.createBitmap(min(width, s(2100).roundToInt()), min(height, s(1500).roundToInt()), Bitmap.Config.ARGB_8888)
+        try {
+            drawInfoContent(Canvas(layer), info, logo, providerLogos, faces, null)
+            val box = opaqueBox(layer) ?: Rect(0, 0, 1, 1)
+            drawBlock(Canvas(output), layer, 0f, 0f)
+            // Its own image with room for the soft edge: the block's top left corner has no room for it
+            val reach = s(HALO_PAD + HALO_BLUR).roundToInt()
+            val halo = Bitmap.createBitmap(box.width() + 2 * reach, box.height() + 2 * reach, Bitmap.Config.ARGB_8888)
+            drawHalo(Canvas(halo), if (black) Color.BLACK else tintOf(backdrop),
+                reach.toFloat(), reach.toFloat(), (reach + box.width()).toFloat(), (reach + box.height()).toFloat())
+            return InfoBlock(output, halo, box.left - reach, box.top - reach, box)
+        } finally {
+            layer.recycle()
+        }
     }
 
     /**
@@ -283,7 +343,8 @@ class WallpaperRenderer(
                 x -= 2
             }
         }
-        return if (top < 0) null else Rect(left, top, right + 1, bottom + 1)
+        // Every other pixel: the skipped one on each side may be visible too
+        return if (top < 0) null else Rect(max(left - 1, 0), max(top - 1, 0), min(right + 2, w), min(bottom + 2, bitmap.height))
     }
 
     private fun drawInfoContent(
@@ -924,12 +985,30 @@ class WallpaperRenderer(
         const val MAX_CAST_PHOTOS = 4
         /** Where the info block can go (T9 prototype). */
         private const val CERT_HEIGHT = 56f
+        /** Shading around a block in the middle: how far it reaches past the text, and how soft its edge is. */
+        private const val HALO_PAD = 150f
+        private const val HALO_BLUR = 140f
         private const val CERT_PADDING = 14f
         /** Between the year and its certification box. */
         private const val CERT_GAP = 24f
 
         private fun font(context: Context, id: Int): Typeface =
             ResourcesCompat.getFont(context, id) ?: Typeface.DEFAULT
+
+        /**
+         * How far a block drawn top left, its visible pixels in [box], moves for a custom position [x]%, [y]% of its room:
+         * 0 puts it against the left or top edge, 100 against the right or bottom one, with no margin (the user placed
+         * it). Never off the [width] × [height] wallpaper, whatever the block's size.
+         */
+        fun customOffset(box: Rect, width: Int, height: Int, x: Int, y: Int): Pair<Float, Float> =
+            customOffset(box.left, box.top, box.right, box.bottom, width, height, x, y)
+
+        /** [customOffset] with the box's sides: tested without Android's Rect. */
+        internal fun customOffset(left: Int, top: Int, right: Int, bottom: Int, width: Int, height: Int, x: Int, y: Int): Pair<Float, Float> {
+            val roomX = (width - (right - left)).coerceAtLeast(0)
+            val roomY = (height - (bottom - top)).coerceAtLeast(0)
+            return -left + roomX * x.coerceIn(0, 100) / 100f to -top + roomY * y.coerceIn(0, 100) / 100f
+        }
 
         private fun smoothstep(value: Float): Float {
             val t = value.coerceIn(0f, 1f)

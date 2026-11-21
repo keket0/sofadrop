@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outline of the block being placed (PositionActivity): an accent line with a dark edge, so it shows on light and dark backdrops, and a faint tint inside -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="14dp" />
+            <solid android:color="#144FB3E8" />
+            <stroke
+                android:width="4dp"
+                android:color="#59000000" />
+        </shape>
+    </item>
+    <item
+        android:bottom="1dp"
+        android:left="1dp"
+        android:right="1dp"
+        android:top="1dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="13dp" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/color_accent" />
+        </shape>
+    </item>
+</layer-list>

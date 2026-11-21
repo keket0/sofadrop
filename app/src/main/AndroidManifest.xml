@@ -126,6 +126,11 @@
             android:exported="false"
             android:theme="@style/Theme.Sofadrop.Preview" />
 
+        <activity
+            android:name=".PositionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sofadrop.Preview" />
+
         <!-- Sofascreen: wallpapers as Android's screensaver (see Sofascreen.kt) -->
         <service
             android:name=".SofascreenService"

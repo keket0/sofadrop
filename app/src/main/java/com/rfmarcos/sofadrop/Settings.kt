@@ -188,6 +188,31 @@ object Settings {
     val POSITIONS = listOf(POSITION_TOP_LEFT, "center_left", "bottom_left", "top_right", "center_right", "bottom_right")
     /** Each wallpaper at the next of [Profile.rotation], so the text doesn't stay in one place on the screen. */
     const val POSITION_ROTATE = "rotate"
+    /** "custom:30x70" (no comma: [Profile.rotation] is a list with them): the block placed by the user, % across and down the room it has (see [WallpaperRenderer.customOffset]). */
+    private const val POSITION_CUSTOM = "custom:"
+
+    /** Where the block is, as a custom point: where a fixed position puts it, so moving it starts from there. */
+    fun pointOf(position: String): Pair<Int, Int> = customPoint(position) ?: Pair(
+        if (position.endsWith("_right")) 100 else 0,
+        when { position.startsWith("center") -> 50; position.startsWith("bottom") -> 100; else -> 0 },
+    )
+
+    fun customPosition(x: Int, y: Int) = "$POSITION_CUSTOM${x.coerceIn(0, 100)}x${y.coerceIn(0, 100)}"
+
+    /** % across and down of a custom position, null for the others. */
+    fun customPoint(position: String): Pair<Int, Int>? {
+        if (!position.startsWith(POSITION_CUSTOM)) return null
+        val (x, y) = position.removePrefix(POSITION_CUSTOM).split('x').mapNotNull { it.toIntOrNull() }.takeIf { it.size == 2 } ?: return null
+        return (x to y).takeIf { x in 0..100 && y in 0..100 }
+    }
+
+    /** Text on the right half: shading, the clock and the viewer's info go to the other side. */
+    fun onRight(position: String) = customPoint(position)?.let { it.first > 50 } ?: position.endsWith("_right")
+    fun onTop(position: String) = customPoint(position)?.let { it.second < 34 } ?: position.startsWith("top")
+    fun onBottom(position: String) = customPoint(position)?.let { it.second > 66 } ?: position.startsWith("bottom")
+    /** Away from the sides, where the side shading wouldn't be behind all of it: shaded around the block instead. */
+    fun centred(position: String) = customPoint(position)?.let { it.first in 26..74 } ?: false
+
     /** What Projectivy opens from a wallpaper ("Watch" in About this wallpaper, play on its status bar). */
     const val CLICK_TRAILER = "trailer"
     const val CLICK_NONE = "none"

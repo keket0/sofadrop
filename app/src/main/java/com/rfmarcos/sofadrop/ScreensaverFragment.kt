@@ -80,7 +80,7 @@ class ScreensaverFragment : OutputFragment() {
         if (width == 0f) return
         previewImage?.minimumHeight = (width * 9f / 16f).toInt() // the frame's size, also until the image arrives
         previewImage?.foreground = ColorDrawable(Color.argb((255 * (1f - Settings.screensaverBrightness / 100f)).toInt(), 0, 0, 0))
-        clock.build(width, width * 9f / 16f, Profile.SCREENSAVER.positionAt(0).endsWith("_right"))
+        clock.build(width, width * 9f / 16f, Settings.onRight(Profile.SCREENSAVER.positionAt(0)))
         clock.tick()
         if (clock.showsWeather) clock.updateWeather()
     }

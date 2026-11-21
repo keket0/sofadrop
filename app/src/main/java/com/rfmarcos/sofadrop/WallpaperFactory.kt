@@ -160,7 +160,23 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
      */
     fun render(
         info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0), onScroll: ((ScrollingSynopsis) -> Unit)? = null,
-    ): Bitmap {
+    ): Bitmap = withImages(info, width) { backdrop, logo, providers, faces ->
+        renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
+    }
+
+    /** For placing the block by hand: the backdrop shaded for a block on the left, the right and in the middle, and the block. */
+    class PlacingParts(val left: Bitmap, val right: Bitmap, val middle: Bitmap, val block: WallpaperRenderer.InfoBlock) {
+        fun recycle() = listOf(left, right, middle, block.image, block.halo).forEach { it.recycle() }
+    }
+
+    fun renderParts(info: WallpaperInfo, width: Int = this.width): PlacingParts =
+        withImages(info, width) { backdrop, logo, providers, faces ->
+            val left = renderer(width, Settings.POSITION_TOP_LEFT)
+            PlacingParts(left.renderBackground(backdrop), renderer(width, "top_right").renderBackground(backdrop),
+                left.renderBackground(backdrop, side = false), left.renderBlock(info, backdrop, logo, providers, faces))
+        }
+
+    private fun <T> withImages(info: WallpaperInfo, width: Int, draw: (Bitmap, Bitmap?, List<Bitmap>, List<Bitmap?>) -> T): T {
         // Previews are 1280 px wide: TMDB's 1280 size instead of decoding the (often 4K) original
         val backdropBytes = client.image(info.backdropPath, if (width <= 1280) "w1280" else "original")
         val logoBytes = info.logoPath?.let { client.image(it, if (width > 1920) "original" else "w500") }
@@ -188,7 +204,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
                 providerBytes.mapNotNullTo(providers) { decode(it) }
                 val faceSize = WallpaperRenderer.castPhotoSize(width)
                 faceBytes.mapTo(faces) { bytes -> bytes?.let { decode(it, faceSize, faceSize) } }
-                return renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
+                return draw(backdrop, logo, providers, faces)
             } finally {
                 backdrop?.recycle()
                 logo?.recycle()

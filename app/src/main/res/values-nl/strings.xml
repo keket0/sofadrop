@@ -620,6 +620,13 @@
     <string name="wallpaper_folder_on">In %1$s</string>
     <string name="wallpaper_folder_explain">Een kopie van de achtergronden in de map %1$s van de tv, vernieuwd bij elke update, voor launchers die de afbeeldingen uit een map tonen, zoals Monet Launcher: kies die map in de achtergrondinstellingen van de launcher. Daar is een achtergrond alleen een afbeelding: hij opent de titel niet.</string>
     <string name="wallpaper_folder_no_permission">Zonder toegang tot de opslag kunnen de achtergronden niet in een map worden opgeslagen</string>
+    <string name="position_custom">Aangepast</string>
+    <string name="position_custom_desc">Plaats het zelf met de pijltjes</string>
+    <string name="position_custom_keys">%1$d%% horizontaal · %2$d%% verticaal   ·   Pijltjes: verplaatsen · OK: opslaan · Terug: annuleren</string>
+    <string name="position_custom_saved">Positie opgeslagen</string>
+    <string name="position_custom_added">Toegevoegd aan de wisseling</string>
+    <string name="position_custom_add">Een aangepaste positie toevoegen</string>
+    <string name="position_custom_point">Aangepast · %1$d%% horizontaal · %2$d%% verticaal</string>
     <string name="position_rotate">Wisselend</string>
     <string name="position_rotate_desc">Elke achtergrond op een andere plek</string>
     <string name="position_rotation_title">Wisselende posities</string>

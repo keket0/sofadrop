@@ -631,6 +631,13 @@
     <string name="wallpaper_folder_explain">A copy of the wallpapers in the TV\'s %1$s folder, replaced with each update, for launchers that show the images of a folder, such as Monet Launcher: pick that folder in the launcher\'s wallpaper settings. There a wallpaper is only an image: it doesn\'t open its title.</string>
     <string name="wallpaper_folder_no_permission">Without storage access the wallpapers can\'t be saved in a folder</string>
     <string name="position_rotate">Rotating</string>
+    <string name="position_custom">Custom</string>
+    <string name="position_custom_desc">Place it yourself with the arrows</string>
+    <string name="position_custom_keys">%1$d%% across · %2$d%% down   ·   Arrows: move · OK: save · Back: cancel</string>
+    <string name="position_custom_saved">Position saved</string>
+    <string name="position_custom_added">Added to the rotation</string>
+    <string name="position_custom_add">Add a custom position</string>
+    <string name="position_custom_point">Custom · %1$d%% across · %2$d%% down</string>
     <string name="position_rotate_desc">Each wallpaper in a different position</string>
     <string name="position_rotation_title">Rotating positions</string>
     <string name="position_rotation_desc">Each wallpaper takes the next ticked position. In the screensaver, the clock moves to the opposite corner.</string>

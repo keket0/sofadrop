@@ -195,14 +195,16 @@ class Profile private constructor(val id: String, private val prefix: String) {
         get() = preferences.getInt(look(KEY_BOTTOM_SHADE), Settings.BOTTOM_SHADE_NORMAL).takeIf { it in Settings.BOTTOM_SHADES } ?: Settings.BOTTOM_SHADE_NORMAL
         set(value) = preferences.edit { putInt(look(KEY_BOTTOM_SHADE), value) }
 
-    /** See [Settings.POSITIONS]; Projectivy's rows may cover the bottom ones, depending on the user's layout. */
+    /** See [Settings.POSITIONS] (or a custom one); Projectivy's rows may cover the bottom ones, depending on the user's layout. */
     var position: String
-        get() = preferences.getString(look(KEY_POSITION), null)?.takeIf { it in Settings.POSITIONS || it == Settings.POSITION_ROTATE } ?: Settings.POSITION_TOP_LEFT
+        get() = preferences.getString(look(KEY_POSITION), null)?.takeIf { it in Settings.POSITIONS || it == Settings.POSITION_ROTATE || Settings.customPoint(it) != null }
+            ?: Settings.POSITION_TOP_LEFT
         set(value) = preferences.edit { putString(look(KEY_POSITION), value) }
 
-    /** Where [Settings.POSITION_ROTATE] takes the text: at least two of [Settings.POSITIONS]; by default not under the launcher's rows. */
+    /** Where [Settings.POSITION_ROTATE] takes the text: at least two of [Settings.POSITIONS] or custom ones; by default not under the launcher's rows. */
     var rotation: List<String>
-        get() = preferences.getString(look(KEY_ROTATION), null)?.split(',').orEmpty().filter { it in Settings.POSITIONS }
+        get() = preferences.getString(look(KEY_ROTATION), null)?.split(',').orEmpty()
+            .filter { it in Settings.POSITIONS || Settings.customPoint(it) != null }
             .takeIf { it.size >= 2 } ?: Settings.POSITIONS.filter { isScreensaver || !it.startsWith("bottom") }
         set(value) = preferences.edit { putString(look(KEY_ROTATION), value.joinToString(",")) }
 

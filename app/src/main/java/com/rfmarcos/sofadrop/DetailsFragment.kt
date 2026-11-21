@@ -1,6 +1,7 @@
 package com.rfmarcos.sofadrop
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.leanback.widget.GuidanceStylist.Guidance
@@ -88,9 +89,13 @@ class DetailsFragment : PreviewSettingsFragment() {
 
     private fun positionNote(position: String): String? {
         val rows = getString(R.string.position_rows_note).takeIf {
-            !position.startsWith("top") && !profile.isScreensaver && Projectivy.isInstalled(requireContext())
+            !Settings.onTop(position) && !profile.isScreensaver && Projectivy.isInstalled(requireContext())
         }
-        return if (position == Settings.POSITION_ROTATE) getString(R.string.position_rotate_desc) else rows
+        return when {
+            position == Settings.POSITION_ROTATE -> getString(R.string.position_rotate_desc)
+            position == CUSTOM -> getString(R.string.position_custom_desc)
+            else -> rows
+        }
     }
 
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
@@ -101,7 +106,12 @@ class DetailsFragment : PreviewSettingsFragment() {
                 // Rows of the parts it hides (or brings back) change
                 collapseSubActions()
             }
-            ID_POSITION -> profile.position = POSITIONS[index]
+            ID_POSITION -> if (POSITIONS[index] == CUSTOM) {
+                // Saved there, if the user keeps it: onResume shows it
+                startActivity(Intent(requireContext(), PositionActivity::class.java).putExtra(PositionActivity.EXTRA_PROFILE, profile.id))
+                collapseSubActions()
+                return true
+            } else profile.position = POSITIONS[index]
             ID_SHADE -> profile.shade = Settings.SHADES[index]
             ID_BOTTOM_SHADE -> profile.bottomShade = Settings.BOTTOM_SHADES[index]
             ID_RESOLUTION -> profile.outputWidth = Settings.WIDTH_OPTIONS[index]
@@ -118,7 +128,9 @@ class DetailsFragment : PreviewSettingsFragment() {
         private const val ID_HEADER = 8L
         private const val ID_PREVIEW_PIN = 9L
         private const val ID_ROTATION = 20L
-        private val POSITIONS = listOf(Settings.POSITION_ROTATE) + Settings.POSITIONS
+        /** Opens [PositionActivity]; a custom position shows as this one. */
+        private const val CUSTOM = "custom"
+        private val POSITIONS = listOf(Settings.POSITION_ROTATE) + Settings.POSITIONS + CUSTOM
         private const val ID_STYLE = 11L
         private const val ID_SYNOPSIS_CAST = 14L
         private const val ID_POSITION = 15L
@@ -140,7 +152,7 @@ class DetailsFragment : PreviewSettingsFragment() {
                 "center_right" -> R.string.position_center_right
                 "bottom_right" -> R.string.position_bottom_right
                 Settings.POSITION_ROTATE -> R.string.position_rotate
-                else -> R.string.position_top_left
+                else -> if (position == CUSTOM || Settings.customPoint(position) != null) R.string.position_custom else R.string.position_top_left
             }
         )
 

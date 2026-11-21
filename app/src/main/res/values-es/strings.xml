@@ -612,6 +612,13 @@
     <string name="wallpaper_folder_on">En %1$s</string>
     <string name="wallpaper_folder_explain">Una copia de los fondos en la carpeta %1$s de la TV, que se renueva con cada actualización, para launchers que muestran las imágenes de una carpeta, como Monet Launcher: elige esa carpeta en los ajustes de fondo del launcher. Ahí un fondo es solo una imagen: no abre su título.</string>
     <string name="wallpaper_folder_no_permission">Sin acceso al almacenamiento no se pueden guardar los fondos en una carpeta</string>
+    <string name="position_custom">Personalizada</string>
+    <string name="position_custom_desc">Colócalo tú con las flechas</string>
+    <string name="position_custom_keys">%1$d%% horizontal · %2$d%% vertical   ·   Flechas: mover · OK: guardar · Atrás: cancelar</string>
+    <string name="position_custom_saved">Posición guardada</string>
+    <string name="position_custom_added">Añadida a la rotativa</string>
+    <string name="position_custom_add">Añadir una posición personalizada</string>
+    <string name="position_custom_point">Personalizada · %1$d%% horizontal · %2$d%% vertical</string>
     <string name="position_rotate">Rotativa</string>
     <string name="position_rotate_desc">Cada fondo en una posición distinta</string>
     <string name="position_rotation_title">Posiciones de la rotación</string>
