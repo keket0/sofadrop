@@ -67,7 +67,8 @@ class HeaderFragment : PreviewSettingsFragment() {
             getString(R.string.header_certification_desc, Languages.countryName(Settings.region)),
             profile.showsInHeader(Settings.HEADER_CERTIFICATION)).build()
         val releaseDate = checkbox(ID_RELEASE_DATE, getString(R.string.header_release_date),
-            getString(R.string.header_release_date_desc, Languages.countryName(Settings.region)), profile.showReleaseDate).build()
+            getString(R.string.header_release_date_desc), profile.showReleaseDate).build()
+        explanations[ID_RELEASE_DATE] = getString(R.string.header_release_date_explain, Languages.countryName(Settings.region))
         val minLabels = Settings.MIN_RATINGS_OPTIONS.map { it.toString() }
         val minRatings = action(ID_MIN_RATINGS, R.drawable.ic_act_count, getString(R.string.header_min_ratings),
             getString(R.string.header_min_ratings_desc, profile.minRatings))

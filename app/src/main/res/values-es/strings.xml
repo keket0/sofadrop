@@ -270,7 +270,8 @@
     <string name="header_certification_desc">La de %1$s, el país de streaming · no se muestra si no la tiene</string>
     <string name="header_release_date">Fecha de estreno</string>
     <string name="header_release_date_short">estreno</string>
-    <string name="header_release_date_desc">Cuándo se estrena en %1$s (en cines o streaming) o su próximo episodio, junto al año o en su lugar si es el mismo</string>
+    <string name="header_release_date_desc">Próximos estrenos y episodios</string>
+    <string name="header_release_date_explain">Cuándo se estrena un título en %1$s (en cines o streaming), o cuándo sale el próximo episodio de una serie. Va junto al año, o en su lugar si es el mismo año.</string>
     <string name="header_ratings">Notas</string>
     <string name="header_ratings_short">notas</string>
     <string name="header_min_ratings">Notas siempre visibles</string>
