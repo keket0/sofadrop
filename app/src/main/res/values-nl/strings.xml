@@ -388,6 +388,8 @@
     <string name="trailer_fallback_none">Geen</string>
     <string name="trailer_fallback_then_any">En als die er ook niet is, elke trailer</string>
     <string name="trailer_fallback_none_desc">De achtergrond opent niets</string>
+    <string name="trailer_app_title">Trailerspeler</string>
+    <string name="trailer_app_explanation">YouTube, of een andere YouTube-app op deze tv. Niet elke app opent de video die hij krijgt: blijft de jouwe op het startscherm, kies dan weer YouTube.</string>
     <string name="preview_label_pinned">Voorbeeld · %1$s · vastgezet</string>
     <string name="preview_pinned">Getoond in het voorbeeld bij de instellingen · wijzig het bij Achtergronddetails</string>
     <string name="preview_pin_title">Voorbeeldtitel</string>

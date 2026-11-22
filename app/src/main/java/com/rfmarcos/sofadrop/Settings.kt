@@ -107,6 +107,7 @@ object Settings {
     private const val KEY_WEATHER_UNIT = "weather_unit"
     private const val KEY_TRAILER_LANGUAGE = "trailer_language"
     private const val KEY_TRAILER_FALLBACK = "trailer_fallback"
+    private const val KEY_TRAILER_APP = "trailer_app"
     private const val KEY_TMDB_SESSION = "_tmdb_session_id"
     private const val KEY_TMDB_ACCOUNT = "_tmdb_account_id"
     private const val KEY_TMDB_USER = "_tmdb_user"
@@ -396,6 +397,11 @@ object Settings {
     var trailerFallback: String
         get() = preferences.getString(KEY_TRAILER_FALLBACK, null)?.takeIf { it in TRAILER_FALLBACKS } ?: TRAILER_ENGLISH
         set(value) = preferences.edit { putString(KEY_TRAILER_FALLBACK, value) }
+
+    /** Package of the YouTube client the trailer opens in (see [ClickTargets.youTubeClients]); null: YouTube. */
+    var trailerApp: String?
+        get() = preferences.getString(KEY_TRAILER_APP, null)
+        set(value) = preferences.edit { if (value == null) remove(KEY_TRAILER_APP) else putString(KEY_TRAILER_APP, value) }
 
     // --- Trakt ---
 

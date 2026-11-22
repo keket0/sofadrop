@@ -398,6 +398,8 @@
     <string name="trailer_fallback_none">None</string>
     <string name="trailer_fallback_then_any">And if there isn\'t one either, any trailer</string>
     <string name="trailer_fallback_none_desc">The wallpaper opens nothing</string>
+    <string name="trailer_app_title">Trailer player</string>
+    <string name="trailer_app_explanation">YouTube, or another YouTube app found on this TV. Not every app opens the video it\'s given: if yours opens on its home screen, go back to YouTube.</string>
     <string name="preview_label_pinned">Preview · %1$s · pinned</string>
     <string name="preview_pinned">Shown in the settings preview · change it in Wallpaper details</string>
     <string name="preview_pin_title">Preview title</string>

@@ -47,6 +47,17 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="wuplay" />
         </intent>
+        <!-- Other YouTube clients for the trailer: what opens YouTube links but not any web link (ClickTargets.youTubeClients) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="www.youtube.com" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
         <!-- Streaming platforms (Platform) -->
         <package android:name="com.netflix.ninja" />
         <package android:name="com.netflix.mediaclient" />

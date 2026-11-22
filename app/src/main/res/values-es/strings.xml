@@ -380,6 +380,8 @@
     <string name="trailer_fallback_none">Ninguno</string>
     <string name="trailer_fallback_then_any">Y si tampoco lo hay, cualquier tráiler</string>
     <string name="trailer_fallback_none_desc">El fondo no abre nada</string>
+    <string name="trailer_app_title">Reproductor de trailers</string>
+    <string name="trailer_app_explanation">YouTube, u otra app de YouTube que haya en esta TV. No todas abren el vídeo que se les da: si la tuya se queda en su inicio, vuelve a YouTube.</string>
     <string name="preview_label_pinned">Vista previa · %1$s · fijada</string>
     <string name="preview_pinned">Se mostrará en la vista previa de los ajustes · cámbialo en Detalles del fondo</string>
     <string name="preview_pin_title">Título de la vista previa</string>
