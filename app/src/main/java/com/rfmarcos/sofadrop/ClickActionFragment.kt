@@ -83,9 +83,10 @@ class ClickActionFragment : PreviewSettingsFragment() {
                 .title(getString(R.string.trailer_fallback_title)).description(shared(fallbackLabel(context, Settings.trailerFallback)))
                 .subActions(options(ID_TRAILER_FALLBACK, Settings.TRAILER_FALLBACKS.map { fallbackLabel(context, it) },
                     fallbackLabel(context, Settings.trailerFallback), Settings.TRAILER_FALLBACKS.map { fallbackDescription(context, it) })).build()
-            // Only with another YouTube client on the TV; YouTube first, the default
+            // Only with another YouTube client on the TV; YouTube first, the default, unless it's disabled
+            // (then the first client is, see ClickTargets.candidates)
             val names = ClickTargets.youTubeClients(context)
-            players = listOf<String?>(null) + names.keys
+            players = (if (ClickTargets.Apps(context).youTube) listOf<String?>(null) else emptyList()) + names.keys
             if (players.size > 1) {
                 val labels = players.map { names[it] ?: YOUTUBE }
                 explain(ID_TRAILER_APP, getString(R.string.trailer_app_explanation))

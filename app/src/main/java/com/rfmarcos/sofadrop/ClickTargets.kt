@@ -23,7 +23,10 @@ object ClickTargets {
 
         fun of(platform: Platform): String? = packages.cached(platform) { platform.installedPackage(context) }
         fun of(app: TitleApp): String? = packages.cached(app) { app.installedPackage(context) }
-        val youTube: Boolean by lazy { runCatching { context.packageManager.getPackageInfo(YOUTUBE_TV, 0) }.isSuccess }
+        /** YouTube for TV installed and enabled: users of other clients often disable it, and then it opens nothing. */
+        val youTube: Boolean by lazy { runCatching { context.packageManager.getApplicationInfo(YOUTUBE_TV, 0).enabled }.getOrDefault(false) }
+        /** The first other YouTube client, the trailer's player when YouTube is disabled (see [youTubeClients]). */
+        val youTubeClient: String? by lazy { youTubeClients(context).keys.firstOrNull() }
 
         /** An installed app takes [intent]; links of one app and kind are taken alike. */
         fun opens(intent: Intent): Boolean {
@@ -48,9 +51,10 @@ object ClickTargets {
         val trailer = wallpaper.trailerKey?.takeIf { fallback != Settings.CLICK_NONE }?.let { key ->
             val link = Intent(Intent.ACTION_VIEW, (WATCH_URL + key).toUri())
             // The client picked while it's installed; else, since several apps open YouTube links on a TV
-            // (browsers, Downloader…), YouTube's own, without asking
+            // (browsers, Downloader…), YouTube's own, without asking. Disabled, another client: without a
+            // package Android gives the link to the default browser, on Google TV a stub that opens nothing
             Settings.trailerApp?.let { Intent(link).setPackage(it) }?.takeIf { apps.opens(it) }
-                ?: link.apply { if (apps.youTube) setPackage(YOUTUBE_TV) }
+                ?: link.apply { (if (apps.youTube) YOUTUBE_TV else apps.youTubeClient)?.let { setPackage(it) } }
         }
         // An app that doesn't take that kind of link would fail silently. Not the trailer: whatever opens
         // YouTube links (its phone app, a browser) is hidden from Sofadrop, and something always does
