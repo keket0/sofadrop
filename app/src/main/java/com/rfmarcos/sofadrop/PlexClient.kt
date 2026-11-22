@@ -6,11 +6,13 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import okhttp3.Dns
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.InetAddress
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -115,12 +117,33 @@ class PlexClient(private val address: String, private val token: String) {
 
         // A server at home that's off answers nothing: give up soon
         private val http = OkHttpClient.Builder()
+            .dns(object : Dns {
+                override fun lookup(hostname: String) = plexDirectIp(hostname)?.let(::listOf) ?: Dns.SYSTEM.lookup(hostname)
+            })
             .connectTimeout(6, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
         /** For trying a server's addresses: a wrong one (another network, a container's) fails fast. */
         private val probe = http.newBuilder().connectTimeout(3, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS).build()
+
+        /**
+         * The IP a server's `192-168-1-10.<hash>.plex.direct` name spells out, read from the name instead of
+         * asked to DNS: routers with DNS rebind protection (a Fritz!Box) don't answer names that point into the
+         * local network, so no address of the server would work (#33). TLS still checks the server's
+         * certificate against the name. Null for other hosts.
+         */
+        internal fun plexDirectIp(host: String): InetAddress? {
+            if (!host.endsWith(".plex.direct", ignoreCase = true)) return null
+            val label = host.substringBefore('.')
+            val literal = when {
+                label.matches(Regex("""\d{1,3}(-\d{1,3}){3}""")) -> label.replace('-', '.')
+                // IPv6: "2001-db8--1" is 2001:db8::1
+                '-' in label && label.all { it == '-' || Character.digit(it, 16) >= 0 } -> label.replace('-', ':')
+                else -> return null
+            }
+            return runCatching { InetAddress.getByName(literal) }.getOrNull()
+        }
 
         class HttpException(val code: Int, path: String) : IOException("Plex HTTP $code for $path")
 

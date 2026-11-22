@@ -188,16 +188,20 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
 
     /** Access tokens last 7 days, refresh tokens 180; refresh when less than a day is left. */
     private fun refreshIfNeeded() {
-        if (Settings.simklRefreshToken.isBlank()) return
-        if (Settings.simklExpiresAt - System.currentTimeMillis() > 86_400_000L) return
-        val (code, body) = post(
-            "oauth2/token",
-            "grant_type" to "refresh_token",
-            "refresh_token" to Settings.simklRefreshToken,
-            "client_id" to clientId,
-        )
-        if (code == 200 && body?.str("access_token") != null) save(body)
-        else if (code == 400 || code == 401) Settings.clearSimklSession()
+        // One at a time: refresh tokens are single-use, a second refresh with the same one is rejected
+        synchronized(SimklClient::class.java) {
+            val refreshToken = Settings.simklRefreshToken
+            if (refreshToken.isBlank()) return
+            if (Settings.simklExpiresAt - System.currentTimeMillis() > 86_400_000L) return
+            val (code, body) = post(
+                "oauth2/token",
+                "grant_type" to "refresh_token",
+                "refresh_token" to refreshToken,
+                "client_id" to clientId,
+            )
+            if (code == 200 && body?.str("access_token") != null) save(body)
+            else if ((code == 400 || code == 401) && Settings.simklRefreshToken == refreshToken) Settings.clearSimklSession()
+        }
     }
 
     private fun save(body: JsonObject) {

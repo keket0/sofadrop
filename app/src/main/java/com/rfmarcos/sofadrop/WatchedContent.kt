@@ -52,10 +52,22 @@ class WatchedContent private constructor(
     }
 
     companion object {
+        /**
+         * Focused cards are drawn one by one, each with its own factory: they share the history for an hour.
+         * A drawn card keeps its badge until the next day anyway (see FocusedWallpapers.filePrefix).
+         */
+        private const val REUSE_MILLIS = 60 * 60_000L
+        @Volatile private var recent: Triple<Long, List<String>, WatchedContent>? = null
+
         /** Null when no watch history is chosen (or none of its services could be read). */
         fun load(trakt: TraktClient?, simkl: SimklClient?, plex: () -> PlexClient?, jellyfin: JellyfinClient?): WatchedContent? {
             val sources = Settings.watchSources
             if (sources.isEmpty()) return null
+            recent?.let { (at, from, content) -> if (from == sources && System.currentTimeMillis() - at < REUSE_MILLIS) return content }
+            return read(sources, trakt, simkl, plex, jellyfin)?.also { recent = Triple(System.currentTimeMillis(), sources, it) }
+        }
+
+        private fun read(sources: List<String>, trakt: TraktClient?, simkl: SimklClient?, plex: () -> PlexClient?, jellyfin: JellyfinClient?): WatchedContent? {
             fun <T> read(name: String, chosen: String, block: () -> T?): T? = if (chosen !in sources) null
                 else runCatching(block).onFailure { Log.w("WatchedContent", "Could not load $name history", it) }.getOrNull()
             val traktData = read("Trakt", Settings.WATCH_TRAKT) { trakt?.let { it.watchedMovies() to it.watchedShows() } }

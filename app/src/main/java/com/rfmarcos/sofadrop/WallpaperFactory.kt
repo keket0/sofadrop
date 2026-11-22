@@ -3,7 +3,10 @@ package com.rfmarcos.sofadrop
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.text.format.DateFormat
 import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -106,19 +109,38 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
             if (source == null || !profile.showSource || (profile.sourceFallback && profile.showProviders && info.providerLogoPaths.isNotEmpty())) info
             else info.copy(sourceLabel = Languages.sourceLabel(Settings.language, source), sourceProvider = source.provider)
         } ?: return null
-        val status = if (plan != null) plan.statuses[ref] else watched?.status(ref)
         val mode = source?.let { profile.filtersFor(it).watched } ?: profile.watchedMode
+        // The history is only read when the badge is drawn (a focused card has no plan)
+        val status = if (plan != null) plan.statuses[ref]
+            else watched?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) }?.status(ref)
         val fromMdbList = if (plan != null) plan.ratings[ref] else mdbListRatings(listOf(ref))[ref]
         val ratings = Rating.pick(profile.ratingSources, fromMdbList ?: keylessRatings(ref, info), info.rating)
         // Header items the user hid are left empty, and the renderer skips empty ones
         return info.copy(
             watchStatus = status?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) },
             ratings = ratings,
-            year = info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }.orEmpty(),
+            year = yearAndDate(info.year.takeIf { profile.showsInHeader(Settings.HEADER_YEAR) }, info.releaseDate?.takeIf { profile.showReleaseDate }),
             extraInfo = info.extraInfo.takeIf { profile.showsInHeader(Settings.HEADER_RUNTIME) }.orEmpty(),
             genres = info.genres.takeIf { profile.showsInHeader(Settings.HEADER_GENRES) }.orEmpty(),
             certification = info.certification.takeIf { profile.showsInHeader(Settings.HEADER_CERTIFICATION) },
         )
+    }
+
+    /**
+     * The year block (it keeps the certification box after it): the date (see [TmdbCatalog.upcomingDate]) takes
+     * the year's place when it's the same year, and goes after it when not ("1989 · 22 nov 2026", a long series).
+     */
+    private fun yearAndDate(year: String?, date: String?): String =
+        joinedYearAndDate(year, date?.let { it.take(4) to localDate(it) })
+
+    /**
+     * "12 dic 2026", "Dec 12, 2026": absolute (the wallpaper stays up for hours, "in 3 days" would go stale),
+     * in the wallpaper language, with the month in words so day and month can't be swapped.
+     */
+    private fun localDate(iso: String): String {
+        val locale = Locale.forLanguageTag(Settings.language)
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(iso) ?: return iso
+        return SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "dMMMy"), locale).format(date)
     }
 
     /** IMDb (its public dataset) and Trakt scores, for titles MDBList didn't give: no account needed. */
@@ -138,7 +160,23 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
      */
     fun render(
         info: WallpaperInfo, width: Int = this.width, position: String = profile.positionAt(0), onScroll: ((ScrollingSynopsis) -> Unit)? = null,
-    ): Bitmap {
+    ): Bitmap = withImages(info, width) { backdrop, logo, providers, faces ->
+        renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
+    }
+
+    /** For placing the block by hand: the backdrop shaded for a block on the left, the right and in the middle, and the block. */
+    class PlacingParts(val left: Bitmap, val right: Bitmap, val middle: Bitmap, val block: WallpaperRenderer.InfoBlock) {
+        fun recycle() = listOf(left, right, middle, block.image, block.halo).forEach { it.recycle() }
+    }
+
+    fun renderParts(info: WallpaperInfo, width: Int = this.width): PlacingParts =
+        withImages(info, width) { backdrop, logo, providers, faces ->
+            val left = renderer(width, Settings.POSITION_TOP_LEFT)
+            PlacingParts(left.renderBackground(backdrop), renderer(width, "top_right").renderBackground(backdrop),
+                left.renderBackground(backdrop, side = false), left.renderBlock(info, backdrop, logo, providers, faces))
+        }
+
+    private fun <T> withImages(info: WallpaperInfo, width: Int, draw: (Bitmap, Bitmap?, List<Bitmap>, List<Bitmap?>) -> T): T {
         // Previews are 1280 px wide: TMDB's 1280 size instead of decoding the (often 4K) original
         val backdropBytes = client.image(info.backdropPath, if (width <= 1280) "w1280" else "original")
         val logoBytes = info.logoPath?.let { client.image(it, if (width > 1920) "original" else "w500") }
@@ -166,7 +204,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
                 providerBytes.mapNotNullTo(providers) { decode(it) }
                 val faceSize = WallpaperRenderer.castPhotoSize(width)
                 faceBytes.mapTo(faces) { bytes -> bytes?.let { decode(it, faceSize, faceSize) } }
-                return renderer(width, position).render(info, backdrop, logo, providers, faces, onScroll)
+                return draw(backdrop, logo, providers, faces)
             } finally {
                 backdrop?.recycle()
                 logo?.recycle()
@@ -178,6 +216,14 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
 
     companion object {
         private const val TAG = "WallpaperFactory"
+
+        /** The year block from [year] and a [date] (its year, how it reads): see [yearAndDate]. */
+        internal fun joinedYearAndDate(year: String?, date: Pair<String, String>?): String = when {
+            date == null -> year.orEmpty()
+            year.isNullOrEmpty() || year == date.first -> date.second
+            // Spaced like the separators between the header's blocks
+            else -> "$year  ·  ${date.second}"
+        }
 
         /** Shared by every factory; only callers outside it may wait on it (a task waiting on another could deadlock). */
         private val pool = Executors.newFixedThreadPool(4)

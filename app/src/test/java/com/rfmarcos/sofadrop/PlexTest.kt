@@ -85,6 +85,19 @@ class PlexTest {
         assertTrue(PlexClient.parseResources(null).isEmpty())
     }
 
+    /** A plex.direct name gives its IP without DNS, which a router's rebind protection may block (#33). */
+    @Test
+    fun plexDirectIp() {
+        fun ip(host: String) = PlexClient.plexDirectIp(host)?.hostAddress
+        assertEquals("192.168.1.10", ip("192-168-1-10.0123456789abcdef0123456789abcdef.plex.direct"))
+        assertEquals("80.1.2.3", ip("80-1-2-3.ABC.PLEX.DIRECT"))
+        assertEquals("2001:db8:0:0:0:0:0:1", ip("2001-db8--1.abc.plex.direct"))
+        assertNull(ip("plex.tv"))
+        assertNull(ip("192-168-1-10.example.com"))
+        assertNull(ip("abc.plex.direct"))
+        assertNull(ip("my-server.abc.plex.direct"))
+    }
+
     @Test
     fun wallpaperSourceLabels() {
         fun label(key: String, language: String) = Languages.sourceLabel(language, Sources.PLEX.first { it.key == key })

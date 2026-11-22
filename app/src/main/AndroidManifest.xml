@@ -47,6 +47,17 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="wuplay" />
         </intent>
+        <!-- Other YouTube clients for the trailer: what opens YouTube links but not any web link (ClickTargets.youTubeClients) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="www.youtube.com" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
         <!-- Streaming platforms (Platform) -->
         <package android:name="com.netflix.ninja" />
         <package android:name="com.netflix.mediaclient" />
@@ -67,6 +78,21 @@
         <package android:name="no.nrk.tv" />
         <package android:name="se.svt.android.svtplay" />
         <package android:name="com.yle.webtv" />
+        <package android:name="com.cbs.ott" />
+        <package android:name="com.cbs.ca" />
+        <package android:name="com.cbs.app" />
+        <package android:name="com.skyshowtime.skyshowtime.google" />
+        <package android:name="nl.rtl.videoland.v2" />
+        <package android:name="com.viaplay.android" />
+        <package android:name="de.rtli.tvnow" />
+        <package android:name="bbc.iplayer.android" />
+        <package android:name="com.peacocktv.peacockandroid" />
+        <package android:name="com.bydeluxe.d3.android.program.starz" />
+        <package android:name="com.bskyb.nowtv.beta" />
+        <package android:name="ca.bellmedia.cravetv" />
+        <package android:name="au.com.stan.and" />
+        <package android:name="com.osn.go" />
+        <package android:name="com.viki.android" />
         <!-- Android's screensaver picker, missing on Google TV (ScreensaverSetupFragment) -->
         <intent>
             <action android:name="android.settings.DREAM_SETTINGS" />
@@ -75,6 +101,8 @@
 
     <application
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:label="@string/plugin_name"
         android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -106,6 +134,11 @@
 
         <activity
             android:name=".PreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Sofadrop.Preview" />
+
+        <activity
+            android:name=".PositionActivity"
             android:exported="false"
             android:theme="@style/Theme.Sofadrop.Preview" />
 

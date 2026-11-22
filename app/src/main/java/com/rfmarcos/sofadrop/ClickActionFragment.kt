@@ -16,6 +16,9 @@ import androidx.leanback.widget.GuidedAction
  */
 class ClickActionFragment : PreviewSettingsFragment() {
 
+    /** The trailer player's options as [rows] listed them: YouTube (null), then the other clients' packages. */
+    private var players: List<String?> = emptyList()
+
     override fun onCreateGuidance(savedInstanceState: Bundle?) = Guidance(
         getString(R.string.click_action_title),
         guidanceText(),
@@ -80,6 +83,17 @@ class ClickActionFragment : PreviewSettingsFragment() {
                 .title(getString(R.string.trailer_fallback_title)).description(shared(fallbackLabel(context, Settings.trailerFallback)))
                 .subActions(options(ID_TRAILER_FALLBACK, Settings.TRAILER_FALLBACKS.map { fallbackLabel(context, it) },
                     fallbackLabel(context, Settings.trailerFallback), Settings.TRAILER_FALLBACKS.map { fallbackDescription(context, it) })).build()
+            // Only with another YouTube client on the TV; YouTube first, the default, unless it's disabled
+            // (then the first client is, see ClickTargets.candidates)
+            val names = ClickTargets.youTubeClients(context)
+            players = (if (ClickTargets.Apps(context).youTube) listOf<String?>(null) else emptyList()) + names.keys
+            if (players.size > 1) {
+                val labels = players.map { names[it] ?: YOUTUBE }
+                explain(ID_TRAILER_APP, getString(R.string.trailer_app_explanation))
+                val current = labels[players.indexOf(Settings.trailerApp).coerceAtLeast(0)]
+                rows += action(ID_TRAILER_APP, R.drawable.ic_act_play, getString(R.string.trailer_app_title), shared(current))
+                    .subActions(options(ID_TRAILER_APP, labels, current)).build()
+            }
         }
         return rows
     }
@@ -144,6 +158,7 @@ class ClickActionFragment : PreviewSettingsFragment() {
             parent == ID_FALLBACK -> profile.clickFallback = fallbacks()[index]
             parent == ID_TRAILER_LANGUAGE -> Settings.trailerLanguage = Settings.PART_LANGUAGES[index]
             parent == ID_TRAILER_FALLBACK -> Settings.trailerFallback = Settings.TRAILER_FALLBACKS[index]
+            parent == ID_TRAILER_APP -> Settings.trailerApp = players.getOrNull(index)
         }
         setGuidanceText(guidanceText())
         refreshActions(rows())
@@ -158,6 +173,8 @@ class ClickActionFragment : PreviewSettingsFragment() {
         private const val ID_FALLBACK = 3L
         private const val ID_TRAILER_LANGUAGE = 4L
         private const val ID_TRAILER_FALLBACK = 5L
+        private const val ID_TRAILER_APP = 6L
+        private const val YOUTUBE = "YouTube"
         private const val ID_PLATFORM_BASE = 10L
 
         private fun platformId(platform: Platform) = ID_PLATFORM_BASE + platform.ordinal

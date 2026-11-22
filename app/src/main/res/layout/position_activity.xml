@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placing the info block by hand (PositionActivity): the shaded backdrop, the block over it with its outline, and the keys. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+    <ImageView
+        android:id="@+id/position_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY" />
+
+    <!-- Shading around the block in the middle, sized and moved with it by PositionActivity -->
+    <ImageView
+        android:id="@+id/position_halo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="invisible" />
+
+    <!-- Sized and moved to the block's visible pixels, under it (on the screen's edge it touches the text), by PositionActivity -->
+    <View
+        android:id="@+id/position_outline"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/position_outline"
+        android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/position_block"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY" />
+
+    <ProgressBar
+        android:id="@+id/position_progress"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center" />
+
+    <TextView
+        android:id="@+id/position_hint"
+        style="@style/Widget.Sofadrop.Pill.Accent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp"
+        android:paddingStart="16dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="6dp"
+        android:textSize="16sp" />
+</FrameLayout>

@@ -57,8 +57,8 @@ class PreviewActivity : AppCompatActivity() {
     private fun placeOverlay() {
         val textAt = wallpapers.getOrNull(position)?.position
             ?: profile.position.takeIf { profile.drawsLogo && it != Settings.POSITION_ROTATE } ?: Settings.POSITION_TOP_LEFT
-        val top = textAt.startsWith("bottom")
-        val start = textAt.endsWith("_right")
+        val top = Settings.onBottom(textAt)
+        val start = Settings.onRight(textAt)
         fun dp(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics)
         val cluster = findViewById<LinearLayout>(R.id.viewer_cluster)
         val side = if (start) Gravity.START else Gravity.END

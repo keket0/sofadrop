@@ -80,7 +80,7 @@ class ScreensaverFragment : OutputFragment() {
         if (width == 0f) return
         previewImage?.minimumHeight = (width * 9f / 16f).toInt() // the frame's size, also until the image arrives
         previewImage?.foreground = ColorDrawable(Color.argb((255 * (1f - Settings.screensaverBrightness / 100f)).toInt(), 0, 0, 0))
-        clock.build(width, width * 9f / 16f, Profile.SCREENSAVER.positionAt(0).endsWith("_right"))
+        clock.build(width, width * 9f / 16f, Settings.onRight(Profile.SCREENSAVER.positionAt(0)))
         clock.tick()
         if (clock.showsWeather) clock.updateWeather()
     }
@@ -194,7 +194,7 @@ class ScreensaverFragment : OutputFragment() {
                 // Only says something where it can't be switched on if it was, from a computer
                 .takeIf { ScreensaverSetupFragment.canSwitchOn(context) || ScreensaverSetupFragment.isActive(context) == true },
 
-        ) + setRows() + listOfNotNull(
+        ) + listOfNotNull(
             header(ID_HEADER_SLIDESHOW, getString(R.string.screensaver_slideshow_header)),
             choice(ID_SECONDS, R.drawable.ic_act_schedule, R.string.screensaver_seconds_title, secondsLabel(context, Settings.screensaverSeconds),
                 Settings.SCREENSAVER_SECONDS_OPTIONS.map { secondsLabel(context, it) }),
@@ -220,15 +220,16 @@ class ScreensaverFragment : OutputFragment() {
             choice(ID_POSITION, R.drawable.ic_act_place, R.string.screensaver_clock_position_title, positionLabel(context, Settings.screensaverClockPosition),
                 Settings.CLOCK_POSITIONS.map { positionLabel(context, it) }).also { it.isEnabled = clockOn },
             colorRow(clockOn),
+            // The place first: the weather can't be turned on without one
+            editable(ID_LOCATION, R.drawable.ic_act_search, getString(R.string.screensaver_location_title), Settings.weatherPlace,
+                Settings.weatherPlace.ifEmpty { getString(R.string.not_set) }).also { it.isEnabled = clockOn },
             action(ID_WEATHER, R.drawable.ic_act_weather, getString(R.string.screensaver_weather_title),
                 Settings.weatherPlace.ifEmpty { getString(R.string.screensaver_weather_no_place) })
                 .checkSetId(GuidedAction.CHECKBOX_CHECK_SET_ID).checked(Settings.screensaverWeather)
                 .enabled(clockOn && Settings.weatherPlace.isNotEmpty()).build(),
             choice(ID_UNIT, R.drawable.ic_act_weather, R.string.screensaver_weather_unit_title, unitLabel(context, Settings.weatherUnit),
                 Settings.WEATHER_UNITS.map { unitLabel(context, it) }).also { it.isEnabled = clockOn && Settings.screensaverWeather },
-            editable(ID_LOCATION, R.drawable.ic_act_search, getString(R.string.screensaver_location_title), Settings.weatherPlace,
-                Settings.weatherPlace.ifEmpty { getString(R.string.not_set) }).also { it.isEnabled = clockOn },
-        )
+        ) + setRows()
     }
 
     /** The clock's colours, or what unlocks them; none in GitHub builds (see [Settings.screensaverClockColorShown]). */

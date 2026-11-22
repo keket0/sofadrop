@@ -84,4 +84,19 @@ class TrailerTest {
         assertNull(TmdbCatalog.trailerKey(videos(video("clip", type = "Clip"), video("vimeo", site = "Vimeo")), ES_EN))
         assertNull(TmdbCatalog.trailerKey(Json.parseToJsonElement("""{"results":[{"site":"YouTube","type":"Trailer","key":""}]}""") as JsonObject, ES_EN))
     }
+
+    @Test
+    fun youTubeClients() {
+        // What the Chromecast answered (2026-11-22), plus SmartTube and Sofadrop itself
+        val youTube = mapOf(
+            "com.google.android.youtube.tv" to "YouTube",
+            "io.gh.reisxd.tizentube.cobalt" to "TizenTube",
+            "com.esaba.downloader" to "Downloader",
+            "com.android.tv.frameworkpackagestubs" to "Browser",
+            "org.smarttube.stable" to "SmartTube",
+            "com.rfmarcos.sofadrop" to "Sofadrop",
+        )
+        val web = setOf("com.esaba.downloader", "com.android.tv.frameworkpackagestubs")
+        assertEquals(listOf("SmartTube", "TizenTube"), ClickTargets.clients(youTube, web, "com.rfmarcos.sofadrop").values.toList())
+    }
 }

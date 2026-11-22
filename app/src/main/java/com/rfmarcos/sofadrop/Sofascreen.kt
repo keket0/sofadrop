@@ -104,7 +104,7 @@ class SofascreenView(context: Context) : FrameLayout(context) {
         if (running) return
         running = true
         dim.alpha = 1f - Settings.screensaverBrightness / 100f
-        clock.build(resources.displayMetrics.widthPixels.toFloat(), resources.displayMetrics.heightPixels.toFloat(), blockPosition.endsWith("_right"))
+        clock.build(resources.displayMetrics.widthPixels.toFloat(), resources.displayMetrics.heightPixels.toFloat(), Settings.onRight(blockPosition))
         position = -1
         playlist = emptyList()
         showNext(transition = 0)
@@ -252,12 +252,9 @@ class SofascreenView(context: Context) : FrameLayout(context) {
         if (!Settings.screensaverZoom) return
         val screen = (if (height > 0) height else resources.displayMetrics.heightPixels).toFloat()
         val place = shown?.position ?: blockPosition
-        view.pivotX = if (place.endsWith("_right")) (if (width > 0) width else resources.displayMetrics.widthPixels).toFloat() else 0f
-        view.pivotY = when {
-            place.startsWith("bottom") -> screen
-            place.startsWith("top") -> 0f
-            else -> screen / 2f
-        }
+        val (x, y) = Settings.pointOf(place)
+        view.pivotX = (if (width > 0) width else resources.displayMetrics.widthPixels) * x / 100f
+        view.pivotY = screen * y / 100f
         view.animate().scaleX(SLOW_ZOOM).scaleY(SLOW_ZOOM).setDuration(millis)
             .setInterpolator(LinearInterpolator()).start()
     }
@@ -422,12 +419,12 @@ class SofascreenClock(private val context: Context) {
      * the middle). A clock in the middle only changes sides: the text is already on the other one.
      */
     fun moveAwayFrom(position: String) {
-        val side = if (position.endsWith("_right")) Gravity.START else Gravity.END
+        val side = if (Settings.onRight(position)) Gravity.START else Gravity.END
         val params = clock.layoutParams as FrameLayout.LayoutParams
         val height = when {
             Settings.screensaverClockPosition == Settings.CLOCK_MIDDLE -> Gravity.CENTER_VERTICAL
-            position.startsWith("top") -> Gravity.BOTTOM
-            position.startsWith("bottom") -> Gravity.TOP
+            Settings.onTop(position) -> Gravity.BOTTOM
+            Settings.onBottom(position) -> Gravity.TOP
             else -> params.gravity and Gravity.VERTICAL_GRAVITY_MASK
         }
         if (params.gravity == side or height) return

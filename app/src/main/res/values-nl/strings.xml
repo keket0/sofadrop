@@ -1,5 +1,5 @@
 <resources>
-    <string name="plugin_description">Achtergronden van films en series uit lijsten van TMDB, Trakt, Simkl of MDBList, gemaakt op dit apparaat.</string>
+    <string name="plugin_description">Achtergronden van films en series uit je lijsten van TMDB, Trakt, Simkl, MDBList, Plex of Jellyfin, gemaakt op dit apparaat, en een schermbeveiliging ermee.</string>
 
     <string name="projectivy_not_installed">Let op: deze plug-in heeft Projectivy Launcher nodig, en die lijkt niet geïnstalleerd te zijn.</string>
     <string name="settings">Instellingen</string>
@@ -82,6 +82,11 @@
     <string name="list_trakt_recommended_shows">Trakt · Aanbevolen series voor jou</string>
     <string name="list_trakt_watchlist_movies">Trakt · Jouw kijklijst (films)</string>
     <string name="list_trakt_watchlist_shows">Trakt · Jouw kijklijst (series)</string>
+    <string name="list_trakt_watching">Trakt · Verder kijken</string>
+    <string name="list_trakt_favorites_movies">Trakt · Jouw favorieten (films)</string>
+    <string name="list_trakt_favorites_shows">Trakt · Jouw favorieten (series)</string>
+    <string name="list_trakt_collection_movies">Trakt · Jouw collectie (films)</string>
+    <string name="list_trakt_collection_shows">Trakt · Jouw collectie (series)</string>
     <string name="list_mdblist">MDBList · %1$s</string>
     <string name="list_trakt_user">Trakt · %1$s</string>
 
@@ -271,6 +276,10 @@
     <string name="header_certification">Leeftijdsclassificatie</string>
     <string name="header_certification_short">leeftijd</string>
     <string name="header_certification_desc">Die van %1$s, het streamingland · niet getoond als die er niet is</string>
+    <string name="header_release_date">Releasedatum</string>
+    <string name="header_release_date_short">releasedatum</string>
+    <string name="header_release_date_desc">Komende titels en afleveringen</string>
+    <string name="header_release_date_explain">Wanneer een titel in %1$s uitkomt (in de bioscoop of op streaming), of wanneer de volgende aflevering van een serie verschijnt. Naast het jaar, of in plaats ervan als het hetzelfde jaar is.</string>
     <string name="header_ratings">Scores</string>
     <string name="header_ratings_short">scores</string>
     <string name="header_min_ratings">Scores die altijd getoond worden</string>
@@ -298,7 +307,7 @@
     <string name="rating_popcorn_short">RT publiek</string>
     <string name="streaming_summary_none">geen streamingdiensten</string>
     <string name="streaming_summary">streaming in %1$s</string>
-    <string name="lists_hub_description">Hoeveel titels uit elke lijst komen en in welke volgorde, dan de lijsten zelf en tot slot de filters. Een titel die in meerdere lijsten staat, wordt maar één keer gebruikt.</string>
+    <string name="lists_hub_description">De lijsten van elke dienst, dan de filters en tot slot hoeveel titels uit elke lijst komen en in welke volgorde. Een titel die in meerdere lijsten staat, wordt maar één keer gebruikt.</string>
     <string name="lists_summary">%1$s · %2$s</string>
     <string name="provider_summary_connected">%1$d gekozen · verbonden als %2$s</string>
     <string name="provider_summary_disconnected">%1$d gekozen · account niet verbonden</string>
@@ -380,6 +389,8 @@
     <string name="trailer_fallback_none">Geen</string>
     <string name="trailer_fallback_then_any">En als die er ook niet is, elke trailer</string>
     <string name="trailer_fallback_none_desc">De achtergrond opent niets</string>
+    <string name="trailer_app_title">Trailerspeler</string>
+    <string name="trailer_app_explanation">YouTube, of een andere YouTube-app op deze tv. Niet elke app opent de video die hij krijgt: blijft de jouwe op het startscherm, kies dan weer YouTube.</string>
     <string name="preview_label_pinned">Voorbeeld · %1$s · vastgezet</string>
     <string name="preview_pinned">Getoond in het voorbeeld bij de instellingen · wijzig het bij Achtergronddetails</string>
     <string name="preview_pin_title">Voorbeeldtitel</string>
@@ -597,7 +608,7 @@
     <string name="wizard_import">Instellingen van een andere tv importeren</string>
     <string name="accounts_reconnect">Instellingen geïmporteerd. Verbind opnieuw wat de andere tv had: %1$s. Accounts staan niet in het instellingenbestand.</string>
     <string name="wallpapers_title">Achtergronden</string>
-    <string name="main_more_header">Algemeen</string>
+    <string name="main_more_header">App</string>
     <string name="projectivy_description">Achtergronden voor het startscherm van Projectivy Launcher (achtergrondplug-ins zijn een Premium-functie), of van een andere launcher via een map. De screensaver heeft geen van beide nodig.</string>
     <string name="projectivy_status_in_use">In gebruik in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy geïnstalleerd: kies Sofadrop</string>
@@ -612,6 +623,13 @@
     <string name="wallpaper_folder_on">In %1$s</string>
     <string name="wallpaper_folder_explain">Een kopie van de achtergronden in de map %1$s van de tv, vernieuwd bij elke update, voor launchers die de afbeeldingen uit een map tonen, zoals Monet Launcher: kies die map in de achtergrondinstellingen van de launcher. Daar is een achtergrond alleen een afbeelding: hij opent de titel niet.</string>
     <string name="wallpaper_folder_no_permission">Zonder toegang tot de opslag kunnen de achtergronden niet in een map worden opgeslagen</string>
+    <string name="position_custom">Aangepast</string>
+    <string name="position_custom_desc">Plaats het zelf met de pijltjes</string>
+    <string name="position_custom_keys">%1$d%% horizontaal · %2$d%% verticaal   ·   Pijltjes: verplaatsen · OK: opslaan · Terug: annuleren</string>
+    <string name="position_custom_saved">Positie opgeslagen</string>
+    <string name="position_custom_added">Toegevoegd aan de wisseling</string>
+    <string name="position_custom_add">Een aangepaste positie toevoegen</string>
+    <string name="position_custom_point">Aangepast · %1$d%% horizontaal · %2$d%% verticaal</string>
     <string name="position_rotate">Wisselend</string>
     <string name="position_rotate_desc">Elke achtergrond op een andere plek</string>
     <string name="position_rotation_title">Wisselende posities</string>

@@ -140,16 +140,20 @@ class MdbListClient(private val apiKey: String = "", private val accessToken: St
 
         /** Access tokens last 30 days; refresh them when less than two days are left. */
         fun refreshIfNeeded() {
-            if (Settings.mdbListRefreshToken.isBlank()) return
-            if (Settings.mdbListExpiresAt - System.currentTimeMillis() > 2 * 86_400_000L) return
-            val (code, body) = post(
-                "oauth/token/",
-                "grant_type" to "refresh_token",
-                "refresh_token" to Settings.mdbListRefreshToken,
-                "client_id" to clientId,
-            )
-            if (code == 200 && body?.str("access_token") != null) save(body)
-            else if (code == 400 || code == 401) Settings.clearMdbListSession()
+            // One at a time: refresh tokens are single-use, a second refresh with the same one is rejected
+            synchronized(MdbListClient::class.java) {
+                val refreshToken = Settings.mdbListRefreshToken
+                if (refreshToken.isBlank()) return
+                if (Settings.mdbListExpiresAt - System.currentTimeMillis() > 2 * 86_400_000L) return
+                val (code, body) = post(
+                    "oauth/token/",
+                    "grant_type" to "refresh_token",
+                    "refresh_token" to refreshToken,
+                    "client_id" to clientId,
+                )
+                if (code == 200 && body?.str("access_token") != null) save(body)
+                else if ((code == 400 || code == 401) && Settings.mdbListRefreshToken == refreshToken) Settings.clearMdbListSession()
+            }
         }
 
         private fun save(body: JsonObject) {

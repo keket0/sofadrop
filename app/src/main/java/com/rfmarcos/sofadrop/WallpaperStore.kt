@@ -23,6 +23,8 @@ data class StoredWallpaper(
     val providerIds: List<Int> = emptyList(),
     /** Its pages on the streaming platforms, by [Platform.key] (only when the user has platforms). */
     val platformLinks: Map<String, String> = emptyMap(),
+    /** Another page on some of those platforms, tried when the app doesn't take the first (see [Platform.others]). */
+    val platformOthers: Map<String, String> = emptyMap(),
     /** Where its text is, when each wallpaper has its own place (see [Settings.POSITION_ROTATE]). */
     val position: String? = null,
     /** Its item on the user's Jellyfin server, when it is there and Jellyfin opens it (see [TitleApp.JELLYFIN]). */
@@ -79,19 +81,25 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
     val everServed: Boolean get() = servedFile.exists()
 
     /** Remember that Projectivy now has the current set's URIs (see [publish]). */
-    fun markServed() {
-        currentDir()?.let { servedFile.writeText(it.name) }
+    fun markServed(dir: File? = currentDir()) {
+        // Asked every few seconds: written only when it changes, and whole (publish reads it to keep that set)
+        val name = dir?.name ?: return
+        if (servedFile.takeIf { it.exists() }?.readText()?.trim() == name) return
+        val tmp = File(root, "served.tmp")
+        tmp.writeText(name)
+        tmp.renameTo(servedFile)
     }
 
     fun discard(generation: File) {
         generation.deleteRecursively()
     }
 
-    private fun currentDir(): File? =
+    /** The current set's folder: resolved once for [current] and its URIs, a new set may be published meanwhile. */
+    fun currentDir(): File? =
         currentFile.takeIf { it.exists() }?.readText()?.trim()?.let { File(root, it) }?.takeIf { it.isDirectory }
 
-    fun current(): List<StoredWallpaper> {
-        val dir = currentDir() ?: return emptyList()
+    fun current(dir: File? = currentDir()): List<StoredWallpaper> {
+        dir ?: return emptyList()
         val index = File(dir, INDEX).takeIf { it.exists() } ?: return emptyList()
         return try {
             json.decodeFromString<List<StoredWallpaper>>(index.readText()).filter { File(dir, it.file).exists() }
@@ -103,16 +111,16 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
     fun fileOf(wallpaper: StoredWallpaper): File? = currentDir()?.let { File(it, wallpaper.file) }
 
     /** content:// URI of a current wallpaper ([name] is one of its files), served by [WallpaperContentProvider]. */
-    fun uriOf(wallpaper: StoredWallpaper, name: String = wallpaper.file): Uri? {
-        val dir = currentDir() ?: return null
+    fun uriOf(wallpaper: StoredWallpaper, name: String = wallpaper.file, dir: File? = currentDir()): Uri? {
+        dir ?: return null
         return Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
             .appendPath(dir.name).appendPath(name).build()
     }
 
     /** The URI of [wallpaper]'s video, when it has one. */
-    fun videoUriOf(wallpaper: StoredWallpaper): Uri? {
+    fun videoUriOf(wallpaper: StoredWallpaper, dir: File? = currentDir()): Uri? {
         val video = wallpaper.video ?: return null
-        return currentDir()?.takeIf { File(it, video).isFile }?.let { uriOf(wallpaper, video) }
+        return dir?.takeIf { File(it, video).isFile }?.let { uriOf(wallpaper, video, it) }
     }
 
     companion object {

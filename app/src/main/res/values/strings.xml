@@ -1,6 +1,6 @@
 <resources>
     <string name="plugin_name">Sofadrop</string>
-    <string name="plugin_description">Wallpapers of movies and TV shows from TMDB, Trakt, Simkl or MDBList lists, generated on this device.</string>
+    <string name="plugin_description">Wallpapers of movies and TV shows from your TMDB, Trakt, Simkl, MDBList, Plex or Jellyfin lists, made on this device, and a screensaver with them.</string>
     <string name="plugin_uuid" translatable="false">9b151d4e-9849-4ae0-8495-3347b7c47150</string>
 
     <string name="projectivy_not_installed">Warning, this plugin requires Projectivy Launcher which does not seem to be installed.</string>
@@ -84,6 +84,11 @@
     <string name="list_trakt_recommended_shows">Trakt · Recommended shows for you</string>
     <string name="list_trakt_watchlist_movies">Trakt · Your watchlist (movies)</string>
     <string name="list_trakt_watchlist_shows">Trakt · Your watchlist (shows)</string>
+    <string name="list_trakt_watching">Trakt · Continue watching</string>
+    <string name="list_trakt_favorites_movies">Trakt · Your favourites (movies)</string>
+    <string name="list_trakt_favorites_shows">Trakt · Your favourites (shows)</string>
+    <string name="list_trakt_collection_movies">Trakt · Your collection (movies)</string>
+    <string name="list_trakt_collection_shows">Trakt · Your collection (shows)</string>
     <string name="list_mdblist">MDBList · %1$s</string>
     <string name="list_trakt_user">Trakt · %1$s</string>
 
@@ -279,6 +284,10 @@
     <string name="header_certification">Age rating</string>
     <string name="header_certification_short">age rating</string>
     <string name="header_certification_desc">The one for %1$s, the streaming country · not shown when it has none</string>
+    <string name="header_release_date">Release date</string>
+    <string name="header_release_date_short">release date</string>
+    <string name="header_release_date_desc">Upcoming titles and next episodes</string>
+    <string name="header_release_date_explain">When an upcoming title comes out in %1$s (in cinemas or streaming), or when a series\' next episode airs. It goes next to the year, or in its place when it\'s the same year.</string>
     <string name="header_ratings">Ratings</string>
     <string name="header_ratings_short">ratings</string>
     <string name="header_min_ratings">Ratings always shown</string>
@@ -306,7 +315,7 @@
     <string name="rating_popcorn_short">RT audience</string>
     <string name="streaming_summary_none">no streaming services</string>
     <string name="streaming_summary">streaming in %1$s</string>
-    <string name="lists_hub_description">How many titles to take from each list and in what order, then the lists themselves and, at the end, the filters. A title in several lists is only used once.</string>
+    <string name="lists_hub_description">The lists of each service, then the filters and, at the end, how many titles to take from each list and in what order. A title in several lists is only used once.</string>
     <string name="lists_summary">%1$s · %2$s</string>
     <string name="provider_summary_connected">%1$d selected · connected as %2$s</string>
     <string name="provider_summary_disconnected">%1$d selected · account not connected</string>
@@ -390,6 +399,8 @@
     <string name="trailer_fallback_none">None</string>
     <string name="trailer_fallback_then_any">And if there isn\'t one either, any trailer</string>
     <string name="trailer_fallback_none_desc">The wallpaper opens nothing</string>
+    <string name="trailer_app_title">Trailer player</string>
+    <string name="trailer_app_explanation">YouTube, or another YouTube app found on this TV. Not every app opens the video it\'s given: if yours opens on its home screen, go back to YouTube.</string>
     <string name="preview_label_pinned">Preview · %1$s · pinned</string>
     <string name="preview_pinned">Shown in the settings preview · change it in Wallpaper details</string>
     <string name="preview_pin_title">Preview title</string>
@@ -607,7 +618,7 @@
     <string name="wizard_import">Import settings from another TV</string>
     <string name="accounts_reconnect">Settings imported. Connect again what the other TV had: %1$s. Accounts aren\'t in the settings file.</string>
     <string name="wallpapers_title">Wallpapers</string>
-    <string name="main_more_header">General</string>
+    <string name="main_more_header">App</string>
     <string name="projectivy_description">Wallpapers for the home screen of Projectivy Launcher (wallpaper plugins are one of its Premium features), or of another launcher through a folder. The screensaver doesn\'t need either.</string>
     <string name="projectivy_status_in_use">In use in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy installed: choose Sofadrop</string>
@@ -623,6 +634,13 @@
     <string name="wallpaper_folder_explain">A copy of the wallpapers in the TV\'s %1$s folder, replaced with each update, for launchers that show the images of a folder, such as Monet Launcher: pick that folder in the launcher\'s wallpaper settings. There a wallpaper is only an image: it doesn\'t open its title.</string>
     <string name="wallpaper_folder_no_permission">Without storage access the wallpapers can\'t be saved in a folder</string>
     <string name="position_rotate">Rotating</string>
+    <string name="position_custom">Custom</string>
+    <string name="position_custom_desc">Place it yourself with the arrows</string>
+    <string name="position_custom_keys">%1$d%% across · %2$d%% down   ·   Arrows: move · OK: save · Back: cancel</string>
+    <string name="position_custom_saved">Position saved</string>
+    <string name="position_custom_added">Added to the rotation</string>
+    <string name="position_custom_add">Add a custom position</string>
+    <string name="position_custom_point">Custom · %1$d%% across · %2$d%% down</string>
     <string name="position_rotate_desc">Each wallpaper in a different position</string>
     <string name="position_rotation_title">Rotating positions</string>
     <string name="position_rotation_desc">Each wallpaper takes the next ticked position. In the screensaver, the clock moves to the opposite corner.</string>

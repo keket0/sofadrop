@@ -21,7 +21,9 @@ class WallpaperContentProvider : ContentProvider() {
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
         if (mode != "r") throw SecurityException("Read-only")
         val root = File(requireNotNull(context).filesDir, WallpaperStore.DIR)
-        val file = resolve(root, uri.path.orEmpty()) ?: throw FileNotFoundException(uri.toString())
+        val path = uri.path.orEmpty()
+        val file = resolve(root, path) ?: throw FileNotFoundException(uri.toString())
+        if (!path.startsWith("/${FocusedWallpapers.DIR}/")) lastShown = path
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
@@ -33,6 +35,12 @@ class WallpaperContentProvider : ContentProvider() {
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
 
     companion object {
+        /**
+         * Path of the set's wallpaper Projectivy opened last ("/gen-…/tv-1396.jpg"): it opens the one it's
+         * about to show, so this is the one on screen, or the one a focused card's wallpaper replaced.
+         */
+        @Volatile var lastShown: String? = null
+
         /** The wallpapers, and the videos of those whose synopsis scrolls. */
         private val SERVED = setOf("jpg", "mp4")
 

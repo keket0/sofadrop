@@ -18,11 +18,6 @@ class ListsFragment : BaseSettingsFragment() {
 
     override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
         val context = requireContext()
-        // How lists are read: they apply to every provider below
-        actions += choice(ID_COUNT, R.drawable.ic_act_count, R.string.setting_count_title, countDescription(context, profile),
-            Settings.COUNT_OPTIONS.map { countLabel(context, it) }, selected = countLabel(context, profile.titlesPerList))
-        actions += choice(ID_ORDER, R.drawable.ic_act_shuffle, R.string.setting_selection_title, orderLabel(profile.selectionMode),
-            ORDER_MODES.map(::orderLabel))
         actions += provider(ID_TMDB, R.drawable.badge_tmdb, "TMDB", ProviderListsFragment.summary(context, profile, SourceProvider.TMDB))
         actions += provider(ID_TRAKT, R.drawable.badge_trakt, getString(R.string.setting_trakt_title),
             ProviderListsFragment.summary(context, profile, SourceProvider.TRAKT))
@@ -35,6 +30,11 @@ class ListsFragment : BaseSettingsFragment() {
             ProviderListsFragment.summary(context, profile, SourceProvider.JELLYFIN))
         actions += action(ID_EXPLORE, R.drawable.ic_act_filter, getString(R.string.setting_explore_title),
             Filters.summary(context, profile)).hasNext(true).build()
+        // How lists are read, for every provider above: after them, which are what this screen is opened for
+        actions += choice(ID_COUNT, R.drawable.ic_act_count, R.string.setting_count_title, countDescription(context, profile),
+            Settings.COUNT_OPTIONS.map { countLabel(context, it) }, selected = countLabel(context, profile.titlesPerList))
+        actions += choice(ID_ORDER, R.drawable.ic_act_shuffle, R.string.setting_selection_title, orderLabel(profile.selectionMode),
+            ORDER_MODES.map(::orderLabel))
     }
 
     /** Provider row with the provider's own round badge instead of a generic icon in the grey circle. */

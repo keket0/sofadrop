@@ -67,8 +67,11 @@ class WallpaperProviderService : Service() {
             }
             // Away from the card: its wallpaper gives way to the set; otherwise card events change nothing
             if (event !is Event.TimeElapsed && !showingCard && servedSet) return emptyList()
+            val leftCard = showingCard
             showingCard = false
-            return wallpapers()
+            // Given the set, Projectivy would show any of it: back to the one the card's replaced, and the
+            // set again on the next TimeElapsed
+            return wallpapers().let { set -> if (leftCard) shownBefore(set, WallpaperContentProvider.lastShown) else set }
         }
 
         /**
@@ -88,7 +91,8 @@ class WallpaperProviderService : Service() {
         private fun wallpapers(): List<Wallpaper> {
             // Never block Projectivy: return what we have and refresh in the background if needed
             val store = WallpaperStore(this@WallpaperProviderService)
-            val current = store.current()
+            val dir = store.currentDir()
+            val current = store.current(dir)
             // Settings changes wait for the next scheduled update (or "Update now"): only an empty
             // or expired set is regenerated from here, as a safety net for the periodic job
             val stale = System.currentTimeMillis() - Profile.WALLPAPER.lastGeneration > Settings.refreshIntervalMillis
@@ -98,11 +102,11 @@ class WallpaperProviderService : Service() {
             GenerateWallpapersWorker.schedule(this@WallpaperProviderService)
 
             Log.i(TAG, "getWallpapers: ${current.size} wallpapers, stale=$stale, pendingChanges=${Profile.WALLPAPER.hasPendingChanges}")
-            store.markServed()
+            store.markServed(dir)
             val apps = ClickTargets.Apps(this@WallpaperProviderService)
             return (if (Profile.WALLPAPER.mixed) current.shuffled() else current).mapNotNull { wallpaper ->
-                val video = store.videoUriOf(wallpaper)
-                val uri = video ?: store.uriOf(wallpaper) ?: return@mapNotNull null
+                val video = store.videoUriOf(wallpaper, dir)
+                val uri = video ?: store.uriOf(wallpaper, dir = dir) ?: return@mapNotNull null
                 Wallpaper(
                     uri = uri.toString(),
                     type = if (video != null) WallpaperType.VIDEO else WallpaperType.IMAGE,
@@ -132,6 +136,10 @@ class WallpaperProviderService : Service() {
          */
         private const val CARD_WAIT_MILLIS = 15000L
         private const val ASKED_AT_EVERY_MILLIS = 60_000L
+
+        /** The wallpaper of [set] at [path] (see [WallpaperContentProvider.lastShown]) alone; the set when it's not there. */
+        internal fun shownBefore(set: List<Wallpaper>, path: String?): List<Wallpaper> =
+            path?.let { set.filter { wallpaper -> wallpaper.uri.endsWith(path) } }.orEmpty().ifEmpty { set }
 
         /**
          * What Projectivy opens from [wallpaper] (see [ClickTargets]); applied when served, without

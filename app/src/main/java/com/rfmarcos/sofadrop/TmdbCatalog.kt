@@ -33,6 +33,8 @@ data class WallpaperInfo(
     val sourceProvider: SourceProvider? = null,
     /** Age certification of the streaming country ("16", "TV-MA"), see [Certifications]. */
     val certification: String? = null,
+    /** Upcoming release or next episode, "yyyy-MM-dd" (see [TmdbCatalog.upcomingDate]). */
+    val releaseDate: String? = null,
     /** Main cast, most important first (see [TmdbCatalog.castNames]); empty unless shown. */
     val cast: List<CastMember> = emptyList(),
     /** YouTube video opened from the wallpaper (see [TmdbCatalog.trailerKey]). */
@@ -311,6 +313,7 @@ class TmdbCatalog(
             providerIds = providers.mapNotNull { it.int("provider_id") },
             imdbId = item.str("imdb_id") ?: item.obj("external_ids")?.str("imdb_id"),
             certification = Certifications.of(type, item, region)?.let { Certifications.label(region, it) },
+            releaseDate = upcomingDate(type, item, region, today),
             cast = if (showCast) cast(ref) else emptyList(),
             trailerKey = trailerKey(item.obj("videos"), trailerLanguages(item), anyTrailer = trailerFallback != Settings.TRAILER_NONE),
         )
@@ -442,6 +445,24 @@ class TmdbCatalog(
             return result
         }
         private val EXCLUDED_KEYWORDS = setOf("adult")
+
+        /**
+         * When the title comes out in [country], "yyyy-MM-dd", if that's [today] or later (a past date says
+         * nothing the year doesn't): a movie's first cinema release there (types 2, 3), else its digital one
+         * (type 4), so re-releases don't count; a series' next episode, the premiere for a new one. Never the
+         * primary date or another country's: those were a week or more off for half the upcoming movies.
+         */
+        fun upcomingDate(type: MediaType, item: JsonObject, country: String, today: String): String? {
+            val date = if (type == MediaType.TV) item.obj("next_episode_to_air")?.str("air_date") else {
+                val releases = item.obj("release_dates")?.objects("results")?.firstOrNull { it.str("iso_3166_1") == country }
+                    ?.objects("release_dates").orEmpty()
+                fun first(types: Set<Int>) = releases.filter { it.int("type") in types }.mapNotNull { it.str("release_date")?.take(10) }.minOrNull()
+                first(setOf(2, 3))?.takeIf { it >= today } ?: first(setOf(4))
+            }
+            return date?.take(10)?.takeIf { DATE.matches(it) && it >= today }
+        }
+        private val DATE = Regex("\\d{4}-\\d{2}-\\d{2}")
+
         /** Names kept for the cast row; the renderer draws the ones that fit on its line. */
         private const val MAX_CAST = 4
 

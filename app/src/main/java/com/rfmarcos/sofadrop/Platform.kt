@@ -5,16 +5,20 @@ import android.content.pm.PackageManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 /**
  * Streaming services a wallpaper can open its title on (the ones the user picks, in their order: see
  * [Profile.clickPlatforms]). TMDB says which ones have it in the streaming country (by provider id),
- * Wikidata gives the title's id on each one (when someone added it: TMDB and JustWatch don't share them)
- * and the service's app opens that page.
+ * [JustWatch] gives the title's page on each one in that country (Wikidata when it hasn't: someone may
+ * have added the title's id there) and the service's app opens that page.
  */
 enum class Platform(
     val key: String,
@@ -22,8 +26,8 @@ enum class Platform(
     /** TMDB watch provider ids, with their ad tiers and older ids (not channels inside another service). */
     private val providerIds: Set<Int>,
     /** Android TV app first. */
-    private val packages: List<String>,
-    /** Wikidata properties of its ids, best first. */
+    internal val packages: List<String>,
+    /** Wikidata properties of its ids, best first; none: its pages only come from [JustWatch]. */
     val ids: List<WikidataId>,
     /** Countries where TMDB lists it, for a service of a few; null: most of the world. */
     private val countries: Set<String>? = null,
@@ -49,6 +53,12 @@ enum class Platform(
             WikidataId("P9586", series = false) { "https://tv.apple.com/movie/$it" },
             WikidataId("P9751", movies = false) { "https://tv.apple.com/show/$it" },
         )),
+    // com.cbs.ott: US TV app; com.cbs.ca: the international one
+    PARAMOUNT("paramount", "Paramount+", setOf(531, 2303, 2304, 2616), listOf("com.cbs.ott", "com.cbs.ca", "com.cbs.app"), emptyList(),
+        setOf("AR", "AT", "AU", "BO", "BR", "CA", "CH", "CL", "CO", "CR", "DE", "DO", "EC", "FR", "GB", "GT", "HN", "IE", "IT",
+            "MX", "NI", "PA", "PE", "PY", "SV", "US", "UY", "VE")),
+    SKYSHOWTIME("skyshowtime", "SkyShowtime", setOf(1773), listOf("com.skyshowtime.skyshowtime.google"), emptyList(),
+        setOf("AD", "AL", "BA", "BG", "CZ", "DK", "ES", "FI", "HR", "HU", "MK", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK")),
     MUBI("mubi", "MUBI", setOf(11), listOf("com.mubi"),
         listOf(WikidataId("P7299") { "https://mubi.com/films/$it" })),
     CRUNCHYROLL("crunchyroll", "Crunchyroll", setOf(283), listOf("com.crunchyroll.crunchyroid"),
@@ -74,7 +84,18 @@ enum class Platform(
     SVT("svt", "SVT Play", setOf(493), listOf("se.svt.android.svtplay"),
         listOf(WikidataId("P6817") { "https://www.svtplay.se/$it" }), setOf("SE")),
     YLE("yle", "Yle Areena", setOf(323), listOf("com.yle.webtv"),
-        listOf(WikidataId("P3414") { "https://areena.yle.fi/$it" }), setOf("FI"));
+        listOf(WikidataId("P3414") { "https://areena.yle.fi/$it" }), setOf("FI")),
+    VIDEOLAND("videoland", "Videoland", setOf(72), listOf("nl.rtl.videoland.v2"), emptyList(), setOf("NL")),
+    VIAPLAY("viaplay", "Viaplay", setOf(76), listOf("com.viaplay.android"), emptyList(), setOf("DK", "FI", "IS", "NL", "NO", "SE")),
+    RTL_PLUS("rtlplus", "RTL+", setOf(2750), listOf("de.rtli.tvnow"), emptyList(), setOf("AT", "DE")),
+    IPLAYER("iplayer", "BBC iPlayer", setOf(38), listOf("bbc.iplayer.android"), emptyList(), setOf("GB")),
+    PEACOCK("peacock", "Peacock", setOf(386, 387), listOf("com.peacocktv.peacockandroid"), emptyList(), setOf("US")),
+    STARZ("starz", "Starz", setOf(43), listOf("com.bydeluxe.d3.android.program.starz"), emptyList(), setOf("US")),
+    NOW("now", "NOW", setOf(39, 591), listOf("com.bskyb.nowtv.beta"), emptyList(), setOf("GB", "IE")),
+    CRAVE("crave", "Crave", setOf(230), listOf("ca.bellmedia.cravetv"), emptyList(), setOf("CA")),
+    STAN("stan", "Stan", setOf(21), listOf("au.com.stan.and"), emptyList(), setOf("AU")),
+    OSN("osn", "OSN+", setOf(629), listOf("com.osn.go"), emptyList(), setOf("AE", "BH", "EG", "IQ", "JO", "KW", "LB", "OM", "QA", "SA")),
+    VIKI("viki", "Rakuten Viki", setOf(344), listOf("com.viki.android"), emptyList());
 
     /** A Wikidata property holding the title's id on a platform, and the page of an id. */
     class WikidataId(val property: String, val movies: Boolean = true, val series: Boolean = true, val url: (String) -> String)
@@ -101,17 +122,42 @@ enum class Platform(
 
         fun ofProvider(providerId: Int): Platform? = entries.firstOrNull { providerId in it.providerIds }
 
+        /**
+         * A title's pages from both sources: [justWatch]'s (of the streaming country), except a playback or
+         * episode link (series on Apple TV, HBO Max, Crunchyroll) where [wikidata] has the title's own page.
+         */
+        fun merged(wikidata: Map<String, String>, justWatch: Map<String, String>): Map<String, String> =
+            wikidata + justWatch.filterNot { (key, url) -> key in wikidata && PLAYBACK.containsMatchIn(url) }
+
+        /**
+         * The other page of the platforms both sources have, when it's another kind of link: an app may take
+         * one and not the other ("app.primevideo.com/detail" and "watch.amazon.de/detail").
+         */
+        fun others(wikidata: Map<String, String>, justWatch: Map<String, String>): Map<String, String> {
+            val first = merged(wikidata, justWatch)
+            return wikidata.keys.intersect(justWatch.keys).mapNotNull { key ->
+                (if (first[key] == wikidata[key]) justWatch[key] else wikidata[key])?.takeIf { it != first[key] }?.let { key to it }
+            }.toMap()
+        }
+
+        private val PLAYBACK = Regex("/(episode|watch)/")
+
         /** Pages of a title on every platform Wikidata knows it on, by [key]. */
         fun links(type: MediaType, ids: Map<String, String>): Map<String, String> =
             entries.mapNotNull { platform -> platform.link(type, ids)?.let { platform.key to it } }.toMap()
 
         /**
          * The platforms of [order] (the user's, best first) that have the title in the streaming country
-         * ([providerIds]), a page for it in [links] and are [installed], with that page.
+         * ([providerIds]), a page for it in [links] and are [installed], with that page (and then its
+         * page in [others], for an app that doesn't take the first).
          */
-        fun pick(order: List<Platform>, providerIds: List<Int>, links: Map<String, String>, installed: (Platform) -> Boolean): List<Pair<Platform, String>> {
+        fun pick(
+            order: List<Platform>, providerIds: List<Int>, links: Map<String, String>, others: Map<String, String> = emptyMap(),
+            installed: (Platform) -> Boolean,
+        ): List<Pair<Platform, String>> {
             val available = providerIds.mapNotNull(::ofProvider).toSet()
-            return order.filter { it in available && installed(it) }.mapNotNull { platform -> links[platform.key]?.let { platform to it } }
+            return order.filter { it in available && installed(it) }
+                .flatMap { platform -> listOfNotNull(links[platform.key], others[platform.key]).map { platform to it } }
         }
     }
 }
@@ -163,4 +209,89 @@ object Wikidata {
     }
 
     private const val BATCH = 100
+}
+
+/**
+ * Pages of titles on the streaming platforms of a country, from JustWatch (where TMDB's "where to watch"
+ * comes from, so its package ids are TMDB's provider ids). It's the API of its website, not a public one:
+ * Wikidata stays behind it. It can't look a title up by its TMDB id, so each one is searched by name and
+ * picked by its TMDB id; several searches go in one request.
+ */
+object JustWatch {
+    private const val URL = "https://apis.justwatch.com/graphql"
+    private val USER_AGENT = "Sofadrop/${BuildConfig.VERSION_NAME} (https://github.com/rfmarcos/sofadrop)"
+
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
+        .build()
+
+    /** No new batch after this long: a slow or unreachable site mustn't hold the generation for minutes. */
+    private const val BUDGET_MILLIS = 90_000L
+
+    /**
+     * Pages of [titles] (by their names) in [country], by [Platform.key]; only the titles it has on a platform.
+     * A batch that fails (a timeout, a 429) doesn't lose the others; it throws only when every batch failed.
+     * Titles left out of time keep their Wikidata pages.
+     */
+    fun links(titles: Map<TitleRef, String>, country: String): Map<TitleRef, Map<String, String>> {
+        // The country goes into the query as it is
+        if (!country.matches(Regex("[A-Z]{2}"))) return emptyMap()
+        val deadline = System.currentTimeMillis() + BUDGET_MILLIS
+        val batches = titles.entries.chunked(BATCH).map { batch ->
+            if (System.currentTimeMillis() > deadline) Result.failure(java.io.IOException("JustWatch: out of time"))
+            else runCatching { fetch(batch.map { it.key }, batch.map { it.value }, country) }
+        }
+        if (batches.isNotEmpty() && batches.all { it.isFailure }) throw batches.first().exceptionOrNull()!!
+        return batches.flatMap { it.getOrNull().orEmpty().toList() }.toMap()
+    }
+
+    private fun fetch(refs: List<TitleRef>, names: List<String>, country: String): Map<TitleRef, Map<String, String>> {
+        val body = JsonObject(mapOf("query" to JsonPrimitive(query(names, country)))).toString()
+        val request = Request.Builder().url(URL).post(body.toRequestBody("application/json".toMediaType()))
+            .header("User-Agent", USER_AGENT).build()
+        val text = http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw java.io.IOException("JustWatch: HTTP ${response.code}")
+            response.body?.string().orEmpty()
+        }
+        return parse(text, refs)
+    }
+
+    /** One search per name ("t0", "t1"…): its first results, with their TMDB id and their streaming offers in [country]. */
+    internal fun query(names: List<String>, country: String): String = names.withIndex().joinToString(" ", "{ ", " }") { (i, name) ->
+        // A JSON string is a valid GraphQL string
+        "t$i: popularTitles(country: $country, first: 5, filter: {searchQuery: ${JsonPrimitive(name)}}) " +
+            "{ edges { node { objectType content(country: $country, language: en) { externalIds { tmdbId } } " +
+            // Not rent or buy: a third of the response, and never a store's page
+            "offers(country: $country, platform: WEB, filter: {monetizationTypes: [FLATRATE, FREE, ADS]}) { package { packageId } standardWebURL } } } }"
+    }
+
+    /**
+     * Pages of [refs] (in the order of [query]'s names) in a response, by [Platform.key]. A query JustWatch
+     * rejects (a country it doesn't cover, a field it renamed) comes back without data: that throws, to be logged.
+     */
+    internal fun parse(text: String, refs: List<TitleRef>): Map<TitleRef, Map<String, String>> {
+        val response = Json.parseToJsonElement(text) as? JsonObject
+        val data = response?.obj("data") ?: throw java.io.IOException(
+            "JustWatch: " + (response?.objects("errors")?.firstOrNull()?.str("message") ?: "no data"))
+        return refs.withIndex().mapNotNull { (i, ref) ->
+            val title = data.obj("t$i")?.objects("edges").orEmpty().mapNotNull { it.obj("node") }.firstOrNull { node ->
+                node.str("objectType") == (if (ref.type == MediaType.TV) "SHOW" else "MOVIE") &&
+                    node.obj("content")?.obj("externalIds")?.str("tmdbId") == ref.tmdbId.toString()
+            } ?: return@mapNotNull null
+            val links = linkedMapOf<String, String>()
+            for (offer in title.objects("offers")) {
+                val platform = offer.obj("package")?.int("packageId")?.let(Platform::ofProvider) ?: continue
+                offer.str("standardWebURL")?.let { links.putIfAbsent(platform.key, unwrapped(it)) }
+            }
+            if (links.isEmpty()) null else ref to links
+        }.toMap()
+    }
+
+    /** An affiliate redirect (crunchyroll.pxf.io/…?u=<page>) is the page it leads to: no app takes the redirect's host. */
+    internal fun unwrapped(url: String): String =
+        url.toHttpUrlOrNull()?.takeIf { it.host.endsWith(".pxf.io") }?.queryParameter("u") ?: url
+
+    private const val BATCH = 20
 }

@@ -81,4 +81,16 @@ class TraktListsTest {
         assertEquals("A24", error.name)
         assertEquals("ListUnavailableException: Trakt list \"A24\" was deleted or is private (HTTP 403)", GenerationLog.describe(error))
     }
+
+    @Test
+    fun continueWatching() {
+        // sync/history/episodes: two episodes of one show; sync/playback/movies: a movie paused in between
+        val history = Json.parseToJsonElement(
+            """[{"id":1,"watched_at":"2026-11-20T21:00:00.000Z","type":"episode","episode":{"season":1,"number":2},"show":{"title":"Severance","ids":{"trakt":1,"tmdb":95396}}},
+               {"id":2,"watched_at":"2026-11-18T21:00:00.000Z","type":"episode","episode":{"season":1,"number":1},"show":{"title":"Severance","ids":{"trakt":1,"tmdb":95396}}},
+               {"id":3,"watched_at":"2026-11-10T21:00:00.000Z","type":"episode","show":{"title":"No TMDB","ids":{"trakt":2}}}]""") as JsonArray
+        val playback = Json.parseToJsonElement(
+            """[{"progress":40.5,"paused_at":"2026-11-19T20:00:00.000Z","type":"movie","movie":{"title":"Inception","ids":{"trakt":3,"tmdb":27205}}}]""") as JsonArray
+        assertEquals(listOf(TitleRef(MediaType.TV, 95396), TitleRef(MediaType.MOVIE, 27205)), TraktClient.parseWatching(history, playback))
+    }
 }

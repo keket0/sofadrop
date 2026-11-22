@@ -195,14 +195,16 @@ class Profile private constructor(val id: String, private val prefix: String) {
         get() = preferences.getInt(look(KEY_BOTTOM_SHADE), Settings.BOTTOM_SHADE_NORMAL).takeIf { it in Settings.BOTTOM_SHADES } ?: Settings.BOTTOM_SHADE_NORMAL
         set(value) = preferences.edit { putInt(look(KEY_BOTTOM_SHADE), value) }
 
-    /** See [Settings.POSITIONS]; Projectivy's rows may cover the bottom ones, depending on the user's layout. */
+    /** See [Settings.POSITIONS] (or a custom one); Projectivy's rows may cover the bottom ones, depending on the user's layout. */
     var position: String
-        get() = preferences.getString(look(KEY_POSITION), null)?.takeIf { it in Settings.POSITIONS || it == Settings.POSITION_ROTATE } ?: Settings.POSITION_TOP_LEFT
+        get() = preferences.getString(look(KEY_POSITION), null)?.takeIf { it in Settings.POSITIONS || it == Settings.POSITION_ROTATE || Settings.customPoint(it) != null }
+            ?: Settings.POSITION_TOP_LEFT
         set(value) = preferences.edit { putString(look(KEY_POSITION), value) }
 
-    /** Where [Settings.POSITION_ROTATE] takes the text: at least two of [Settings.POSITIONS]; by default not under the launcher's rows. */
+    /** Where [Settings.POSITION_ROTATE] takes the text: at least two of [Settings.POSITIONS] or custom ones; by default not under the launcher's rows. */
     var rotation: List<String>
-        get() = preferences.getString(look(KEY_ROTATION), null)?.split(',').orEmpty().filter { it in Settings.POSITIONS }
+        get() = preferences.getString(look(KEY_ROTATION), null)?.split(',').orEmpty()
+            .filter { it in Settings.POSITIONS || Settings.customPoint(it) != null }
             .takeIf { it.size >= 2 } ?: Settings.POSITIONS.filter { isScreensaver || !it.startsWith("bottom") }
         set(value) = preferences.edit { putString(look(KEY_ROTATION), value.joinToString(",")) }
 
@@ -314,6 +316,11 @@ class Profile private constructor(val id: String, private val prefix: String) {
 
     fun showsInHeader(item: String) = item !in headerHidden
 
+    /** An upcoming release or next episode date in the year's place (see [TmdbCatalog.upcomingDate]); off unlike the other header items. */
+    var showReleaseDate: Boolean
+        get() = preferences.getBoolean(look(KEY_RELEASE_DATE), false)
+        set(value) = preferences.edit { putBoolean(look(KEY_RELEASE_DATE), value) }
+
     /** [Settings.HEADER_BLOCKS] in the user's order (blocks added in later versions go last). */
     var headerOrder: List<String>
         get() {
@@ -409,7 +416,7 @@ class Profile private constructor(val id: String, private val prefix: String) {
                 "dups".takeIf { !skipDuplicates }, "logo:$logoMode".takeIf { logoMode != LOGO_TEXT }, "synopsis:$synopsisMode".takeIf { synopsisMode != SYNOPSIS_HIDE },
                 "titlelang:$titleLanguage".takeIf { titleLanguage != LANGUAGE_AUTO }, "synopsislang:$synopsisLanguage".takeIf { synopsisLanguage != LANGUAGE_AUTO },
                 "ratings:$ratingSourcesKey:$mdbListAvailable".takeIf { ratingSourcesKey != RatingSource.TMDB.key },
-                "header:${headerHidden.sorted()}".takeIf { headerHidden.isNotEmpty() },
+                "header:${headerHidden.sorted()}".takeIf { headerHidden.isNotEmpty() }, "releasedate".takeIf { showReleaseDate },
                 "ratingage:$maxRatingAge".takeIf { maxRatingAge > 0 }, "minrating:$minRating".takeIf { minRating > 0 },
                 "order:${headerOrder.joinToString(",")}".takeIf { headerOrder != HEADER_BLOCKS },
                 "minratings:$minRatings".takeIf { minRatings != 2 }, "cast".takeIf { showCast }, "castphotos:$castPhotos".takeIf { showCast && castPhotos != CAST_PHOTOS_GROUPED }, "style:$style".takeIf { style != STYLE_FULL },
@@ -478,6 +485,7 @@ class Profile private constructor(val id: String, private val prefix: String) {
         private const val KEY_RATINGS = "rating_sources"
         private const val KEY_HEADER_HIDDEN = "header_hidden"
         private const val KEY_HEADER_ORDER = "header_order"
+        private const val KEY_RELEASE_DATE = "show_release_date"
         private const val KEY_MIN_RATINGS = "min_ratings"
 
         private const val KEY_CLICK_PLATFORMS = "click_platforms"
@@ -503,7 +511,7 @@ class Profile private constructor(val id: String, private val prefix: String) {
             KEY_GENRE_FILTER, KEY_SKIP_DUPLICATES, KEY_SELECTION, KEY_WATCHED, KEY_LIST_FILTERS)
         private val LOOK_KEYS = listOf(KEY_WIDTH, KEY_STYLE, KEY_POSITION, KEY_ROTATION, KEY_LOGO_MODE, KEY_LOGO_FALLBACK, KEY_REQUIRE_LOGO, KEY_SYNOPSIS_MODE,
             KEY_TITLE_LANGUAGE, KEY_SYNOPSIS_LANGUAGE, KEY_PROVIDERS, KEY_OVERVIEW_LINES, KEY_CAST, KEY_CAST_PHOTOS, KEY_CAST_PHOTO_MODE,
-            KEY_SOURCE_FALLBACK, KEY_SOURCE_INLINE, KEY_SHOW_SOURCE, KEY_RATINGS, KEY_HEADER_HIDDEN, KEY_HEADER_ORDER, KEY_MIN_RATINGS,
+            KEY_SOURCE_FALLBACK, KEY_SOURCE_INLINE, KEY_SHOW_SOURCE, KEY_RATINGS, KEY_HEADER_HIDDEN, KEY_HEADER_ORDER, KEY_RELEASE_DATE, KEY_MIN_RATINGS,
             KEY_SHADE, KEY_BOTTOM_SHADE, KEY_LATIN_ORIGINALS)
     }
 }

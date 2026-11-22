@@ -57,6 +57,11 @@ object Sources {
         ListSource("trakt:recommended_shows", SourceProvider.TRAKT, R.string.list_trakt_recommended_shows, needsTraktAccount = true),
         ListSource("trakt:watchlist_movies", SourceProvider.TRAKT, R.string.list_trakt_watchlist_movies, needsTraktAccount = true),
         ListSource("trakt:watchlist_shows", SourceProvider.TRAKT, R.string.list_trakt_watchlist_shows, needsTraktAccount = true),
+        ListSource(TraktClient.WATCHING, SourceProvider.TRAKT, R.string.list_trakt_watching, needsTraktAccount = true),
+        ListSource("trakt:favorites_movies", SourceProvider.TRAKT, R.string.list_trakt_favorites_movies, needsTraktAccount = true),
+        ListSource("trakt:favorites_shows", SourceProvider.TRAKT, R.string.list_trakt_favorites_shows, needsTraktAccount = true),
+        ListSource("trakt:collection_movies", SourceProvider.TRAKT, R.string.list_trakt_collection_movies, needsTraktAccount = true),
+        ListSource("trakt:collection_shows", SourceProvider.TRAKT, R.string.list_trakt_collection_shows, needsTraktAccount = true),
     )
 
     val SIMKL = listOf(
