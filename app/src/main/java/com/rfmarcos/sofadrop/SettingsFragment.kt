@@ -50,12 +50,13 @@ class SettingsFragment : PreviewSettingsFragment() {
 
         if (Updater.available) actions += updateAction()
         else if (SupportPrompt.shouldShow(updateAvailable = false)) {
-            if (BuildConfig.PLAY && supporter == null) supporter = createSupporter(context, ::showSupporter)
-            if (!supportCounted) {
-                supportCounted = true
-                Settings.supportShownCount += 1
+            if (BuildConfig.PLAY) {
+                // Confirm with Google Play before showing, so an existing Supporter on another TV never sees a flash
+                if (supporter == null) supporter = createSupporter(context, ::showSupporter)
+            } else {
+                countSupportShown()
+                actions += supportAction()
             }
-            actions += supportAction()
         }
         // "Update now" also carries the status, so there is a single place to look
         actions += action(ID_GENERATE, R.drawable.ic_act_refresh, getString(R.string.action_generate_now), topStatus())
@@ -117,10 +118,8 @@ class SettingsFragment : PreviewSettingsFragment() {
         Updater.installListener = installListener
         Updater.unheardFailure?.let { Updater.unheardFailure = null; installListener.failed(it) }
         background({ Updater.check() }) { showUpdate() }
-        if (findActionById(ID_SUPPORT_PROMPT) != null) {
-            if (Settings.supportDismissed || (BuildConfig.PLAY && Settings.supporterBought)) removeSupportPrompt()
-            else supporter?.refresh()
-        }
+        if (Settings.supportDismissed || (BuildConfig.PLAY && Settings.supporterBought)) removeSupportPrompt()
+        else if (BuildConfig.PLAY && supporter != null && !Updater.available) supporter?.refresh()
     }
 
     override fun onDestroy() {
@@ -238,6 +237,12 @@ class SettingsFragment : PreviewSettingsFragment() {
             )).build()
     }
 
+    private fun countSupportShown() {
+        if (supportCounted) return
+        supportCounted = true
+        Settings.supportShownCount += 1
+    }
+
     private fun removeSupportPrompt() {
         if (findActionById(ID_SUPPORT_PROMPT) == null) return
         actions = actions.filterNot { it.id == ID_SUPPORT_PROMPT }
@@ -250,8 +255,15 @@ class SettingsFragment : PreviewSettingsFragment() {
         }
         Supporter.remember(state)
         if (!isAdded) return
-        if (state == Supporter.State.BOUGHT || state == Supporter.State.PENDING) {
-            removeSupportPrompt()
+        when (state) {
+            Supporter.State.NOT_BOUGHT -> {
+                if (findActionById(ID_SUPPORT_PROMPT) == null && !Updater.available && SupportPrompt.shouldShow(updateAvailable = false)) {
+                    countSupportShown()
+                    actions = actions.toMutableList().apply { add(0, supportAction()) }
+                }
+            }
+            Supporter.State.BOUGHT, Supporter.State.PENDING -> removeSupportPrompt()
+            Supporter.State.UNAVAILABLE -> Unit
         }
     }
 
