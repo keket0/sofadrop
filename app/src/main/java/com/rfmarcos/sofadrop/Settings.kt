@@ -175,9 +175,9 @@ object Settings {
      * (an app tile, a YouTube clip, an unmatched card); idle mode still rotates the set (issue #38).
      */
     const val FOCUSED_FALLBACK_SET = "set"
-    const val FOCUSED_FALLBACK_DARK = "dark"
     const val FOCUSED_FALLBACK_DIMMED = "dimmed"
-    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_DIMMED)
+    const val FOCUSED_FALLBACK_DARK = "dark"
+    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_DARK)
 
     /** Which non-media cards trigger [focusedFallback]: other channels only (default, apps keep rotating the set) or apps + other channels. */
     const val FOCUSED_SCOPE_ALL = "all"

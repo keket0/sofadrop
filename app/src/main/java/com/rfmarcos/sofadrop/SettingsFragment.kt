@@ -153,11 +153,14 @@ class SettingsFragment : PreviewSettingsFragment() {
             }
             // What's new first, when the release says
             ID_APP_UPDATE -> if (hasNotes()) open(UpdateFragment()) else installUpdate()
-            ID_SUPPORT_PROMPT -> if (!BuildConfig.PLAY && BuildConfig.SUPPORT_URL.isNotBlank()) {
-                LinkQrDialog.newInstance(
-                    BuildConfig.SUPPORT_URL, R.string.about_support, R.string.about_support_scan,
-                    secondaryButton = R.string.support_prompt_hide, resultKey = RESULT_HIDE_SUPPORT,
-                ).show(parentFragmentManager, "support")
+            ID_SUPPORT_PROMPT -> {
+                if (BuildConfig.PLAY) supporter?.buy(requireActivity())
+                else if (BuildConfig.SUPPORT_URL.isNotBlank()) {
+                    LinkQrDialog.newInstance(
+                        BuildConfig.SUPPORT_URL, R.string.about_support, R.string.about_support_scan,
+                        secondaryButton = R.string.support_prompt_hide, resultKey = RESULT_HIDE_SUPPORT,
+                    ).show(parentFragmentManager, "support")
+                }
             }
             ID_LISTS -> open(ListsFragment())
             ID_DETAILS -> open(DetailsFragment())
@@ -180,10 +183,6 @@ class SettingsFragment : PreviewSettingsFragment() {
                 Settings.refreshHours = Settings.REFRESH_OPTIONS[index]
                 updateDescription(ID_REFRESH, refreshLabel(Settings.refreshHours))
                 refreshStatus()
-            }
-            ID_SUPPORT_PROMPT -> {
-                if (index == 0) supporter?.buy(requireActivity())
-                else hideSupportPrompt()
             }
         }
         return true
@@ -223,18 +222,9 @@ class SettingsFragment : PreviewSettingsFragment() {
         action(ID_APP_UPDATE, R.drawable.ic_act_refresh, getString(R.string.update_title), updateText()).multilineDescription(true).build()
 
     private fun supportAction(): GuidedAction {
-        val context = requireContext()
         val description = getString(if (BuildConfig.PLAY) R.string.supporter_desc else R.string.about_support_desc)
-        val builder = action(ID_SUPPORT_PROMPT, R.drawable.ic_act_heart, getString(R.string.about_support), description)
-            .multilineDescription(true)
-        // Play launches Play Billing's own sheet, so offer "Hide from here" in sub-actions; GitHub opens the QR with both buttons
-        if (BuildConfig.PLAY) {
-            builder.subActions(listOf(
-                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE).title(getString(R.string.support_prompt_supporter)).build(),
-                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE + 1).title(getString(R.string.support_prompt_hide)).build(),
-            ))
-        }
-        return builder.build()
+        return action(ID_SUPPORT_PROMPT, R.drawable.ic_act_heart, getString(R.string.about_support), description)
+            .multilineDescription(true).build()
     }
 
     private fun hideSupportPrompt() {
