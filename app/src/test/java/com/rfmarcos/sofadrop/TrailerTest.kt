@@ -54,11 +54,23 @@ class TrailerTest {
         assertEquals("none", TmdbCatalog.trailerKey(unofficial, ES_EN))
 
         val teasers = videos(
-            video("teaser-old", type = "Teaser", published = "2024-01-01T00:00:00.000Z"),
+            video("teaser-old", type = "Teaser", language = "de", published = "2024-01-01T00:00:00.000Z"),
             video("teaser-new", type = "Teaser", language = "fr", official = false, published = "2024-02-01T00:00:00.000Z"),
             video("featurette", type = "Featurette", published = "2024-09-01T00:00:00.000Z"),
         )
         assertEquals("teaser-new", TmdbCatalog.trailerKey(teasers, ES_EN))
+
+        // Unofficial trailer / teaser in a preferred language beats a newer one in an unrelated language
+        val preferredOverOther = videos(
+            video("th-new", language = "th", official = false, published = "2024-09-01T00:00:00.000Z"),
+            video("en-fan", language = "en", official = false, published = "2024-01-01T00:00:00.000Z"),
+        )
+        assertEquals("en-fan", TmdbCatalog.trailerKey(preferredOverOther, ES_EN))
+        val preferredTeaser = videos(
+            video("fr-teaser", type = "Teaser", language = "fr", published = "2024-09-01T00:00:00.000Z"),
+            video("es-teaser", type = "Teaser", language = "es", published = "2024-01-01T00:00:00.000Z"),
+        )
+        assertEquals("es-teaser", TmdbCatalog.trailerKey(preferredTeaser, ES_EN))
     }
 
     @Test

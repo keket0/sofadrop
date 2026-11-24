@@ -15,6 +15,7 @@ import android.view.Surface
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.min
@@ -91,10 +92,10 @@ object ScrollVideo {
             val input = codec.createInputSurface()
             codec.start()
             var drainError: Throwable? = null
-            @Volatile var abort = false
+            val abort = AtomicBoolean(false)
             val drain = Thread {
                 try {
-                    drain(codec, muxer) { abort }
+                    drain(codec, muxer) { abort.get() }
                 } catch (e: Throwable) {
                     drainError = e
                 }
@@ -107,7 +108,7 @@ object ScrollVideo {
                 codec.signalEndOfInputStream()
                 eosSignalled = true
             } finally {
-                if (!eosSignalled) abort = true
+                if (!eosSignalled) abort.set(true)
                 drain.join(DRAIN_TIMEOUT_MILLIS)
                 input.release()
             }

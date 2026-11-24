@@ -60,9 +60,9 @@ enum class Platform(
     SKYSHOWTIME("skyshowtime", "SkyShowtime", setOf(1773), listOf("com.skyshowtime.skyshowtime.google"), emptyList(),
         setOf("AD", "AL", "BA", "BG", "CZ", "DK", "ES", "FI", "HR", "HU", "MK", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK")),
     MUBI("mubi", "MUBI", setOf(11), listOf("com.mubi"),
-        listOf(WikidataId("P7299") { "https://mubi.com/films/$it" })),
+        listOf(WikidataId("P7299", series = false) { "https://mubi.com/films/$it" })),
     CRUNCHYROLL("crunchyroll", "Crunchyroll", setOf(283), listOf("com.crunchyroll.crunchyroid"),
-        listOf(WikidataId("P11330") { "https://www.crunchyroll.com/series/$it" })),
+        listOf(WikidataId("P11330", movies = false) { "https://www.crunchyroll.com/series/$it" })),
     HULU("hulu", "Hulu", setOf(15), listOf("com.hulu.livingroomplus", "com.hulu.plus"),
         listOf(
             WikidataId("P6466", series = false) { "https://www.hulu.com/movie/$it" },
@@ -289,9 +289,10 @@ object JustWatch {
         }.toMap()
     }
 
-    /** An affiliate redirect (crunchyroll.pxf.io/…?u=<page>) is the page it leads to: no app takes the redirect's host. */
+    /** An affiliate redirect (*.pxf.io, *.sjv.io, *.evyy.net with ?u=<page>) is the page it leads to: no app takes the redirect's host. */
     internal fun unwrapped(url: String): String =
-        url.toHttpUrlOrNull()?.takeIf { it.host.endsWith(".pxf.io") }?.queryParameter("u") ?: url
+        url.toHttpUrlOrNull()?.takeIf { AFFILIATE_HOSTS.any(it.host::endsWith) }?.queryParameter("u") ?: url
 
+    private val AFFILIATE_HOSTS = listOf(".pxf.io", ".sjv.io", ".evyy.net")
     private const val BATCH = 20
 }

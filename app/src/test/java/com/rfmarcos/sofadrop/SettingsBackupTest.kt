@@ -81,6 +81,9 @@ class SettingsBackupTest {
     fun importedValuesTakeTheStoredType() {
         assertEquals(7f, Settings.matchingType(7, 6.5f))
         assertEquals(7f, Settings.matchingType(7.0f, 6.5f))
+        assertEquals(7f, Settings.matchingType(7, null, "min_rating"))
+        assertEquals(7f, Settings.matchingType(7, null, "wp_min_rating"))
+        assertNull(Settings.matchingType("bad", null, "min_rating"))
         assertEquals(5L, Settings.matchingType(5, 1L))
         assertEquals("x", Settings.matchingType("x", null))
         // Would crash the getter of a stored Int or Boolean
@@ -92,6 +95,7 @@ class SettingsBackupTest {
     fun onlyChoicesAreBackedUp() {
         secrets.keys.forEach { assertFalse(it, Settings.inBackup(it)) }
         state.keys.forEach { assertFalse(it, Settings.inBackup(it)) }
+        assertFalse("order_moved", Settings.inBackup("order_moved"))
         choices.keys.forEach { assertTrue(it, Settings.inBackup(it)) }
     }
 }

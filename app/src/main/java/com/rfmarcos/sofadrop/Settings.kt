@@ -991,7 +991,7 @@ object Settings {
 
     /** [imported] as the type of [stored] (and known float keys even on a fresh install); null when it can't be. */
     fun matchingType(imported: Any, stored: Any?, key: String? = null): Any? = when {
-        key != null && (key == KEY_MIN_RATING || key.endsWith("_$KEY_MIN_RATING")) ->
+        key != null && (key == "min_rating" || key.endsWith("_min_rating")) ->
             if (imported is Number) imported.toFloat() else null
         stored == null || stored::class == imported::class -> imported
         stored is Float && imported is Number -> imported.toFloat()

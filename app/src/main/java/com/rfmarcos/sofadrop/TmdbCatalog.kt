@@ -162,7 +162,7 @@ class TmdbCatalog(
     }
 
     /** Weekly trending + popular titles within the age limit, ranked by weighted rating (as TMDB.py). */
-    private fun trending(type: MediaType, cutoff: String?, count: Int, genres: GenreFilter = GenreFilter.OFF): List<TitleRef> {
+    private fun trending(type: MediaType, cutoff: String?, count: Int, genres: GenreFilter = GenreFilter()): List<TitleRef> {
         val dates = cutoff?.let {
             if (type == MediaType.MOVIE) "&release_date.gte=$it&release_date.lte=$today" else "&first_air_date.gte=$it&first_air_date.lte=$today"
         }.orEmpty()

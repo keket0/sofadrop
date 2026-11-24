@@ -196,8 +196,12 @@ class JellyfinClient(private val address: String, private val token: String = ""
             val text = typed.trim().trimEnd('/')
             if (text.isEmpty()) return emptyList()
             if ("://" in text) return listOf(text)
-            val hasPort = Regex(":\\d+(/.*)?$").containsMatchIn(text)
-            return if (hasPort) listOf("http://$text") else listOf("http://$text:$DEFAULT_PORT", "https://$text", "http://$text")
+            val portMatch = Regex(":(\\d+)(/.*)?$").find(text)
+            return if (portMatch != null) {
+                val port = portMatch.groupValues[1].toIntOrNull()
+                if (port == 8920 || port == 443) listOf("https://$text", "http://$text")
+                else listOf("http://$text", "https://$text")
+            } else listOf("http://$text:$DEFAULT_PORT", "https://$text", "http://$text")
         }
 
         /** The first of [addressCandidates] that is a Jellyfin server. */
@@ -252,6 +256,7 @@ class JellyfinClient(private val address: String, private val token: String = ""
 
             /** A series' progress (with RecursiveItemCount and user data). */
             val watched: WatchStatus? get() {
+                if (played) return WatchStatus.Watched
                 val total = episodes ?: return null
                 return WatchStatus.episodes(total - (unplayed ?: total), total)
             }

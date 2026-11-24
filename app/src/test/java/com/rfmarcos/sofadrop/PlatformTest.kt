@@ -76,7 +76,27 @@ class PlatformTest {
     fun justWatchUnwrapsAffiliateRedirects() {
         assertEquals("https://www.crunchyroll.com/watch/X",
             JustWatch.unwrapped("https://crunchyroll.pxf.io/xk92Nv?u=https%3A%2F%2Fwww.crunchyroll.com%2Fwatch%2FX&subId3=y"))
+        assertEquals("https://www.paramountplus.com/movies/x",
+            JustWatch.unwrapped("https://paramountplus.qflm.net.sjv.io/c/1?u=https%3A%2F%2Fwww.paramountplus.com%2Fmovies%2Fx"))
         assertEquals("https://www.netflix.com/title/1", JustWatch.unwrapped("https://www.netflix.com/title/1"))
+    }
+
+    @Test
+    fun mubiAndCrunchyrollRespectMediaType() {
+        assertNull(Platform.links(MediaType.TV, mapOf("P7299" to "film-slug"))["mubi"])
+        assertEquals("https://mubi.com/films/film-slug", Platform.links(MediaType.MOVIE, mapOf("P7299" to "film-slug"))["mubi"])
+        assertNull(Platform.links(MediaType.MOVIE, mapOf("P11330" to "GY123"))["crunchyroll"])
+        assertEquals("https://www.crunchyroll.com/series/GY123", Platform.links(MediaType.TV, mapOf("P11330" to "GY123"))["crunchyroll"])
+    }
+
+    @Test
+    fun combineProvidersIncludesFreeAndAdsDeduplicated() {
+        val country = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"flatrate":[{"provider_id":8,"display_priority":2},{"provider_id":73,"display_priority":10}],
+                "free":[{"provider_id":38,"display_priority":1}],
+                "ads":[{"provider_id":73,"display_priority":1},{"provider_id":212,"display_priority":5}]}"""
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals(listOf(8, 73, 38, 212), TmdbCatalog.combineProviders(country).mapNotNull { it.int("provider_id") })
     }
 
     @Test

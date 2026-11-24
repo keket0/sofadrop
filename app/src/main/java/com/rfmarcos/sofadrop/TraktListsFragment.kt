@@ -67,7 +67,7 @@ class TraktListsFragment : BaseSettingsFragment() {
         publicOptions = (TraktClient.SUGGESTED + added).distinctBy { it.key }.filterNot { it.key in own }
         return publicOptions.mapIndexed { index, list ->
             // Long names ("Oscars Best Picture Winners") wrap instead of being cut
-            checkbox(ID_PUBLIC_BASE + index, list.name, list.path, added.any { it.key == list.key }).multilineDescription(true).build()
+            checkbox(ID_PUBLIC_BASE + index, list.name, list.path, list.key in profile.lists).multilineDescription(true).build()
         }
     }
 
@@ -107,10 +107,11 @@ class TraktListsFragment : BaseSettingsFragment() {
         return GuidedAction.ACTION_ID_CURRENT
     }
 
-    /** Adding a public list also selects it; removing it unselects it. */
+    /** Select or unselect a public list for [profile], keeping its global metadata while any profile uses it. */
     private fun setPublic(list: TraktListRef, enabled: Boolean) {
-        Settings.traktLists = Settings.traktLists.filterNot { it.key == list.key } + listOfNotNull(list.takeIf { enabled })
         profile.lists = if (enabled) profile.lists + list.key else profile.lists - list.key
+        val stillUsed = enabled || listOf(Profile.GENERAL, Profile.WALLPAPER, Profile.SCREENSAVER).any { list.key in it.lists }
+        Settings.traktLists = Settings.traktLists.filterNot { it.key == list.key } + listOfNotNull(list.takeIf { stillUsed })
     }
 
     private fun accountDescription(): String =

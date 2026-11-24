@@ -32,6 +32,7 @@
         <package android:name="com.nuvio.app" />
         <package android:name="com.stremio.one" />
         <package android:name="org.jellyfin.androidtv" />
+        <package android:name="com.plexapp.android" />
         <package android:name="app.wuplay.androidtv" />
         <package android:name="com.google.android.youtube.tv" />
         <!-- Forks of those apps under another package, found by the links they open (TitleApp.probe) -->

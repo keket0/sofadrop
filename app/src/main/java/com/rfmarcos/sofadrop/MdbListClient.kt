@@ -243,11 +243,11 @@ class MdbListClient(private val apiKey: String = "", private val accessToken: St
             }
         }
 
-        /** Items come grouped as `{ "movies": [...], "shows": [...] }`. */
+        /** Items come grouped as `{ "movies": [...], "shows": [...] }`; preserve mixed-list order via `rank`. */
         fun parseItems(body: JsonObject): List<Item> {
             val movies = body.objects("movies").map { MediaType.MOVIE to it }
             val shows = body.objects("shows").map { MediaType.TV to it }
-            return (movies + shows).map { (type, item) ->
+            return (movies + shows).sortedBy { (_, item) -> item.int("rank") ?: Int.MAX_VALUE }.map { (type, item) ->
                 // For movies the top-level id is the TMDB id; shows only trust ids.tmdb
                 val tmdbId = item.obj("ids")?.int("tmdb") ?: (if (type == MediaType.MOVIE) item.int("id") else null)
                 Item(type, tmdbId?.let { TitleRef(type, it) }, item.str("imdb_id") ?: item.obj("ids")?.str("imdb"))
