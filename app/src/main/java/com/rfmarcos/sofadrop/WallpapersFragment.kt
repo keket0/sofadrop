@@ -89,7 +89,10 @@ class WallpapersFragment : OutputFragment() {
         val fallback = action(ID_FOCUSED_FALLBACK, R.drawable.ic_act_layout, getString(R.string.focused_fallback_title), currentFallback)
             .subActions(options(ID_FOCUSED_FALLBACK, fallbackLabels, currentFallback,
                 Settings.FOCUSED_FALLBACK_OPTIONS.map { focusedFallbackDesc(it) })).build()
-        if (Settings.focusedFallback == Settings.FOCUSED_FALLBACK_SET) return listOf(main, fallback)
+        // "Card colour" reads the focused app tile's colour, so "Other channels only" wouldn't make sense with it
+        if (Settings.focusedFallback == Settings.FOCUSED_FALLBACK_SET || Settings.focusedFallback == Settings.FOCUSED_FALLBACK_CARD_COLOR) {
+            return listOf(main, fallback)
+        }
         explanations[ID_FOCUSED_SCOPE] = getString(R.string.focused_scope_explain)
         val scopeLabels = Settings.FOCUSED_SCOPE_OPTIONS.map { focusedScopeLabel(it) }
         val currentScope = focusedScopeLabel(Settings.focusedFallbackScope)

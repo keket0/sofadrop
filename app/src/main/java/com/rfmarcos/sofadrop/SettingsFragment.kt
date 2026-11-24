@@ -243,9 +243,20 @@ class SettingsFragment : PreviewSettingsFragment() {
         Settings.supportShownCount += 1
     }
 
+    /** Replace the list while keeping focus on the same action id (inserting at index 0 would otherwise shift focus). */
+    private fun replaceActions(updated: List<GuidedAction>) {
+        val currentId = selectedActionPosition.takeIf { it in actions.indices }?.let { actions[it].id }
+        actions = updated
+        if (currentId != null) {
+            val target = updated.indexOfFirst { it.id == currentId }
+            if (target >= 0) setSelectedActionPosition(target)
+        }
+    }
+
     private fun removeSupportPrompt() {
         if (findActionById(ID_SUPPORT_PROMPT) == null) return
-        actions = actions.filterNot { it.id == ID_SUPPORT_PROMPT }
+        if (isSubActionsExpanded) collapseSubActions()
+        replaceActions(actions.filterNot { it.id == ID_SUPPORT_PROMPT })
     }
 
     private fun showSupporter(state: Supporter.State) {
@@ -259,7 +270,7 @@ class SettingsFragment : PreviewSettingsFragment() {
             Supporter.State.NOT_BOUGHT -> {
                 if (findActionById(ID_SUPPORT_PROMPT) == null && !Updater.available && SupportPrompt.shouldShow(updateAvailable = false)) {
                     countSupportShown()
-                    actions = actions.toMutableList().apply { add(0, supportAction()) }
+                    replaceActions(actions.toMutableList().apply { add(0, supportAction()) })
                 }
             }
             Supporter.State.BOUGHT, Supporter.State.PENDING -> removeSupportPrompt()
@@ -270,7 +281,7 @@ class SettingsFragment : PreviewSettingsFragment() {
     /** Offer an update found after the screen opened, on top, without reopening the screen. */
     private fun showUpdate() {
         if (!isAdded || !Updater.available || findActionById(ID_APP_UPDATE) != null) return
-        actions = actions.filterNot { it.id == ID_SUPPORT_PROMPT }.toMutableList().apply { add(0, updateAction()) }
+        replaceActions(actions.filterNot { it.id == ID_SUPPORT_PROMPT }.toMutableList().apply { add(0, updateAction()) })
     }
 
     /**

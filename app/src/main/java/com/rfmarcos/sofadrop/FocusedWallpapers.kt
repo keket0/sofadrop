@@ -89,8 +89,9 @@ object FocusedWallpapers {
     /** " / " between a translated and an original title, as in kino.pub's "Терапия / Shrinking". */
     private val bilingualSeparator = Regex("""\s+/\s+""")
 
-    /** What each card is, by [FocusedCard.key]. */
+    /** What each card is, by language and [FocusedCard.key] (episode name/overview depend on language). */
     private val found = ConcurrentHashMap<String, Match>()
+    private fun matchKey(card: FocusedCard) = "${Settings.language}/${card.key}"
     /** Videos of scrolling synopses: one at a time, apart from the drawings so they don't wait for them. */
     private val videoExecutor = Executors.newSingleThreadExecutor()
     /** Wallpaper files whose video is queued or being made. */
@@ -185,7 +186,7 @@ object FocusedWallpapers {
 
     /** [card]'s drawn wallpaper, once it's known what the card is and drawn with the current settings. */
     private fun cached(context: Context, card: FocusedCard, mode: String, prefix: String): File? {
-        val match = found[card.key] ?: return null
+        val match = found[matchKey(card)] ?: return null
         val file = fileOf(context, prefix, match, mode).takeIf { it.exists() } ?: return null
         // The ones in use stay longest
         file.setLastModified(System.currentTimeMillis())
@@ -289,7 +290,8 @@ object FocusedWallpapers {
         Settings.init(context)
         val profile = Profile.WALLPAPER
         val factory = WallpaperFactory(context, minOf(profile.outputWidth, MAX_WIDTH), profile)
-        val match = found[card.key] ?: find(context, factory.client, card)?.also { found[card.key] = it }
+        val key = matchKey(card)
+        val match = found[key] ?: find(context, factory.client, card)?.also { found[key] = it }
         if (match == null) {
             unmatched += card.key
             return
@@ -333,11 +335,14 @@ object FocusedWallpapers {
             FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
             // A synopsis that scrolls: what its video needs, made once the picture is out (see finished)
             synopsis?.save(file.parentFile!!, file.nameWithoutExtension, bitmap.width)?.let { companion(file, SCROLL).writeText(json.encodeToString(it)) }
+            if (!tmp.renameTo(file)) tmp.delete()
+        } catch (e: Throwable) {
+            tmp.delete()
+            throw e
         } finally {
             bitmap.recycle()
             synopsis?.recycle()
         }
-        tmp.renameTo(file)
         prune(context)
         val seconds = (System.currentTimeMillis() - start) / 100 / 10.0
         Log.i(TAG, "${card.title}: ${file.name} drawn in $seconds s")
@@ -436,7 +441,10 @@ object FocusedWallpapers {
         var tiny: Bitmap? = null
         var output: Bitmap? = null
         return try {
-            tiny = Bitmap.createScaledBitmap(decoded, BLUR_WIDTH, BLUR_HEIGHT, true)
+            val scaled = Bitmap.createScaledBitmap(decoded, BLUR_WIDTH, BLUR_HEIGHT, true)
+            tiny = if (scaled === decoded || !scaled.isMutable) {
+                scaled.copy(Bitmap.Config.ARGB_8888, true).also { if (scaled !== decoded) scaled.recycle() } ?: return null
+            } else scaled
             boxBlur(tiny, BLUR_RADIUS)
             boxBlur(tiny, BLUR_RADIUS)
             output = Bitmap.createBitmap(FALLBACK_WIDTH, FALLBACK_HEIGHT, Bitmap.Config.ARGB_8888)
@@ -448,8 +456,8 @@ object FocusedWallpapers {
             Log.w(TAG, "Could not render dimmed fallback from ${source.name}", e)
             null
         } finally {
+            if (tiny !== decoded) tiny?.recycle()
             decoded.recycle()
-            tiny?.recycle()
             output?.recycle()
         }
     }
@@ -472,7 +480,10 @@ object FocusedWallpapers {
         val tmp = File(file.path + ".tmp")
         return try {
             FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
-            tmp.renameTo(file)
+            if (!tmp.renameTo(file)) {
+                tmp.delete()
+                return null
+            }
             pruneFallbacks(file.parentFile!!)
             file
         } catch (e: Exception) {
