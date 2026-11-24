@@ -2,7 +2,7 @@
 <!-- Sofascreen, de screensaver (naar PR #13 van schumi2004) -->
 <resources>
     <string name="screensaver_title">Screensaver</string>
-    <string name="screensaver_description">Sofascreen toont je achtergronden als screensaver van de tv, zonder Projectivy. Het gebruikt de gedeelde instellingen, of je past ze aan.</string>
+    <string name="screensaver_description">Toont je achtergronden als screensaver van de tv, zonder Projectivy. Gebruikt de gedeelde instellingen, of je past ze aan.</string>
     <string name="screensaver_empty">Nog geen achtergronden: kies je lijsten in Sofadrop</string>
     <string name="screensaver_preparing">De eerste achtergronden worden voorbereid…</string>
     <string name="sofascreen_start">Screensaver starten</string>
@@ -13,7 +13,7 @@
     <string name="sofascreen_switch_on">Als screensaver van de tv gebruiken</string>
     <string name="screensaver_try_desc">OK opent de titel, ◀ ▶ gaan naar de vorige of volgende achtergrond, elke andere knop sluit hem</string>
     <string name="screensaver_system_off">Nog niet aan</string>
-    <string name="screensaver_system_on">Aan: Sofascreen is de screensaver van de tv</string>
+    <string name="screensaver_system_on">Aan: Sofadrop is de screensaver van de tv</string>
     <string name="screensaver_system_opens_settings">opent de screensaverinstellingen van Android</string>
     <string name="screensaver_system_opens_steps">hoe je hem inschakelt</string>
     <string name="screensaver_system_opens_path">opent de instellingen van Android: Apparaatvoorkeuren → Screensaver</string>
@@ -89,11 +89,11 @@
     <string name="screensaver_summary_manual">Handmatig gestart</string>
     <string name="screensaver_summary_clock">klok</string>
     <string name="screensaver_summary_weather">weer</string>
-    <string name="screensaver_system_explain">Kies Sofascreen in de screensaverinstellingen van Android.</string>
+    <string name="screensaver_system_explain">Kies Sofadrop in de screensaverinstellingen van Android.</string>
     <string name="screensaver_system_explain_steps">Google TV toont geen screensavers van andere apps in zijn instellingen: hij wordt eenmalig vanaf een computer ingeschakeld. Druk op OK voor de stappen. Zonder computer toont “Screensaver starten” hem wanneer je wilt.</string>
-    <string name="screensaver_system_fire_tv">Vanaf Fire OS 8.1 staat Fire TV alleen zijn eigen screensavers toe, dus Sofascreen start je hier.</string>
+    <string name="screensaver_system_fire_tv">Vanaf Fire OS 8.1 staat Fire TV alleen zijn eigen screensavers toe, dus de screensaver start je hier.</string>
     <string name="screensaver_system_fire_tv_old">Om vanzelf te starten op deze Fire OS is een computer nodig: de stappen staan op de GitHub-pagina van Sofadrop. Anders start je hem hier.</string>
-    <string name="screensaver_system_explain_path">Ga in de instellingen van Android naar Apparaatvoorkeuren → Screensaver en kies Sofascreen. De namen kunnen per tv-merk verschillen.</string>
+    <string name="screensaver_system_explain_path">Ga in de instellingen van Android naar Apparaatvoorkeuren → Screensaver en kies Sofadrop. De namen kunnen per tv-merk verschillen.</string>
     <string name="screensaver_summary_on">Aan</string>
     <plurals name="sofascreen_ready">
         <item quantity="one">%d achtergrond klaar</item>

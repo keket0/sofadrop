@@ -87,8 +87,9 @@ object Languages {
 
     /** Countries offered for streaming services. */
     val REGIONS = listOf(
-        "US", "GB", "CA", "ES", "MX", "AR", "CO", "CL", "BR", "PT", "FR", "IT", "DE", "NL", "SE", "NO", "DK", "FI",
-        "PL", "CZ", "HU", "RO", "TR", "GR", "RU", "UA", "JP", "KR", "TW", "HK",
+        "US", "GB", "IE", "CA", "AU", "NZ", "ES", "MX", "AR", "CO", "CL", "BR", "PT", "FR", "BE", "CH", "IT", "DE",
+        "AT", "NL", "SE", "NO", "DK", "FI", "PL", "CZ", "HU", "RO", "TR", "GR", "RU", "UA", "IN", "AE", "SA", "JP",
+        "KR", "TW", "HK",
     )
 
     /** Original languages that never need the "global hit" vote threshold. */
@@ -292,7 +293,8 @@ object Languages {
      * none. Capitalised, since TMDB writes some in lower case (Russian movie genres).
      */
     fun genreName(language: String, id: Int?, name: String?): String? =
-        (GENRE_NAMES[textsKey(language)]?.get(id) ?: name)?.trim()?.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.titlecase() }
+        (GENRE_NAMES[textsKey(language)]?.get(id) ?: name)?.trim()?.takeIf { it.isNotEmpty() }
+            ?.replaceFirstChar { it.titlecase(Locale.forLanguageTag(language)) }
 
     fun defaultFor(locale: Locale): String {
         val tag = "${locale.language}-${locale.country}"

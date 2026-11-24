@@ -65,5 +65,16 @@ class CertificationsTest {
         // Denmark's "F" is exempt, not an age
         val danish = obj("""{"release_dates":{"results":[{"iso_3166_1":"DK","release_dates":[{"type":3,"release_date":"2024-01-01T00:00:00.000Z","certification":"F"}]}]}}""")
         assertNull(Certifications.of(MediaType.MOVIE, danish, "DK"))
+
+        // An unrated theatrical entry must not hide a real digital rating
+        val unratedThenRated = movie(release(3, "2025-01-01", "NR"), release(4, "2025-03-01", "16"))
+        assertEquals("16", Certifications.of(MediaType.MOVIE, unratedThenRated, "ES"))
+        // Asian and Spanish extra marks
+        assertEquals(18, Certifications.age("HK", "III"))
+        assertEquals(15, Certifications.age("HK", "IIB"))
+        assertEquals(19, Certifications.age("KR", "청불"))
+        assertEquals(18, Certifications.age("TW", "限制級"))
+        assertEquals(0, Certifications.age("ES", "APTA"))
+        assertEquals("TP", Certifications.label("ES", "APTA"))
     }
 }

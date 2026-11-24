@@ -63,8 +63,8 @@ class PlexClient(private val address: String, private val token: String) {
 
     /** Plex's Continue Watching: movies and episodes started, then the next episode of the shows being watched. */
     private fun watching(): List<Item> {
-        val hub = runCatching { parseItems(request("hubs/home/continueWatching")) }.getOrDefault(emptyList())
-        val onDeck = runCatching { parseItems(request("library/onDeck")) }.getOrDefault(emptyList())
+        val hub = runCatching { parseItems(request("hubs/home/continueWatching", "includeGuids" to "1")) }.getOrDefault(emptyList())
+        val onDeck = runCatching { parseItems(request("library/onDeck", "includeGuids" to "1")) }.getOrDefault(emptyList())
         return (hub + onDeck).distinctBy { it.ratingKey }
     }
 

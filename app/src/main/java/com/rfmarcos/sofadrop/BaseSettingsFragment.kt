@@ -163,6 +163,12 @@ abstract class BaseSettingsFragment : GuidedStepSupportFragment() {
         if (!isAdded) return
         confirming = null
         val current = actions
+        val idsChanged = current.map { it.id } != fresh.map { it.id }
+        val expanded = if (isSubActionsExpanded) guidedActionsStylist.expandedAction else null
+        if (expanded != null && (idsChanged || fresh.firstOrNull { it.id == expanded.id }?.subActions.isNullOrEmpty())) {
+            collapseSubActions()
+        }
+        fun GuidedAction.sameShape(other: GuidedAction) = checkSetId == other.checkSetId && hasNext() == other.hasNext()
         fun GuidedAction.update(row: GuidedAction) = apply {
             // The icon too: some follow the value ("Nothing" opens nothing)
             icon = row.icon
@@ -172,8 +178,12 @@ abstract class BaseSettingsFragment : GuidedStepSupportFragment() {
             isChecked = row.isChecked
             subActions = row.subActions
         }
-        if (current.map { it.id } != fresh.map { it.id }) {
-            setActions(fresh.map { row -> current.firstOrNull { it.id == row.id }?.update(row) ?: row })
+        val shapeChanged = !idsChanged && current.indices.any { !current[it].sameShape(fresh[it]) }
+        if (idsChanged || shapeChanged) {
+            setActions(fresh.map { row ->
+                val existing = current.firstOrNull { it.id == row.id }
+                if (existing != null && existing.sameShape(row)) existing.update(row) else row
+            })
             return
         }
         current.forEachIndexed { index, action ->

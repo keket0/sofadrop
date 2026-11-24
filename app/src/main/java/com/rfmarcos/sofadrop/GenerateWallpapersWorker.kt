@@ -25,6 +25,7 @@ import java.io.FileOutputStream
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.net.ssl.SSLException
@@ -39,23 +40,37 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
 
     override fun doWork(): Result {
         Settings.init(applicationContext)
-        if (!profile.isScreensaver) Updater.check()
-        // Without Projectivy or the folder nothing shows the wallpapers' set while the screensaver has its own
-        if (!profile.isScreensaver && Profile.SCREENSAVER.separate && !WallpaperFolder.shown(applicationContext)) {
-            profile.generating = false
-            runForScreensaver(applicationContext)
+        // Periodic and manual work use separate WorkManager names: skip a periodic run if this profile is already running
+        val isPeriodic = tags.any { it.startsWith("every-") }
+        if (isPeriodic && profile.id in runningProfiles) {
+            Log.i(TAG, "Skipping periodic run for ${profile.id}: a generation is already active")
             return Result.success()
         }
-        val signature = profile.signature
-        val result = generateSet()
-        // Settings changed while it ran (the guided setup, or leaving the settings, found it busy): again with those
-        if (profile.signature != signature && !isStopped && Sources.selected(profile).isNotEmpty()) {
-            Log.i(TAG, "Settings changed during the generation: generating again")
-            runNow(applicationContext, profile, after = true)
-            return Result.success()
+        val lock = profileLocks.computeIfAbsent(profile.id) { Any() }
+        return synchronized(lock) {
+            runningProfiles.add(profile.id)
+            try {
+                if (!profile.isScreensaver) Updater.check()
+                // Without Projectivy or the folder nothing shows the wallpapers' set while the screensaver has its own
+                if (!profile.isScreensaver && Profile.SCREENSAVER.separate && !WallpaperFolder.shown(applicationContext)) {
+                    profile.generating = false
+                    runForScreensaver(applicationContext)
+                    return@synchronized Result.success()
+                }
+                val signature = profile.signature
+                val result = generateSet()
+                // Settings changed while it ran (the guided setup, or leaving the settings, found it busy): again with those
+                if (profile.signature != signature && !isStopped && Sources.selected(profile).isNotEmpty()) {
+                    Log.i(TAG, "Settings changed during the generation: generating again")
+                    runNow(applicationContext, profile, after = true)
+                    return@synchronized Result.success()
+                }
+                if (!profile.isScreensaver) runForScreensaver(applicationContext)
+                result
+            } finally {
+                runningProfiles.remove(profile.id)
+            }
         }
-        if (!profile.isScreensaver) runForScreensaver(applicationContext)
-        return result
     }
 
     private fun generateSet(): Result {
@@ -97,6 +112,11 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
                 return Result.success()
             }
             val stored = withPlexSlugs(withJellyfinItems(withPlatformLinks(drawn, log), log), log)
+            if (cancelled) {
+                if (synchronized(made) { made.isEmpty() }) store.discard(generation)
+                log.finish("Cancelled")
+                return Result.success()
+            }
             // Every list failing (e.g. no network) or no title fitting in memory is that error, not "no titles"
             if (stored.isEmpty()) throw when {
                 listErrors.isNotEmpty() -> listErrors.first()
@@ -105,6 +125,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             }
             store.publish(generation, stored)
             profile.lastGeneration = System.currentTimeMillis()
+            Settings.generationCount += 1
             profile.lastSignature = signature
             profile.lastError = ""
             // A deleted or private Trakt list doesn't fail the generation, but the status says which one it was
@@ -118,7 +139,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
                 notifyProjectivy(applicationContext)
                 WallpaperFolder.update(applicationContext)
                 // The set is out with its JPEGs; the videos replace them as they're made
-                withVideos(generation, stored, log)?.let { store.publish(generation, it) }
+                withVideos(generation, stored, log)?.let { if (!cancelled) store.publish(generation, it) }
             }
             Log.i(TAG, "Generated ${stored.size} wallpapers${" for the screensaver".takeIf { profile.isScreensaver }.orEmpty()} (${Settings.language}) in ${System.currentTimeMillis() - start} ms")
             // What a generation costs TMDB (a preview open at the same time counts too)
@@ -162,11 +183,11 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
     private var outOfMemory = false
 
     private fun generate(generation: File, log: GenerationLog, onMade: (StoredWallpaper) -> Unit): List<StoredWallpaper> {
-        val factory = WallpaperFactory(applicationContext, profile.outputWidth, profile)
+        val factory = WallpaperFactory(applicationContext, profile.outputWidth, profile, freshWatched = true)
         width = factory.width
         val perList = profile.titlesPerList
-        // Finished 4K wallpapers are ~33 MB each until compressed: one title at a time there
-        val parallelTitles = if (factory.width > FALLBACK_WIDTH) 1 else perList
+        // Finished 4K wallpapers are ~33 MB each until compressed: one title at a time there; cap 1080p batches to pool size
+        val parallelTitles = if (factory.width > FALLBACK_WIDTH) 1 else minOf(perList, 4)
         // Titles that became a wallpaper; later lists skip them (unless duplicates are allowed)
         val taken = mutableSetOf<TitleRef>()
         val stored = mutableListOf<StoredWallpaper>()
@@ -175,7 +196,9 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
         /** Draw each title with its list's plan, in parallel; how many became a wallpaper. */
         fun draw(titles: List<Pair<ListPlan, TitleRef>>, list: Int): Int {
             var made = 0
-            for ((ref, wallpaper) in WallpaperFactory.parallel(titles) { (plan, ref) -> ref to store(factory, plan, ref, generation, log)?.also(onMade) }) {
+            for ((ref, wallpaper) in WallpaperFactory.parallel(titles) { (plan, ref) ->
+                ref to store(factory, plan, ref, generation, log)?.also { if (!isStopped) onMade(it) }
+            }) {
                 if (wallpaper == null) continue
                 // Only a title that really became a wallpaper is taken: a failed one stays free for other lists
                 taken += ref
@@ -193,7 +216,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             val quota = minOf(perList, (left + sources.size - index - 1) / (sources.size - index))
             if (quota <= 0) break
             val plan = try {
-                factory.plan(source, perList, taken)
+                factory.plan(source, quota, taken)
             } catch (e: TmdbException) {
                 throw e
             } catch (e: Exception) {
@@ -268,7 +291,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
      * instead of its search. Without the server they open the search: not worth failing the generation for.
      */
     private fun withJellyfinItems(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
-        if (Settings.clickApp(profile.clickFallback) != TitleApp.JELLYFIN) return stored
+        if (!profile.opensJellyfin) return stored
         val client = JellyfinClient.fromSettings() ?: return stored
         val index = try {
             client.libraryIndex()
@@ -290,7 +313,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
      * theirs, the rest are asked to Plex once and remembered. Without one, the fallback after the app opens.
      */
     private fun withPlexSlugs(stored: List<StoredWallpaper>, log: GenerationLog): List<StoredWallpaper> {
-        if (Settings.clickApp(profile.clickFallback) != TitleApp.PLEX || !Settings.plexSignedIn) return stored
+        if (!profile.opensPlex || !Settings.plexSignedIn) return stored
         val slugs = PlexSlugs(applicationContext)
         try {
             PlexClient.connect()?.librarySlugs()?.forEach { (ref, slug) -> slugs[ref] = slug }
@@ -322,11 +345,14 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             if (box == null || isStopped) return@map wallpaper
             val video = wallpaper.file.removeSuffix(".jpg") + ".mp4"
             val file = File(generation, video)
-            val image = runCatching { BitmapFactory.decodeFile(File(generation, wallpaper.file).path) }.getOrNull()
+            val sample = if (box.imageWidth > FALLBACK_WIDTH) 2 else 1
+            val image = runCatching {
+                BitmapFactory.decodeFile(File(generation, wallpaper.file).path, BitmapFactory.Options().apply { inSampleSize = sample })
+            }.getOrNull()
             val synopsis = ScrollingSynopsis.load(generation, box)
             try {
                 if (image == null || synopsis == null) return@map wallpaper
-                codec = ScrollVideo.encode(synopsis, image, file)
+                codec = ScrollVideo.encode(synopsis, image, file, sourceWidth = box.imageWidth)
                 made++
                 bytes += file.length()
                 wallpaper.copy(video = video)
@@ -348,8 +374,9 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
     }
 
     /** Render one title into [generation]; null when it can't be drawn. */
-    private fun store(factory: WallpaperFactory, plan: ListPlan, ref: TitleRef, generation: File, log: GenerationLog): StoredWallpaper? =
-        try {
+    private fun store(factory: WallpaperFactory, plan: ListPlan, ref: TitleRef, generation: File, log: GenerationLog): StoredWallpaper? {
+        if (isStopped) return null
+        return try {
             factory.build(ref, plan)?.let { info ->
                 val position = profile.positionAt(started.getAndIncrement())
                 var synopsis: ScrollingSynopsis? = null
@@ -377,6 +404,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             log.titleFailed(ref, e)
             null
         }
+    }
 
     /**
      * [info] drawn at [width]. A 4K wallpaper that doesn't fit in memory is drawn again at 1920, and after
@@ -410,6 +438,8 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
     }
 
     companion object {
+        private val profileLocks = ConcurrentHashMap<String, Any>()
+        private val runningProfiles = ConcurrentHashMap.newKeySet<String>()
         private const val TAG = "GenerateWallpapers"
         private const val JPEG_QUALITY = 90
         /** What 4K falls back to when the TV runs out of memory. */

@@ -72,8 +72,10 @@ class TmdbClient(token: String, cacheDir: File) {
         }
 
     private fun execute(request: Request, label: String): ByteArray? {
+        val safeLabel = label.replace(SESSION_PARAM, "session_id=…")
         var lastError: IOException? = null
         repeat(MAX_ATTEMPTS) { attempt ->
+            var waitMillis = 1000L * (attempt + 1)
             try {
                 http.newCall(request).execute().use { response ->
                     if (response.networkResponse != null) networkRequests.incrementAndGet()
@@ -81,9 +83,13 @@ class TmdbClient(token: String, cacheDir: File) {
                         response.isSuccessful -> return response.body?.bytes()
                         response.code == 404 -> return null
                         response.code == 401 -> throw TmdbException("TMDB rejected the API key (401)", keyRejected = true)
-                        response.code == 429 || response.code >= 500 ->
-                            lastError = IOException("HTTP ${response.code} for $label")
-                        else -> throw IOException("HTTP ${response.code} for $label")
+                        response.code == 429 || response.code >= 500 -> {
+                            if (response.code == 429) {
+                                response.header("Retry-After")?.toLongOrNull()?.let { waitMillis = it.coerceIn(1L, 10L) * 1000L }
+                            }
+                            lastError = IOException("HTTP ${response.code} for $safeLabel")
+                        }
+                        else -> throw IOException("HTTP ${response.code} for $safeLabel")
                     }
                 }
             } catch (e: TmdbException) {
@@ -91,9 +97,9 @@ class TmdbClient(token: String, cacheDir: File) {
             } catch (e: IOException) {
                 lastError = e
             }
-            Thread.sleep(1000L * (attempt + 1))
+            if (attempt < MAX_ATTEMPTS - 1) Thread.sleep(waitMillis)
         }
-        throw lastError ?: IOException("Request failed for $label")
+        throw lastError ?: IOException("Request failed for $safeLabel")
     }
 
     companion object {
@@ -101,6 +107,7 @@ class TmdbClient(token: String, cacheDir: File) {
         private const val API_URL = "https://api.themoviedb.org/3/"
         const val IMAGE_URL = "https://image.tmdb.org/t/p/"
         private const val MAX_ATTEMPTS = 3
+        private val SESSION_PARAM = Regex("""session_id=[^&]+""")
 
         /** Requests made in this process, for the generation log: API calls, images, and those that weren't cached. */
         val apiRequests = AtomicInteger()

@@ -39,7 +39,8 @@ object WallpaperFolder {
     fun update(context: Context) {
         if (!Settings.wallpaperFolder) return
         val store = WallpaperStore(context, Profile.WALLPAPER)
-        val files = store.current().mapNotNull { store.fileOf(it) }.filter { it.exists() }
+        val dir = store.currentDir() ?: return
+        val files = store.current(dir).map { File(dir, it.file) }.filter { it.exists() }
         if (files.isEmpty()) return
         try {
             replace(context, files)
@@ -72,7 +73,7 @@ object WallpaperFolder {
         val existing = mutableMapOf<String, Long>()
         resolver.query(collection, arrayOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME),
             "${MediaStore.MediaColumns.RELATIVE_PATH} = ?", arrayOf("$path/"), null)?.use { cursor ->
-            while (cursor.moveToNext()) existing[cursor.getString(1)] = cursor.getLong(0)
+            while (cursor.moveToNext()) cursor.getString(1)?.let { existing[it] = cursor.getLong(0) }
         }
         for (file in files) {
             val id = existing.remove(file.name)
@@ -87,8 +88,13 @@ object WallpaperFolder {
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val uri = resolver.insert(collection, values) ?: throw IOException("No $path folder")
-            resolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } } ?: throw IOException("Can't write $uri")
-            resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            try {
+                resolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } } ?: throw IOException("Can't write $uri")
+                resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            } catch (e: Throwable) {
+                runCatching { resolver.delete(uri, null, null) }
+                throw e
+            }
         }
         existing.values.forEach { resolver.delete(ContentUris.withAppendedId(collection, it), null, null) }
     }

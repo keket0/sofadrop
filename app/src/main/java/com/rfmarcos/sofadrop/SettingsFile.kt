@@ -93,26 +93,26 @@ object SettingsFile {
     }
 
     /**
-     * The apps that can pick a file to import. Google TV has no documents picker: a stub answers
+     * The apps that can pick a file of [mime]. Google TV has no documents picker: a stub answers
      * instead and only says there's nothing to open, so it doesn't count.
      */
-    fun pickers(context: Context): List<ComponentName> =
+    fun pickers(context: Context, mime: String = "*/*"): List<ComponentName> =
         @Suppress("DEPRECATION")
-        context.packageManager.queryIntentActivities(pickIntent(), PackageManager.MATCH_DEFAULT_ONLY)
+        context.packageManager.queryIntentActivities(pickIntent(mime), PackageManager.MATCH_DEFAULT_ONLY)
             .map { it.activityInfo }
             .filterNot { it.packageName == TV_STUBS }
             .map { ComponentName(it.packageName, it.name) }
 
-    fun canPick(context: Context): Boolean = pickers(context).isNotEmpty()
+    fun canPick(context: Context, mime: String = "*/*"): Boolean = pickers(context, mime).isNotEmpty()
 
     private const val TV_STUBS = "com.android.tv.frameworkpackagestubs"
 
-    private fun pickIntent() = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+    private fun pickIntent(mime: String = "*/*") = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(mime)
 
-    /** Picks the file to import; with one picker (a file manager on Google TV) it opens straight, without the stub next to it. */
-    class Pick : ActivityResultContracts.OpenDocument() {
+    /** Picks a file; with one picker (a file manager on Google TV) it opens straight, without the stub next to it. */
+    class Pick(private val mime: String = "*/*") : ActivityResultContracts.OpenDocument() {
         override fun createIntent(context: Context, input: Array<String>): Intent =
-            super.createIntent(context, input).apply { pickers(context).singleOrNull()?.let { component = it } }
+            super.createIntent(context, input).apply { pickers(context, mime).singleOrNull()?.let { component = it } }
     }
 
     /** The text of the file at [uri], or null when it can't be read (or is too big to be one). */

@@ -26,7 +26,10 @@ fun createSupporter(context: Context, onChange: (Supporter.State) -> Unit): Supp
 private class PlaySupporter(context: Context, private val onChange: (Supporter.State) -> Unit) : Supporter, PurchasesUpdatedListener {
 
     private val main = Handler(Looper.getMainLooper())
-    private var closed = false
+    private val lock = Any()
+    @Volatile private var closed = false
+    private var connecting = false
+    private val pending = mutableListOf<Pair<() -> Unit, () -> Unit>>()
 
     private val client = BillingClient.newBuilder(context.applicationContext)
         .setListener(this)
@@ -53,7 +56,9 @@ private class PlaySupporter(context: Context, private val onChange: (Supporter.S
             val item = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(details).build()
             val flow = BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(item)).build()
             main.post {
-                if (!closed && client.launchBillingFlow(activity, flow).responseCode != BillingResponseCode.OK) {
+                if (!closed && !activity.isFinishing && !activity.isDestroyed &&
+                    client.launchBillingFlow(activity, flow).responseCode != BillingResponseCode.OK
+                ) {
                     report(Supporter.State.UNAVAILABLE)
                 }
             }
@@ -61,7 +66,11 @@ private class PlaySupporter(context: Context, private val onChange: (Supporter.S
     }
 
     override fun close() {
-        closed = true
+        synchronized(lock) {
+            closed = true
+            connecting = false
+            pending.clear()
+        }
         client.endConnection()
     }
 
@@ -77,13 +86,33 @@ private class PlaySupporter(context: Context, private val onChange: (Supporter.S
     }
 
     private fun connected(failed: () -> Unit = {}, ready: () -> Unit) {
+        if (closed) return
         if (client.isReady) return ready()
+        val startNow = synchronized(lock) {
+            if (closed) return
+            if (client.isReady) return ready()
+            pending += ready to failed
+            if (connecting) false else { connecting = true; true }
+        }
+        if (!startNow) return
         client.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode == BillingResponseCode.OK) ready() else failed()
+                val waiters = synchronized(lock) {
+                    connecting = false
+                    pending.toList().also { pending.clear() }
+                }
+                if (closed) return
+                val ok = result.responseCode == BillingResponseCode.OK
+                waiters.forEach { (onReady, onFailed) -> if (ok) onReady() else onFailed() }
             }
 
-            override fun onBillingServiceDisconnected() = Unit
+            override fun onBillingServiceDisconnected() {
+                val waiters = synchronized(lock) {
+                    connecting = false
+                    pending.toList().also { pending.clear() }
+                }
+                if (!closed) waiters.forEach { (_, onFailed) -> onFailed() }
+            }
         })
     }
 

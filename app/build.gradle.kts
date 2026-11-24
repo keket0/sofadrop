@@ -48,8 +48,7 @@ android {
         buildConfigField("String", "MDBLIST_CLIENT_ID", "\"${localProperty("mdblist.clientId")}\"")
         buildConfigField("String", "SIMKL_CLIENT_ID", "\"${localProperty("simkl.clientId")}\"")
         buildConfigField("String", "TMDB_APP_KEY", "\"${localProperty("tmdb.appKey")}\"")
-        // Links shown in "About" (hidden when empty)
-        buildConfigField("String", "SUPPORT_URL", "\"${localProperty("support.url")}\"")
+        // Links shown in "About" (hidden when empty); SUPPORT_URL is set only in the github flavor
         buildConfigField("String", "SOURCE_URL", "\"${localProperty("source.url")}\"")
     }
 
@@ -74,6 +73,7 @@ android {
         create("github") {
             dimension = "store"
             buildConfigField("boolean", "PLAY", "false")
+            buildConfigField("String", "SUPPORT_URL", "\"${localProperty("support.url")}\"")
         }
         create("play") {
             dimension = "store"
@@ -81,6 +81,7 @@ android {
             // when its user joins the test or installs it from the store
             versionCode = libs.versions.versionCode.get().toInt() + 1
             buildConfigField("boolean", "PLAY", "true")
+            buildConfigField("String", "SUPPORT_URL", "\"\"")
         }
     }
 

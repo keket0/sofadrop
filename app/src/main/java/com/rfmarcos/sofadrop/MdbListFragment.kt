@@ -50,7 +50,7 @@ class MdbListFragment : BaseSettingsFragment() {
         val added = Settings.mdbLists.filter { it.path.isNotEmpty() }
         publicOptions = (MdbListClient.SUGGESTED + added).distinctBy { it.key }
         return publicOptions.mapIndexed { index, list ->
-            checkbox(ID_PUBLIC_BASE + index, list.name, list.path, added.any { it.key == list.key }).build()
+            checkbox(ID_PUBLIC_BASE + index, list.name, list.path, list.key in profile.lists).build()
         }
     }
 
@@ -90,10 +90,11 @@ class MdbListFragment : BaseSettingsFragment() {
         return GuidedAction.ACTION_ID_CURRENT
     }
 
-    /** Adding a public list also selects it; removing it unselects it. */
+    /** Select or unselect a public list for [profile], keeping its global metadata while any profile uses it. */
     private fun setPublic(list: MdbListRef, enabled: Boolean) {
-        Settings.mdbLists = Settings.mdbLists.filterNot { it.key == list.key } + listOfNotNull(list.takeIf { enabled })
         profile.lists = if (enabled) profile.lists + list.key else profile.lists - list.key
+        val stillUsed = enabled || listOf(Profile.GENERAL, Profile.WALLPAPER, Profile.SCREENSAVER).any { list.key in it.lists }
+        Settings.mdbLists = Settings.mdbLists.filterNot { it.key == list.key } + listOfNotNull(list.takeIf { stillUsed })
     }
 
     private fun accountDescription(): String {

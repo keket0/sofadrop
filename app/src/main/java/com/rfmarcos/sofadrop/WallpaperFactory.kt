@@ -23,7 +23,7 @@ data class ListPlan(
 )
 
 /** Shared pipeline for the background generation, the settings preview and the list explorer. */
-class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
+class WallpaperFactory(context: Context, val width: Int, val profile: Profile, private val freshWatched: Boolean = false) {
 
     private val appContext = context.applicationContext
 
@@ -52,7 +52,7 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
     val plex: PlexClient? by lazy { runCatching { PlexClient.connect() }.getOrNull() }
 
     /** The watch history, loaded on first use (null when not needed). */
-    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl, { plex }, jellyfin) }
+    val watched: WatchedContent? by lazy { WatchedContent.load(trakt, simkl, { plex }, jellyfin, fresh = freshWatched) }
 
     /**
      * Titles of a list with every rule applied: filters, watched content, titles already taken by a
@@ -114,7 +114,13 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
         val status = if (plan != null) plan.statuses[ref]
             else watched?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) }?.status(ref)
         val fromMdbList = if (plan != null) plan.ratings[ref] else mdbListRatings(listOf(ref))[ref]
-        val ratings = Rating.pick(profile.ratingSources, fromMdbList ?: keylessRatings(ref, info), info.rating)
+        val availableRatings = if (fromMdbList == null) keylessRatings(ref, info) else {
+            val missing = profile.ratingSources.filter {
+                (it == RatingSource.IMDB || it == RatingSource.TRAKT) && fromMdbList.none { r -> r.source == it }
+            }
+            if (missing.isEmpty()) fromMdbList else fromMdbList + keylessRatings(ref, info, missing)
+        }
+        val ratings = Rating.pick(profile.ratingSources, availableRatings, info.rating)
         // Header items the user hid are left empty, and the renderer skips empty ones
         return info.copy(
             watchStatus = status?.takeIf { mode == Settings.WATCHED_MARK && profile.showsInHeader(Settings.HEADER_WATCHED) },
@@ -137,15 +143,14 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
      * "12 dic 2026", "Dec 12, 2026": absolute (the wallpaper stays up for hours, "in 3 days" would go stale),
      * in the wallpaper language, with the month in words so day and month can't be swapped.
      */
-    private fun localDate(iso: String): String {
+    private fun localDate(iso: String): String = runCatching {
         val locale = Locale.forLanguageTag(Settings.language)
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(iso) ?: return iso
-        return SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "dMMMy"), locale).format(date)
-    }
+        SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "dMMMy"), locale).format(date)
+    }.getOrDefault(iso)
 
     /** IMDb (its public dataset) and Trakt scores, for titles MDBList didn't give: no account needed. */
-    private fun keylessRatings(ref: TitleRef, info: WallpaperInfo): List<Rating> {
-        val selected = profile.ratingSources
+    private fun keylessRatings(ref: TitleRef, info: WallpaperInfo, selected: List<RatingSource> = profile.ratingSources): List<Rating> {
         val imdb = info.imdbId?.takeIf { RatingSource.IMDB in selected }
             ?.let { id -> runCatching { ImdbRatings.rating(appContext, id) }.getOrNull() }
         val trakt = trakt?.takeIf { RatingSource.TRAKT in selected }
@@ -239,7 +244,11 @@ class WallpaperFactory(context: Context, val width: Int, val profile: Profile) {
                 try {
                     future.get()
                 } catch (e: ExecutionException) {
+                    futures.forEach { it.cancel(true) }
                     throw e.cause ?: e
+                } catch (e: Throwable) {
+                    futures.forEach { it.cancel(true) }
+                    throw e
                 }
             }
         }

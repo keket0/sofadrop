@@ -3,6 +3,12 @@ package com.rfmarcos.sofadrop
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.Shader
 import android.net.Uri
 import android.util.Log
 import kotlinx.serialization.encodeToString
@@ -82,8 +88,9 @@ object FocusedWallpapers {
     /** " / " between a translated and an original title, as in kino.pub's "Терапия / Shrinking". */
     private val bilingualSeparator = Regex("""\s+/\s+""")
 
-    /** What each card is, by [FocusedCard.key]. */
+    /** What each card is, by language and [FocusedCard.key] (episode name/overview depend on language). */
     private val found = ConcurrentHashMap<String, Match>()
+    private fun matchKey(card: FocusedCard) = "${Settings.language}/${card.key}"
     /** Videos of scrolling synopses: one at a time, apart from the drawings so they don't wait for them. */
     private val videoExecutor = Executors.newSingleThreadExecutor()
     /** Wallpaper files whose video is queued or being made. */
@@ -178,7 +185,7 @@ object FocusedWallpapers {
 
     /** [card]'s drawn wallpaper, once it's known what the card is and drawn with the current settings. */
     private fun cached(context: Context, card: FocusedCard, mode: String, prefix: String): File? {
-        val match = found[card.key] ?: return null
+        val match = found[matchKey(card)] ?: return null
         val file = fileOf(context, prefix, match, mode).takeIf { it.exists() } ?: return null
         // The ones in use stay longest
         file.setLastModified(System.currentTimeMillis())
@@ -282,7 +289,8 @@ object FocusedWallpapers {
         Settings.init(context)
         val profile = Profile.WALLPAPER
         val factory = WallpaperFactory(context, minOf(profile.outputWidth, MAX_WIDTH), profile)
-        val match = found[card.key] ?: find(context, factory.client, card)?.also { found[card.key] = it }
+        val key = matchKey(card)
+        val match = found[key] ?: find(context, factory.client, card)?.also { found[key] = it }
         if (match == null) {
             unmatched += card.key
             return
@@ -326,11 +334,14 @@ object FocusedWallpapers {
             FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
             // A synopsis that scrolls: what its video needs, made once the picture is out (see finished)
             synopsis?.save(file.parentFile!!, file.nameWithoutExtension, bitmap.width)?.let { companion(file, SCROLL).writeText(json.encodeToString(it)) }
+            if (!tmp.renameTo(file)) tmp.delete()
+        } catch (e: Throwable) {
+            tmp.delete()
+            throw e
         } finally {
             bitmap.recycle()
             synopsis?.recycle()
         }
-        tmp.renameTo(file)
         prune(context)
         val seconds = (System.currentTimeMillis() - start) / 100 / 10.0
         Log.i(TAG, "${card.title}: ${file.name} drawn in $seconds s")
@@ -341,11 +352,229 @@ object FocusedWallpapers {
     private fun prune(context: Context) {
         val now = System.currentTimeMillis()
         val files = dir(context).listFiles().orEmpty()
-        files.filter { it.extension == "jpg" && !it.name.endsWith(PATCH) }.sortedByDescending { it.lastModified() }.forEachIndexed { index, file ->
-            if (index < MAX_FILES && now - file.lastModified() <= MAX_AGE_MILLIS) return@forEachIndexed
-            file.delete()
-            listOf(VIDEO, SCROLL, PATCH, STRIP).forEach { companion(file, it).delete() }
+        files.filter { it.extension == "jpg" && !it.name.endsWith(PATCH) && !it.name.startsWith(FALLBACK_PREFIX) }
+            .sortedByDescending { it.lastModified() }.forEachIndexed { index, file ->
+                if (index < MAX_FILES && now - file.lastModified() <= MAX_AGE_MILLIS) return@forEachIndexed
+                file.delete()
+                listOf(VIDEO, SCROLL, PATCH, STRIP).forEach { companion(file, it).delete() }
+            }
+    }
+
+    // --- Fallback wallpaper for non-media cards (issue #38) ---
+
+    private const val FALLBACK_PREFIX = "fallback-"
+    private const val CUSTOM_PREFIX = "fallback-custom-"
+    private const val FALLBACK_WIDTH = 960
+    private const val FALLBACK_HEIGHT = 540
+    private const val BLUR_WIDTH = 240
+    private const val BLUR_HEIGHT = 135
+    private const val BLUR_RADIUS = 3
+    private const val MAX_FALLBACK_FILES = 16
+    private val fallbackLock = Any()
+
+    /**
+     * Neutral wallpaper shown on non-media cards (app tiles, YouTube clips, unmatched cards) when
+     * [Settings.focusedFallback] isn't [Settings.FOCUSED_FALLBACK_SET]. Served from [DIR], so
+     * [WallpaperContentProvider.lastShown] keeps pointing at the real set's wallpaper.
+     */
+    fun otherCardWallpaper(context: Context, fallback: String, lastShownPath: String?): Wallpaper? {
+        val file = synchronized(fallbackLock) {
+            when (fallback) {
+                Settings.FOCUSED_FALLBACK_DARK -> darkFallbackFile(context)
+                Settings.FOCUSED_FALLBACK_DIMMED -> dimmedFallbackFile(context, lastShownPath) ?: darkFallbackFile(context)
+                Settings.FOCUSED_FALLBACK_IMAGE -> customFallbackFile(context) ?: darkFallbackFile(context)
+                else -> return null
+            }
+        } ?: return null
+        val uri = Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
+            .appendPath(DIR).appendPath(file.name).build()
+        return wallpaper(uri.toString(), "")
+    }
+
+    /** The user-picked fallback image, if one has been saved on this TV. */
+    fun customFallbackFile(context: Context): File? = synchronized(fallbackLock) {
+        dir(context).listFiles().orEmpty()
+            .filter { it.name.startsWith(CUSTOM_PREFIX) && it.extension == "jpg" && it.isFile }
+            .maxByOrNull { it.lastModified() }
+    }
+
+    /**
+     * Copies a user-picked image from [uri] into [DIR] (scaled to at most [MAX_WIDTH] px on its longest side
+     * so large photos don't OOM the TV), returning its display name or null if it couldn't be decoded.
+     */
+    fun saveCustomFallback(context: Context, uri: Uri): String? = synchronized(fallbackLock) {
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching { resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@synchronized null
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_WIDTH * 2) sample *= 2
+        val decoded = runCatching {
+            resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
+        }.getOrNull() ?: return@synchronized null
+        val maxSide = maxOf(decoded.width, decoded.height)
+        val bitmap = if (maxSide > MAX_WIDTH) {
+            val scale = MAX_WIDTH.toFloat() / maxSide
+            Bitmap.createScaledBitmap(decoded, (decoded.width * scale).toInt().coerceAtLeast(1), (decoded.height * scale).toInt().coerceAtLeast(1), true)
+                .also { if (it !== decoded) decoded.recycle() }
+        } else decoded
+        val folder = dir(context).apply { mkdirs() }
+        // Timestamped name so Projectivy drops any cached copy of the previous custom image
+        val file = File(folder, "$CUSTOM_PREFIX${System.currentTimeMillis()}.jpg")
+        val tmp = File(file.path + ".tmp")
+        return@synchronized try {
+            FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+            if (!tmp.renameTo(file)) {
+                tmp.delete()
+                return@synchronized null
+            }
+            folder.listFiles().orEmpty()
+                .filter { it.name.startsWith(CUSTOM_PREFIX) && it.name != file.name }
+                .forEach { it.delete() }
+            SettingsFile.displayName(context, uri) ?: "image.jpg"
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not save custom fallback image", e)
+            tmp.delete()
+            null
+        } finally {
+            bitmap.recycle()
         }
+    }
+
+    /** Neutral dark charcoal gradient. */
+    private fun darkFallbackFile(context: Context): File? {
+        val file = File(dir(context), "${FALLBACK_PREFIX}dark.jpg")
+        if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            return file
+        }
+        val bitmap = Bitmap.createBitmap(FALLBACK_WIDTH, FALLBACK_HEIGHT, Bitmap.Config.ARGB_8888)
+        return try {
+            val canvas = Canvas(bitmap)
+            val linear = Paint(Paint.DITHER_FLAG).apply {
+                shader = LinearGradient(
+                    0f, 0f, 0f, FALLBACK_HEIGHT.toFloat(),
+                    Color.rgb(24, 28, 38), Color.rgb(10, 12, 18), Shader.TileMode.CLAMP,
+                )
+            }
+            canvas.drawRect(0f, 0f, FALLBACK_WIDTH.toFloat(), FALLBACK_HEIGHT.toFloat(), linear)
+            saveFallback(file, bitmap)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /** Current (or first) set wallpaper softly blurred and lightly dimmed so it reads as an ambient backdrop. */
+    private fun dimmedFallbackFile(context: Context, lastShownPath: String?): File? {
+        val source = resolveSetImage(context, lastShownPath) ?: return null
+        val key = Integer.toHexString("${source.path}:${source.lastModified()}".hashCode())
+        val file = File(dir(context), "${FALLBACK_PREFIX}dimmed2-$key.jpg")
+        if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            return file
+        }
+        val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
+        val decoded = BitmapFactory.decodeFile(source.path, opts) ?: return null
+        var tiny: Bitmap? = null
+        var output: Bitmap? = null
+        return try {
+            val scaled = Bitmap.createScaledBitmap(decoded, BLUR_WIDTH, BLUR_HEIGHT, true)
+            tiny = if (scaled === decoded || !scaled.isMutable) {
+                scaled.copy(Bitmap.Config.ARGB_8888, true).also { if (scaled !== decoded) scaled.recycle() } ?: return null
+            } else scaled
+            boxBlur(tiny, BLUR_RADIUS)
+            boxBlur(tiny, BLUR_RADIUS)
+            output = Bitmap.createBitmap(FALLBACK_WIDTH, FALLBACK_HEIGHT, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(output)
+            canvas.drawBitmap(tiny, null, Rect(0, 0, FALLBACK_WIDTH, FALLBACK_HEIGHT), Paint(Paint.FILTER_BITMAP_FLAG))
+            canvas.drawColor(Color.argb(65, 8, 10, 14))
+            saveFallback(file, output)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Could not render dimmed fallback from ${source.name}", e)
+            null
+        } finally {
+            if (tiny !== decoded) tiny?.recycle()
+            decoded.recycle()
+            output?.recycle()
+        }
+    }
+
+    /** The JPEG of [lastShownPath] (swapping a scrolling video for its companion JPEG), else the first wallpaper in the set. */
+    private fun resolveSetImage(context: Context, lastShownPath: String?): File? {
+        val root = File(context.filesDir, WallpaperStore.DIR)
+        lastShownPath?.let { path ->
+            val jpgPath = if (path.endsWith(".mp4")) path.removeSuffix(".mp4") + ".jpg" else path
+            WallpaperContentProvider.resolve(root, jpgPath)?.takeIf { it.extension == "jpg" }?.let { return it }
+        }
+        val store = WallpaperStore(context, Profile.WALLPAPER)
+        val gen = store.currentDir() ?: return null
+        return store.current(gen).firstNotNullOfOrNull { item ->
+            val jpg = if (item.file.endsWith(".mp4")) item.file.removeSuffix(".mp4") + ".jpg" else item.file
+            File(gen, jpg).takeIf { it.isFile && it.extension == "jpg" }
+        }
+    }
+
+    private fun saveFallback(file: File, bitmap: Bitmap): File? {
+        file.parentFile?.mkdirs()
+        val tmp = File(file.path + ".tmp")
+        return try {
+            FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+            if (!tmp.renameTo(file)) {
+                tmp.delete()
+                return null
+            }
+            pruneFallbacks(file.parentFile!!)
+            file
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not save ${file.name}", e)
+            tmp.delete()
+            null
+        }
+    }
+
+    private fun pruneFallbacks(folder: File) {
+        folder.listFiles().orEmpty()
+            .filter {
+                it.name.startsWith(FALLBACK_PREFIX) && it.name != "${FALLBACK_PREFIX}dark.jpg" &&
+                    !it.name.startsWith(CUSTOM_PREFIX) && it.extension == "jpg"
+            }
+            .sortedByDescending { it.lastModified() }
+            .drop(MAX_FALLBACK_FILES)
+            .forEach { it.delete() }
+    }
+
+    /** Separable box blur in place on a tiny bitmap (fast, no RenderScript needed). */
+    private fun boxBlur(bitmap: Bitmap, radius: Int) {
+        val w = bitmap.width
+        val h = bitmap.height
+        val src = IntArray(w * h)
+        val tmp = IntArray(w * h)
+        bitmap.getPixels(src, 0, w, 0, 0, w, h)
+        val div = radius * 2 + 1
+        for (y in 0 until h) {
+            val row = y * w
+            for (x in 0 until w) {
+                var r = 0; var g = 0; var b = 0
+                for (dx in -radius..radius) {
+                    val c = src[row + (x + dx).coerceIn(0, w - 1)]
+                    r += Color.red(c); g += Color.green(c); b += Color.blue(c)
+                }
+                tmp[row + x] = Color.rgb(r / div, g / div, b / div)
+            }
+        }
+        for (x in 0 until w) {
+            for (y in 0 until h) {
+                var r = 0; var g = 0; var b = 0
+                for (dy in -radius..radius) {
+                    val c = tmp[(y + dy).coerceIn(0, h - 1) * w + x]
+                    r += Color.red(c); g += Color.green(c); b += Color.blue(c)
+                }
+                src[y * w + x] = Color.rgb(r / div, g / div, b / div)
+            }
+        }
+        bitmap.setPixels(src, 0, w, 0, 0, w, h)
     }
 
     /** What [card] is; logged once drawn, or here when it's nothing TMDB has (with what it found instead). */

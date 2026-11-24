@@ -38,7 +38,9 @@ class GenresFragment : BaseSettingsFragment() {
         actions += action(ID_LOADING, R.drawable.ic_act_movie, getString(R.string.explore_loading), null).focusable(false).build()
         val client = TmdbClient(Settings.token, requireContext().cacheDir)
         val language = Settings.language
-        background({ Genres.options(client, language) }) { result ->
+        val animeLabel = getString(R.string.genre_anime)
+        val animeDesc = getString(R.string.genre_anime_desc)
+        background({ Genres.options(client, language, animeLabel, animeDesc) }) { result ->
             val fetched = result.getOrNull()
             if (fetched.isNullOrEmpty()) {
                 setActions(listOf(action(ID_ERROR, R.drawable.ic_act_info, getString(R.string.genres_load_failed), null).focusable(false).build()))
@@ -63,7 +65,7 @@ class GenresFragment : BaseSettingsFragment() {
         val mode = labels[labels.size - 2 + (if (shown.only) 1 else 0)].takeIf { custom != null } ?: labels[0]
         return listOf(choice(ID_MODE, R.drawable.ic_act_filter, R.string.genres_mode_title, mode, labels)) +
             options.mapIndexed { index, genre ->
-                checkbox(ID_GENRE_BASE + index, genre.name, null, genre.ids.any { it in shown.ids }).enabled(custom != null).build()
+                checkbox(ID_GENRE_BASE + index, genre.name, genre.description, genre.ids.any { it in shown.ids }).enabled(custom != null).build()
             }
     }
 

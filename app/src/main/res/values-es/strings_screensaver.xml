@@ -2,7 +2,7 @@
 <!-- Sofascreen, el salvapantallas (a partir del PR #13 de schumi2004) -->
 <resources>
     <string name="screensaver_title">Salvapantallas</string>
-    <string name="screensaver_description">Sofascreen muestra tus fondos como salvapantallas de la TV, sin necesidad de Projectivy. Usa los ajustes comunes, o puedes personalizarlos.</string>
+    <string name="screensaver_description">Muestra tus fondos como salvapantallas de la TV, sin necesidad de Projectivy. Usa los ajustes comunes, o puedes personalizarlos.</string>
     <string name="screensaver_empty">Aún no hay fondos: elige tus listas en Sofadrop</string>
     <string name="screensaver_preparing">Preparando los primeros fondos…</string>
     <string name="sofascreen_start">Iniciar salvapantallas</string>
@@ -13,7 +13,7 @@
     <string name="sofascreen_switch_on">Usar como salvapantallas de la TV</string>
     <string name="screensaver_try_desc">OK abre el título, ◀ ▶ pasan al fondo anterior o siguiente, cualquier otro botón lo cierra</string>
     <string name="screensaver_system_off">Sin activar</string>
-    <string name="screensaver_system_on">Activado: Sofascreen es el salvapantallas de la TV</string>
+    <string name="screensaver_system_on">Activado: Sofadrop es el salvapantallas de la TV</string>
     <string name="screensaver_system_opens_settings">abre los ajustes de salvapantallas de Android</string>
     <string name="screensaver_system_opens_steps">cómo activarlo</string>
     <string name="screensaver_system_opens_path">abre los ajustes de Android: Preferencias del dispositivo → Salvapantallas</string>
@@ -89,11 +89,11 @@
     <string name="screensaver_summary_manual">Inicio manual</string>
     <string name="screensaver_summary_clock">reloj</string>
     <string name="screensaver_summary_weather">tiempo</string>
-    <string name="screensaver_system_explain">Elige Sofascreen en los ajustes de salvapantallas de Android.</string>
+    <string name="screensaver_system_explain">Elige Sofadrop en los ajustes de salvapantallas de Android.</string>
     <string name="screensaver_system_explain_steps">Google TV no deja elegir los salvapantallas de otras apps en sus ajustes: se activa una vez desde un ordenador. Pulsa OK para ver los pasos. Sin ordenador, «Iniciar salvapantallas» lo muestra cuando quieras.</string>
-    <string name="screensaver_system_fire_tv">Desde Fire OS 8.1, Fire TV solo permite sus salvapantallas, así que Sofascreen se inicia aquí.</string>
+    <string name="screensaver_system_fire_tv">Desde Fire OS 8.1, Fire TV solo permite sus salvapantallas, así que el salvapantallas se inicia aquí.</string>
     <string name="screensaver_system_fire_tv_old">Para que arranque solo en esta versión de Fire OS hace falta un ordenador: los pasos están en la página de Sofadrop en GitHub. Si no, se inicia aquí.</string>
-    <string name="screensaver_system_explain_path">En los ajustes de Android, ve a Preferencias del dispositivo → Salvapantallas y elige Sofascreen. Los nombres pueden cambiar según la marca de la TV.</string>
+    <string name="screensaver_system_explain_path">En los ajustes de Android, ve a Preferencias del dispositivo → Salvapantallas y elige Sofadrop. Los nombres pueden cambiar según la marca de la TV.</string>
     <string name="screensaver_summary_on">Activado</string>
     <plurals name="sofascreen_ready">
         <item quantity="one">%d fondo listo</item>

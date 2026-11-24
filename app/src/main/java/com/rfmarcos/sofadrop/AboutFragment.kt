@@ -59,6 +59,19 @@ class AboutFragment : BaseSettingsFragment() {
     override fun onResume() {
         super.onResume()
         supporter?.refresh()
+        val log = GenerationLog.read(requireContext())
+        findActionById(ID_LOG)?.let { action ->
+            action.description = log?.lines()?.lastOrNull() ?: getString(R.string.about_log_none)
+            action.isEnabled = log != null
+            notifyActionChanged(findActionPositionById(ID_LOG))
+        }
+        findActionById(ID_CARD_LOG)?.let { action ->
+            val cards = FocusedLog.read(requireContext()).size
+            action.description = if (cards == 0) getString(R.string.focused_log_none)
+            else resources.getQuantityString(R.plurals.focused_log_cards, cards, cards)
+            action.isEnabled = cards > 0
+            notifyActionChanged(findActionPositionById(ID_CARD_LOG))
+        }
     }
 
     override fun onDestroy() {
@@ -96,7 +109,7 @@ class AboutFragment : BaseSettingsFragment() {
 
     private fun showSupporter(state: Supporter.State) {
         if (state == Supporter.State.UNAVAILABLE) {
-            Toast.makeText(requireContext(), R.string.supporter_unavailable, Toast.LENGTH_LONG).show()
+            if (isAdded) Toast.makeText(requireContext(), R.string.supporter_unavailable, Toast.LENGTH_LONG).show()
             return
         }
         supporterState = state

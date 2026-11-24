@@ -26,6 +26,14 @@ class WallpaperProviderService : Service() {
     /** Projectivy shows [focusedCard]'s wallpaper, which must give way to the set when the focus leaves it. */
     @Volatile private var showingCard = false
 
+    /** Focus is on a non-media card (app tile, YouTube clip, unmatched card) while not idle (issue #38). */
+    @Volatile private var onOtherCard = false
+
+    /** URI of the non-media fallback wallpaper currently on screen (null when showing the set or a focused card). */
+    @Volatile private var showingFallbackUri: String? = null
+    private val showingFallback get() = showingFallbackUri != null
+    @Volatile private var launcherIdle = false
+
     /**
      * Projectivy got the set since it bound this service. Started cold (after a reboot), it shows a black
      * background until it gets a list, and its first request is often a card event: answering that one
@@ -46,32 +54,97 @@ class WallpaperProviderService : Service() {
             val now = System.currentTimeMillis()
             if (now - Settings.projectivyAskedAt > ASKED_AT_EVERY_MILLIS) Settings.projectivyAskedAt = now
             val mode = Settings.focusedCard
+            val fallback = if (mode == Settings.FOCUSED_OFF) Settings.FOCUSED_FALLBACK_SET else Settings.focusedFallback
             when (event) {
                 is Event.ProgramCardFocused -> {
+                    launcherIdle = false
                     val card = if (mode == Settings.FOCUSED_OFF) null else FocusedWallpapers.card(event.title, event.type, event.iconUri)
                     if (mode != Settings.FOCUSED_OFF && card == null) FocusedLog.ignored(this@WallpaperProviderService, event.title, event.type, event.iconUri)
                     focusedCard = card
                     if (card != null) {
+                        onOtherCard = false
                         cardWallpaper(card, mode)?.let { return it }
-                        // Still drawn, or focus moved on: the wallpaper stays. Found nothing: as with any other card
-                        if (servedSet && (focusedCard !== card || !FocusedWallpapers.matchesNothing(card))) return emptyList()
+                        // Focus moved on while waiting: leave the newer card's state untouched
+                        if (focusedCard !== card) return if (servedSet) emptyList() else wallpapers()
+                        // Still being drawn: keep current wallpaper until done
+                        if (!FocusedWallpapers.matchesNothing(card)) return if (servedSet) emptyList() else wallpapers()
+                        // Found nothing on TMDB: treat as a non-media card so TimeElapsed keeps the fallback
+                        focusedCard = null
                     }
+                    if (fallback != Settings.FOCUSED_FALLBACK_SET) {
+                        onOtherCard = true
+                        return otherCardAnswer(fallback)
+                    }
+                    onOtherCard = false
                 }
-                is Event.CardFocused, is Event.LauncherIdleModeChanged -> focusedCard = null
-                is Event.TimeElapsed -> focusedCard?.let { card ->
-                    if (mode == Settings.FOCUSED_OFF) focusedCard = null
-                    // The same wait as the card's own request: answering the set now would win over it
-                    else cardWallpaper(card, mode)?.let { return it }
+                is Event.CardFocused -> {
+                    launcherIdle = false
+                    focusedCard = null
+                    val onApps = Settings.focusedFallbackScope == Settings.FOCUSED_SCOPE_ALL
+                    if (fallback != Settings.FOCUSED_FALLBACK_SET && onApps) {
+                        onOtherCard = true
+                        return otherCardAnswer(fallback)
+                    }
+                    onOtherCard = false
+                }
+                is Event.LauncherIdleModeChanged -> {
+                    launcherIdle = event.isIdle
+                    focusedCard = null
+                    if (event.isIdle) {
+                        // Idle mode always rotates the set, even when a fallback is set for non-media cards
+                        onOtherCard = false
+                        val wasShowing = showingCard || showingFallback
+                        showingCard = false
+                        showingFallbackUri = null
+                        if (wasShowing || !servedSet) return wallpapers()
+                        return emptyList()
+                    }
+                    if (servedSet) return emptyList()
+                }
+                is Event.TimeElapsed -> {
+                    if (mode == Settings.FOCUSED_OFF) {
+                        focusedCard = null
+                        onOtherCard = false
+                    } else {
+                        focusedCard?.let { card ->
+                            // The same wait as the card's own request: answering the set now would win over it
+                            cardWallpaper(card, mode)?.let { return it }
+                            if (focusedCard !== card) return if (servedSet) emptyList() else wallpapers()
+                            if (FocusedWallpapers.matchesNothing(card) && fallback != Settings.FOCUSED_FALLBACK_SET) {
+                                focusedCard = null
+                                onOtherCard = true
+                                return otherCardAnswer(fallback)
+                            }
+                            if (!FocusedWallpapers.matchesNothing(card)) return if (servedSet) emptyList() else wallpapers()
+                        }
+                        if (focusedCard == null && onOtherCard && !launcherIdle && fallback != Settings.FOCUSED_FALLBACK_SET) {
+                            return otherCardAnswer(fallback)
+                        }
+                    }
                 }
                 else -> if (servedSet) return emptyList()
             }
             // Away from the card: its wallpaper gives way to the set; otherwise card events change nothing
-            if (event !is Event.TimeElapsed && !showingCard && servedSet) return emptyList()
-            val leftCard = showingCard
+            if (event !is Event.TimeElapsed && !showingCard && !showingFallback && servedSet) return emptyList()
+            val leftCard = showingCard || showingFallback
             showingCard = false
+            showingFallbackUri = null
             // Given the set, Projectivy would show any of it: back to the one the card's replaced, and the
             // set again on the next TimeElapsed
             return wallpapers().let { set -> if (leftCard) shownBefore(set, WallpaperContentProvider.lastShown) else set }
+        }
+
+        /** Serves the non-media fallback wallpaper, avoiding redundant reloads when it's already on screen. */
+        private fun otherCardAnswer(fallback: String): List<Wallpaper> {
+            GenerateWallpapersWorker.schedule(this@WallpaperProviderService)
+            val wallpaper = FocusedWallpapers.otherCardWallpaper(
+                this@WallpaperProviderService, fallback, WallpaperContentProvider.lastShown,
+            ) ?: return if (servedSet) emptyList() else wallpapers()
+            if (showingFallbackUri == wallpaper.uri && servedSet) return emptyList()
+            showingCard = false
+            showingFallbackUri = wallpaper.uri
+            servedSet = true
+            return listOf(wallpaper)
         }
 
         /**
@@ -85,6 +158,7 @@ class WallpaperProviderService : Service() {
             } ?: return null
             if (focusedCard !== card) return null
             showingCard = true
+            showingFallbackUri = null
             return listOf(wallpaper)
         }
 

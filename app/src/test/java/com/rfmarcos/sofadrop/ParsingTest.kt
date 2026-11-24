@@ -54,6 +54,13 @@ class ParsingTest {
         assertEquals(TitleRef(MediaType.TV, 1396), items[2].ref)
         assertNull(items[3].ref) // shows without ids.tmdb are resolved through IMDb
         assertEquals("tt0944947", items[3].imdbId)
+
+        // Mixed list preserves rank across movies and shows
+        val ranked = obj(
+            """{"movies":[{"id":10,"rank":2,"mediatype":"movie"}],
+                "shows":[{"id":1,"rank":1,"ids":{"tmdb":20},"mediatype":"show"}]}"""
+        )
+        assertEquals(listOf(TitleRef(MediaType.TV, 20), TitleRef(MediaType.MOVIE, 10)), MdbListClient.parseItems(ranked).map { it.ref })
     }
 
     @Test

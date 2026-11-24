@@ -59,7 +59,7 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
      * its own wallpaper when they fail to load. Before anything was served, the previous set is kept.
      * The screensaver reads its files directly, so its previous set goes.
      */
-    fun publish(generation: File, wallpapers: List<StoredWallpaper>, partial: Boolean = false) {
+    fun publish(generation: File, wallpapers: List<StoredWallpaper>, partial: Boolean = false) = synchronized(lock) {
         // Atomically: a first set is published again and again while Sofascreen reads it
         val index = File(generation, "$INDEX.tmp")
         index.writeText(json.encodeToString(wallpapers))
@@ -68,7 +68,7 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
         val tmp = File(root, "current.tmp")
         tmp.writeText(generation.name)
         tmp.renameTo(currentFile)
-        if (partial) return
+        if (partial) return@synchronized
         // Only older sets: a newer one may be another generation still being written (two can overlap).
         // The focused cards' wallpapers stay: they're named after the settings they were drawn with
         root.listFiles()?.filter { it.isDirectory && it.name != keep && it.name != FocusedWallpapers.DIR && startedAt(it) < startedAt(generation) }?.forEach { it.deleteRecursively() }
@@ -84,10 +84,12 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
     fun markServed(dir: File? = currentDir()) {
         // Asked every few seconds: written only when it changes, and whole (publish reads it to keep that set)
         val name = dir?.name ?: return
-        if (servedFile.takeIf { it.exists() }?.readText()?.trim() == name) return
-        val tmp = File(root, "served.tmp")
-        tmp.writeText(name)
-        tmp.renameTo(servedFile)
+        synchronized(lock) {
+            if (servedFile.takeIf { it.exists() }?.readText()?.trim() == name) return
+            val tmp = File(root, "served.tmp")
+            tmp.writeText(name)
+            tmp.renameTo(servedFile)
+        }
     }
 
     fun discard(generation: File) {
@@ -124,6 +126,7 @@ class WallpaperStore(private val context: Context, profile: Profile = Profile.WA
     }
 
     companion object {
+        private val lock = Any()
         private const val INDEX = "index.json"
         const val DIR = "wallpapers"
         private const val SCREENSAVER_DIR = "screensaver"

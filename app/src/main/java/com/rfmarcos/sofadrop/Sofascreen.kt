@@ -27,6 +27,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -159,11 +160,16 @@ class SofascreenView(context: Context) : FrameLayout(context) {
 
     // --- Wallpapers ---
 
+    /** The current round's folder, captured once so a new set published mid-round doesn't break lookups. */
+    private var currentDir: File? = null
+
     /** The next wallpaper; a new round re-reads the set, so a newly published one is used. */
     private fun showNext(transition: Long = TRANSITION_MILLIS) {
         if (!running) return
         if (position + 1 >= playlist.size) {
-            val current = store.current()
+            val dir = store.currentDir()
+            currentDir = dir
+            val current = store.current(dir)
             playlist = if (Profile.SCREENSAVER.mixed) current.shuffled() else current
             position = -1
         }
@@ -184,7 +190,7 @@ class SofascreenView(context: Context) : FrameLayout(context) {
         empty.visibility = GONE
         position++
         val wallpaper = playlist[position]
-        val file = store.fileOf(wallpaper)
+        val file = currentDir?.let { File(it, wallpaper.file) } ?: store.fileOf(wallpaper)
         val width = resources.displayMetrics.widthPixels
         decoder.execute {
             val exists = file?.isFile == true
@@ -352,11 +358,14 @@ class SofascreenClock(private val context: Context) {
     }
 
     fun close() {
+        handler.removeCallbacksAndMessages(null)
         network.shutdownNow()
     }
 
     /** Sized for a screen of [width] by [height]; it goes on the side the wallpapers' text isn't. */
     fun build(width: Float, height: Float, textRight: Boolean) {
+        clock.animate().cancel()
+        clock.alpha = 1f
         val side = if (textRight) Gravity.START else Gravity.END
         clock.removeAllViews()
         times.clear()
@@ -428,6 +437,7 @@ class SofascreenClock(private val context: Context) {
             else -> params.gravity and Gravity.VERTICAL_GRAVITY_MASK
         }
         if (params.gravity == side or height) return
+        clock.animate().cancel()
         clock.animate().alpha(0f).setDuration(CLOCK_MOVE_MILLIS).withEndAction {
             params.gravity = side or height
             clock.layoutParams = params

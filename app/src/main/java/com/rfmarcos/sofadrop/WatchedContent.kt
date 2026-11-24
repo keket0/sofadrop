@@ -1,6 +1,7 @@
 package com.rfmarcos.sofadrop
 
 import android.util.Log
+import java.util.concurrent.ConcurrentHashMap
 
 /** What the user has watched, according to Trakt, Simkl, Plex and/or Jellyfin. */
 sealed class WatchStatus {
@@ -28,7 +29,7 @@ class WatchedContent private constructor(
     /** Simkl, Plex and Jellyfin: their whole history in one go. */
     private val others: List<Map<TitleRef, WatchStatus>>,
 ) {
-    private val traktProgress = mutableMapOf<Int, WatchStatus?>()
+    private val traktProgress = ConcurrentHashMap<Int, Any>()
 
     fun status(ref: TitleRef): WatchStatus? {
         val known = others.mapNotNull { it[ref] }
@@ -44,14 +45,22 @@ class WatchedContent private constructor(
             val traktId = traktShows[ref.tmdbId]
             val client = trakt
             if (traktId == null || client == null) null
-            else traktProgress.getOrPut(ref.tmdbId) {
-                val (completed, aired) = runCatching { client.showProgress(traktId) }.getOrNull() ?: return@getOrPut null
-                WatchStatus.episodes(completed, aired)
+            else {
+                val cached = traktProgress[ref.tmdbId]
+                if (cached != null) cached as? WatchStatus
+                else {
+                    // Don't cache network failures so another title or retry can still fetch progress
+                    val (completed, aired) = runCatching { client.showProgress(traktId) }.getOrNull() ?: return null
+                    val status = WatchStatus.episodes(completed, aired)
+                    traktProgress[ref.tmdbId] = status ?: NONE
+                    status
+                }
             }
         }
     }
 
     companion object {
+        private val NONE = Any()
         /**
          * Focused cards are drawn one by one, each with its own factory: they share the history for an hour.
          * A drawn card keeps its badge until the next day anyway (see FocusedWallpapers.filePrefix).
@@ -59,11 +68,20 @@ class WatchedContent private constructor(
         private const val REUSE_MILLIS = 60 * 60_000L
         @Volatile private var recent: Triple<Long, List<String>, WatchedContent>? = null
 
+        /** Drop the cached history when accounts connect or disconnect. */
+        fun clearCache() {
+            recent = null
+        }
+
         /** Null when no watch history is chosen (or none of its services could be read). */
-        fun load(trakt: TraktClient?, simkl: SimklClient?, plex: () -> PlexClient?, jellyfin: JellyfinClient?): WatchedContent? {
+        fun load(
+            trakt: TraktClient?, simkl: SimklClient?, plex: () -> PlexClient?, jellyfin: JellyfinClient?, fresh: Boolean = false,
+        ): WatchedContent? {
             val sources = Settings.watchSources
             if (sources.isEmpty()) return null
-            recent?.let { (at, from, content) -> if (from == sources && System.currentTimeMillis() - at < REUSE_MILLIS) return content }
+            if (!fresh) {
+                recent?.let { (at, from, content) -> if (from == sources && System.currentTimeMillis() - at < REUSE_MILLIS) return content }
+            }
             return read(sources, trakt, simkl, plex, jellyfin)?.also { recent = Triple(System.currentTimeMillis(), sources, it) }
         }
 

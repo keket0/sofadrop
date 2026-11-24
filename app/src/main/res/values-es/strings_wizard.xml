@@ -28,8 +28,8 @@
     <string name="wizard_lists_upcoming_desc">Películas que se estrenan pronto</string>
     <string name="wizard_lists_anime">Anime</string>
     <string name="wizard_lists_anime_desc">Tendencias de Simkl</string>
-    <string name="wizard_lists_own">Mi lista</string>
-    <string name="wizard_lists_connect">Conecta Trakt o Simkl con el móvil para usar tu watchlist</string>
+    <string name="wizard_lists_own">Mi biblioteca o listas</string>
+    <string name="wizard_lists_connect">Conecta Plex, Jellyfin, Trakt, Simkl, TMDB o MDBList para usar tus propias listas</string>
     <string name="wizard_lists_by_hand">Elegir listas una a una</string>
 
     <string name="wizard_done_title">Todo listo</string>

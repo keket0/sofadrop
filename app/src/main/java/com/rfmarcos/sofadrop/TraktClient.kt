@@ -41,13 +41,6 @@ class TraktClient(private val clientId: String, private val clientSecret: String
         data class Failed(val code: Int) : Poll()
     }
 
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-    private val jsonType = "application/json".toMediaType()
-
     // --- Device authentication ---
 
     fun requestDeviceCode(): DeviceCode {
@@ -79,7 +72,8 @@ class TraktClient(private val clientId: String, private val clientSecret: String
         })
         return when (code) {
             200 -> {
-                saveTokens(body as JsonObject)
+                val obj = body as? JsonObject ?: return Poll.Failed(code)
+                saveTokens(obj)
                 Settings.traktUser = username().orEmpty()
                 runCatching { refreshOwnLists() }
                 Poll.Connected
@@ -96,7 +90,8 @@ class TraktClient(private val clientId: String, private val clientSecret: String
         synchronized(TraktClient::class.java) {
             val refreshToken = Settings.traktRefreshToken
             if (refreshToken.isBlank()) return
-            if (Settings.traktExpiresAt - System.currentTimeMillis() > 24 * 3_600_000L) return
+            val now = System.currentTimeMillis()
+            if (Settings.traktExpiresAt - now > 24 * 3_600_000L) return
             val (code, body) = post("oauth/token", buildJsonObject {
                 put("refresh_token", refreshToken)
                 put("client_id", clientId)
@@ -104,9 +99,13 @@ class TraktClient(private val clientId: String, private val clientSecret: String
                 put("redirect_uri", REDIRECT_URI)
                 put("grant_type", "refresh_token")
             })
-            if (code == 200) saveTokens(body as JsonObject)
-            // Rejected: signed out, unless another refresh (another process) replaced it meanwhile
-            else if ((code == 400 || code == 401) && Settings.traktRefreshToken == refreshToken) Settings.clearTraktSession()
+            when {
+                code == 200 -> saveTokens(body as? JsonObject ?: throw IOException("Trakt refresh returned empty body"))
+                // Rejected: signed out, unless another refresh (another process) replaced it meanwhile
+                (code == 400 || code == 401) && Settings.traktRefreshToken == refreshToken -> Settings.clearTraktSession()
+                // Transient 5xx while token is already expired: abort instead of hitting 401 and clearing the session
+                Settings.traktExpiresAt <= now -> throw IOException("Trakt token refresh failed (HTTP $code)")
+            }
         }
     }
 
@@ -261,7 +260,7 @@ class TraktClient(private val clientId: String, private val clientSecret: String
                 return null
             }
             if (!response.isSuccessful) throw IOException("Trakt HTTP ${response.code} for $path")
-            return response.body?.string()?.let { json.parseToJsonElement(it) }
+            return response.body?.string()?.takeIf { it.isNotBlank() }?.let { json.parseToJsonElement(it) }
         }
     }
 
@@ -278,6 +277,12 @@ class TraktClient(private val clientId: String, private val clientSecret: String
         private const val API_URL = "https://api.trakt.tv/"
         private const val USER_AGENT = "Sofadrop/1.0"
         private const val PKCE_BASE64 = Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+        private val http = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+        private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+        private val jsonType = "application/json".toMediaType()
         // Never opened (device flow), but the token refresh must send the URI registered for the Trakt app
         const val REDIRECT_URI = "https://github.com/rfmarcos/projectivy-plugin-sofadrop"
 

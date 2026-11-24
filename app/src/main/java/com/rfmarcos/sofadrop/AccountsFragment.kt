@@ -35,6 +35,7 @@ class AccountsFragment : BaseSettingsFragment() {
         super.onCreate(savedInstanceState)
         // The QR logins are shown in this fragment's own manager, so their result comes back here
         childFragmentManager.setFragmentResultListener(QrDialog.RESULT_KEY, this) { _, _ ->
+            WatchedContent.clearCache()
             refreshRows()
             if (plexLogin && Settings.plexSignedIn && !Settings.plexConnected) open(PlexServersFragment())
             plexLogin = false
@@ -130,15 +131,18 @@ class AccountsFragment : BaseSettingsFragment() {
         return true
     }
 
-    /** Sign out and drop the lists that only work with that account, so wallpapers don't keep using them. */
+    /** Sign out and drop the lists that only work with that account across all profiles. */
     private fun disconnect(provider: SourceProvider) {
+        val allProfiles = listOf(Profile.GENERAL, Profile.WALLPAPER, Profile.SCREENSAVER)
+        WatchedContent.clearCache()
         when (provider) {
             SourceProvider.TRAKT -> {
                 Settings.clearTraktSession()
                 // Like MDBList: the account's own lists go, the public ones stay
                 val own = Settings.traktLists.filter { it.own }
                 Settings.traktLists -= own.toSet()
-                profile.lists -= own.map { it.key }.toSet()
+                val keys = own.map { it.key }.toSet()
+                allProfiles.forEach { it.lists -= keys }
             }
             SourceProvider.SIMKL -> Settings.clearSimklSession()
             SourceProvider.TMDB -> Settings.clearTmdbSession()
@@ -150,7 +154,7 @@ class AccountsFragment : BaseSettingsFragment() {
                 Settings.clearMdbListSession()
                 Settings.mdbListKey = ""
                 Settings.mdbLists = Settings.mdbLists.filter { it.path.isNotEmpty() }
-                profile.lists -= accountKeys
+                allProfiles.forEach { it.lists -= accountKeys }
                 return
             }
         }
@@ -161,7 +165,8 @@ class AccountsFragment : BaseSettingsFragment() {
             SourceProvider.PLEX -> Sources.PLEX
             else -> Sources.TMDB
         }
-        profile.lists -= lists.filter { it.needsAccount }.map { it.key }.toSet()
+        val accountKeys = lists.filter { it.needsAccount }.map { it.key }.toSet()
+        allProfiles.forEach { it.lists -= accountKeys }
     }
 
     private fun downloadImdb() {

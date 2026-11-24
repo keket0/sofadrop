@@ -30,9 +30,9 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
         "simkl:trending_shows" -> trending("tv")
         "simkl:plantowatch" -> library("plantowatch").sortedByDescending { it.addedAt }.asSequence().map { it.ref }
         "simkl:watching" -> library("watching").sortedByDescending { it.watchedAt }.asSequence().map { it.ref }
-        "simkl:recommended_movies" -> recommendations("movies").asSequence()
-        "simkl:recommended_shows" -> recommendations("tv").asSequence()
-        "simkl:recommended_anime" -> recommendations("anime").asSequence()
+        "simkl:recommended_movies" -> recommendations("movies")
+        "simkl:recommended_shows" -> recommendations("tv")
+        "simkl:recommended_anime" -> recommendations("anime")
         else -> emptySequence()
     }.distinct().take(limit * 2).toList()
 
@@ -52,7 +52,7 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
      * (custom lists don't always have one) are looked up by their IMDb id.
      */
     private fun ref(type: MediaType, tmdbId: String?, imdbId: String?, anime: Boolean): TitleRef? {
-        val byImdb = { tmdb?.takeIf { imdbId != null }?.get("find/$imdbId?external_source=imdb_id")
+        val byImdb = { tmdb?.takeIf { !imdbId.isNullOrBlank() }?.get("find/$imdbId?external_source=imdb_id")
             ?.objects(if (type == MediaType.MOVIE) "movie_results" else "tv_results")?.firstOrNull()?.int("id")
             ?.let { TitleRef(type, it) } }
         if (anime && type == MediaType.TV) byImdb()?.let { return it }
@@ -61,29 +61,31 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
 
     // --- Recommendations (PRO and VIP) ---
 
-    private val recommendationCache = ConcurrentHashMap<String, List<TitleRef>>()
+    private val recommendationCache = ConcurrentHashMap<String, List<ListItem>>()
 
     /**
      * The account's personal recommendations of a media type ("movies", "tv" or "anime"): Simkl keeps them as
      * custom lists of type "recommendations", two per type (V1 and V2), here taken in turns. Read once per
-     * generation (a list read further asks again); a free account throws [SimklPremiumException].
+     * generation and resolved to TMDB lazily as needed; a free account throws [SimklPremiumException].
      */
-    private fun recommendations(mediaType: String): List<TitleRef> = recommendationCache.getOrPut(mediaType) {
-        if (!Settings.simklConnected) return emptyList()
-        val account = (get("users/settings") as? JsonObject)?.obj("account")
-        if (account?.str("type") == "free") throw SimklPremiumException()
-        val userId = account?.int("id") ?: return emptyList()
-        val lists = get("lists/user/$userId", "limit" to "100") as? JsonObject ?: return emptyList()
-        // A free account gets a 200 with this error instead of lists
-        if (lists.str("error") == "premium_only") throw SimklPremiumException()
-        val items = parseRecommendationLists(lists, mediaType).map { id ->
-            val list = get("lists/$id", "limit" to "500") as? JsonObject
-            if (list?.str("error") == "premium_only") throw SimklPremiumException()
-            list?.let { parseListItems(it) }.orEmpty()
+    private fun recommendations(mediaType: String): Sequence<TitleRef> {
+        val items = recommendationCache.getOrPut(mediaType) {
+            if (!Settings.simklConnected) return emptySequence()
+            val account = (get("users/settings") as? JsonObject)?.obj("account")
+            if (account?.str("type") == "free") throw SimklPremiumException()
+            val userId = account?.int("id") ?: return emptySequence()
+            val lists = get("lists/user/$userId", "limit" to "100") as? JsonObject ?: return emptySequence()
+            // A free account gets a 200 with this error instead of lists
+            if (lists.str("error") == "premium_only") throw SimklPremiumException()
+            val groups = parseRecommendationLists(lists, mediaType).map { id ->
+                val list = get("lists/$id", "limit" to "500") as? JsonObject
+                if (list?.str("error") == "premium_only") throw SimklPremiumException()
+                list?.let { parseListItems(it) }.orEmpty()
+            }
+            // V1, V2, V1, V2…: both engines' best picks first
+            (0 until (groups.maxOfOrNull { it.size } ?: 0)).flatMap { i -> groups.mapNotNull { it.getOrNull(i) } }.distinct()
         }
-        // V1, V2, V1, V2…: both engines' best picks first
-        val turns = (0 until (items.maxOfOrNull { it.size } ?: 0)).flatMap { i -> items.mapNotNull { it.getOrNull(i) } }
-        turns.distinct().mapNotNull { ref(it.type, it.tmdbId, it.imdbId, it.anime) }.distinct()
+        return items.asSequence().mapNotNull { ref(it.type, it.tmdbId, it.imdbId, it.anime) }
     }
 
     // --- The user's library ---
@@ -111,7 +113,9 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
     /** What the account has watched: completed titles and episode progress of the ones being watched. */
     fun watched(): Map<TitleRef, WatchStatus> {
         val completed = library("completed").associate { it.ref to WatchStatus.Watched }
-        val watching = library("watching").filter { it.watched > 0 }.associate { it.ref to WatchStatus.InProgress(it.watched, it.total) }
+        val watching = library("watching").mapNotNull { item ->
+            WatchStatus.episodes(item.watched, item.total)?.let { item.ref to it }
+        }.toMap()
         return watching + completed
     }
 
@@ -192,15 +196,19 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
         synchronized(SimklClient::class.java) {
             val refreshToken = Settings.simklRefreshToken
             if (refreshToken.isBlank()) return
-            if (Settings.simklExpiresAt - System.currentTimeMillis() > 86_400_000L) return
+            val now = System.currentTimeMillis()
+            if (Settings.simklExpiresAt - now > 86_400_000L) return
             val (code, body) = post(
                 "oauth2/token",
                 "grant_type" to "refresh_token",
                 "refresh_token" to refreshToken,
                 "client_id" to clientId,
             )
-            if (code == 200 && body?.str("access_token") != null) save(body)
-            else if ((code == 400 || code == 401) && Settings.simklRefreshToken == refreshToken) Settings.clearSimklSession()
+            when {
+                code == 200 && body?.str("access_token") != null -> save(body)
+                (code == 400 || code == 401) && Settings.simklRefreshToken == refreshToken -> Settings.clearSimklSession()
+                Settings.simklExpiresAt <= now -> throw IOException("Simkl token refresh failed (HTTP $code)")
+            }
         }
     }
 
@@ -264,7 +272,7 @@ class SimklClient(private val clientId: String, private val tmdb: TmdbClient? = 
                 // shortcut: anime without a TMDB link on Simkl is skipped; resolve via MAL ids if users ask
                 val tmdb = media?.obj("ids")?.str("tmdb")?.toIntOrNull() ?: return@mapNotNull null
                 val movie = item.obj("movie") != null || item.str("anime_type") == "movie"
-                val total = (item.int("total_episodes_count") ?: 0) - (item.int("not_aired_episodes_count") ?: 0)
+                val total = ((item.int("total_episodes_count") ?: 0) - (item.int("not_aired_episodes_count") ?: 0)).coerceAtLeast(0)
                 LibraryItem(
                     TitleRef(if (movie) MediaType.MOVIE else MediaType.TV, tmdb),
                     item.str("added_to_watchlist_at").orEmpty(),

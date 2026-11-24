@@ -357,6 +357,16 @@ class Profile private constructor(val id: String, private val prefix: String) {
     val opensPlatforms: Boolean
         get() = if (twoSets) clickPlatforms.isNotEmpty() else WALLPAPER.clickPlatforms.isNotEmpty() || SCREENSAVER.clickPlatforms.isNotEmpty()
 
+    /** This set opens Jellyfin for titles on the server: with one set, if either place does. */
+    val opensJellyfin: Boolean
+        get() = if (twoSets) Settings.clickApp(clickFallback) == TitleApp.JELLYFIN
+            else Settings.clickApp(WALLPAPER.clickFallback) == TitleApp.JELLYFIN || Settings.clickApp(SCREENSAVER.clickFallback) == TitleApp.JELLYFIN
+
+    /** This set opens Plex for titles on watch.plex.tv: with one set, if either place does. */
+    val opensPlex: Boolean
+        get() = if (twoSets) Settings.clickApp(clickFallback) == TitleApp.PLEX
+            else Settings.clickApp(WALLPAPER.clickFallback) == TitleApp.PLEX || Settings.clickApp(SCREENSAVER.clickFallback) == TitleApp.PLEX
+
     // --- Order ---
 
     private val orderKey get() = if (isScreensaver) KEY_SCREENSAVER_SHUFFLE else KEY_WALLPAPER_MIX
@@ -413,6 +423,8 @@ class Profile private constructor(val id: String, private val prefix: String) {
                 "inline".takeIf { showSource && showProviders && !sourceFallback && sourceInline },
                 // Its pages are looked up when generating
                 "platform".takeIf { opensPlatforms },
+                "jellyfinclick".takeIf { opensJellyfin && Settings.jellyfinConnected },
+                "plexclick".takeIf { opensPlex && Settings.plexSignedIn },
                 "dups".takeIf { !skipDuplicates }, "logo:$logoMode".takeIf { logoMode != LOGO_TEXT }, "synopsis:$synopsisMode".takeIf { synopsisMode != SYNOPSIS_HIDE },
                 "titlelang:$titleLanguage".takeIf { titleLanguage != LANGUAGE_AUTO }, "synopsislang:$synopsisLanguage".takeIf { synopsisLanguage != LANGUAGE_AUTO },
                 "ratings:$ratingSourcesKey:$mdbListAvailable".takeIf { ratingSourcesKey != RatingSource.TMDB.key },

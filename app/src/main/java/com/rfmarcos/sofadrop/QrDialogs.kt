@@ -42,6 +42,9 @@ abstract class QrDialog : DialogFragment() {
     protected abstract val titleRes: Int
     protected abstract val iconRes: Int
     protected open val buttonRes: Int = R.string.cancel
+    /** Optional second button beside the close/cancel button (0 = hidden). */
+    protected open val secondaryButtonRes: Int = 0
+    protected open fun onSecondaryClick() = Unit
     /** Side of the QR box; long texts need more room than a short link to be scanned from the sofa. */
     protected open val qrSizeDp: Int = 168
     protected open val errorCorrection: ErrorCorrectionLevel = ErrorCorrectionLevel.M
@@ -74,6 +77,16 @@ abstract class QrDialog : DialogFragment() {
             setText(buttonRes)
             setOnClickListener { dismissAllowingStateLoss() }
             requestFocus()
+        }
+        if (secondaryButtonRes != 0) {
+            view.findViewById<Button>(R.id.dialog_secondary).apply {
+                visibility = View.VISIBLE
+                setText(secondaryButtonRes)
+                setOnClickListener {
+                    onSecondaryClick()
+                    dismissAllowingStateLoss()
+                }
+            }
         }
         return view
     }
@@ -460,6 +473,12 @@ class LinkQrDialog : QrDialog() {
     override val titleRes get() = requireArguments().getInt(ARG_TITLE)
     override val iconRes = R.drawable.ic_act_phone
     override val buttonRes = R.string.close
+    override val secondaryButtonRes get() = requireArguments().getInt(ARG_SECONDARY_BUTTON, 0)
+
+    override fun onSecondaryClick() {
+        val key = requireArguments().getString(ARG_RESULT_KEY) ?: return
+        parentFragmentManager.setFragmentResult(key, Bundle.EMPTY)
+    }
 
     override fun start() {
         val url = requireArguments().getString(ARG_URL).orEmpty()
@@ -471,9 +490,17 @@ class LinkQrDialog : QrDialog() {
         private const val ARG_URL = "url"
         private const val ARG_TITLE = "title"
         private const val ARG_TEXT = "text"
+        private const val ARG_SECONDARY_BUTTON = "secondary_button"
+        private const val ARG_RESULT_KEY = "result_key"
 
-        fun newInstance(url: String, title: Int, text: Int) = LinkQrDialog().apply {
-            arguments = bundleOf(ARG_URL to url, ARG_TITLE to title, ARG_TEXT to text)
+        fun newInstance(url: String, title: Int, text: Int, secondaryButton: Int = 0, resultKey: String? = null) = LinkQrDialog().apply {
+            arguments = bundleOf(
+                ARG_URL to url,
+                ARG_TITLE to title,
+                ARG_TEXT to text,
+                ARG_SECONDARY_BUTTON to secondaryButton,
+                ARG_RESULT_KEY to resultKey,
+            )
         }
     }
 }

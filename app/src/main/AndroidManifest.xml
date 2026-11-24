@@ -32,6 +32,7 @@
         <package android:name="com.nuvio.app" />
         <package android:name="com.stremio.one" />
         <package android:name="org.jellyfin.androidtv" />
+        <package android:name="com.plexapp.android" />
         <package android:name="app.wuplay.androidtv" />
         <package android:name="com.google.android.youtube.tv" />
         <!-- Forks of those apps under another package, found by the links they open (TitleApp.probe) -->
@@ -65,6 +66,7 @@
         <package android:name="com.amazon.avod.thirdpartyclient" />
         <package android:name="com.disney.disneyplus" />
         <package android:name="com.wbd.stream" />
+        <package android:name="com.wbd.hbomax" />
         <package android:name="com.apple.atve.androidtv.appletv" />
         <package android:name="com.mubi" />
         <package android:name="com.crunchyroll.crunchyroid" />

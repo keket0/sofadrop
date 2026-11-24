@@ -16,7 +16,8 @@ class JellyfinTest {
             listOf("http://192.168.1.10:8096", "https://192.168.1.10", "http://192.168.1.10"),
             JellyfinClient.addressCandidates(" 192.168.1.10/ "),
         )
-        assertEquals(listOf("http://jellyfin.lan:8920"), JellyfinClient.addressCandidates("jellyfin.lan:8920"))
+        assertEquals(listOf("https://jellyfin.lan:8920", "http://jellyfin.lan:8920"), JellyfinClient.addressCandidates("jellyfin.lan:8920"))
+        assertEquals(listOf("http://jellyfin.lan:8096", "https://jellyfin.lan:8096"), JellyfinClient.addressCandidates("jellyfin.lan:8096"))
         assertEquals(listOf("https://media.example.com/jellyfin"), JellyfinClient.addressCandidates("https://media.example.com/jellyfin/"))
         assertEquals(emptyList<String>(), JellyfinClient.addressCandidates("  "))
     }
@@ -67,7 +68,9 @@ class JellyfinTest {
                "UserData": {"UnplayedItemCount": 0, "PlayedPercentage": 100, "Played": true}},
               {"Id": "c3", "Type": "Series", "ProviderIds": {"Tmdb": "1399"}, "RecursiveItemCount": 10,
                "UserData": {"UnplayedItemCount": 10, "Played": false}},
-              {"Id": "d4", "Type": "Movie", "ProviderIds": {"Tmdb": "603"}, "UserData": {"PlayCount": 1, "Played": true}}
+              {"Id": "d4", "Type": "Movie", "ProviderIds": {"Tmdb": "603"}, "UserData": {"PlayCount": 1, "Played": true}},
+              {"Id": "e5", "Type": "Series", "ProviderIds": {"Tmdb": "94605"}, "RecursiveItemCount": 9,
+               "UserData": {"Played": true}}
             ]}
             """
         )
@@ -76,6 +79,7 @@ class JellyfinTest {
         assertEquals(WatchStatus.Watched, items[1].watched)
         assertNull(items[2].watched)
         assertEquals(true, items[3].played)
+        assertEquals(WatchStatus.Watched, items[4].watched)
     }
 
     @Test

@@ -2,9 +2,7 @@ package com.rfmarcos.sofadrop
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.time.LocalDate
 import java.util.concurrent.ConcurrentHashMap
 
 enum class MediaType(val path: String) { MOVIE("movie"), TV("tv") }
@@ -73,15 +71,16 @@ class TmdbCatalog(
     private val languageCode = Languages.code(language)
     private val texts = Languages.texts(language)
     private val details = ConcurrentHashMap<TitleRef, JsonObject>()
+    private val images = ConcurrentHashMap<TitleRef, JsonObject>()
     private val translations = ConcurrentHashMap<TitleRef, List<JsonObject>>()
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    private val today = dateFormat.format(Calendar.getInstance().time)
+    private val todayDate = LocalDate.now()
+    private val today = todayDate.toString()
     /** Oldest release / air date allowed for an age limit (months, or a year), or null without one. */
     private fun cutoff(maxAge: Int): String? = when {
         maxAge <= 0 -> null
         Settings.isYear(maxAge) -> "$maxAge-01-01"
-        else -> dateFormat.format(Calendar.getInstance().apply { add(Calendar.MONTH, -maxAge) }.time)
+        else -> todayDate.minusMonths(maxAge.toLong()).toString()
     }
 
     /**
@@ -99,7 +98,7 @@ class TmdbCatalog(
         val filters = profile.filtersFor(source)
         val cutoff = cutoff(filters.maxAgeMonths)
         fun load(count: Int) = when (source.provider) {
-            SourceProvider.TMDB -> tmdbRefs(source.key, count, cutoff)
+            SourceProvider.TMDB -> tmdbRefs(source.key, count, cutoff, filters.genres)
             SourceProvider.TRAKT -> trakt?.titles(source.key, count).orEmpty()
             SourceProvider.SIMKL -> simkl?.titles(source.key, count).orEmpty()
             SourceProvider.JELLYFIN -> jellyfin?.titles(source.key, count).orEmpty()
@@ -141,12 +140,12 @@ class TmdbCatalog(
 
     // --- TMDB lists ---
 
-    private fun tmdbRefs(key: String, count: Int, cutoff: String?): List<TitleRef> {
+    private fun tmdbRefs(key: String, count: Int, cutoff: String?, genres: GenreFilter): List<TitleRef> {
         val account = "account/${Settings.tmdbAccountId}"
         val session = "session_id=${Settings.tmdbSessionId}&sort_by=created_at.desc"
         return when (key) {
-            "tmdb:trending_movies" -> trending(MediaType.MOVIE, cutoff, count)
-            "tmdb:trending_tv" -> trending(MediaType.TV, cutoff, count)
+            "tmdb:trending_movies" -> trending(MediaType.MOVIE, cutoff, count, genres)
+            "tmdb:trending_tv" -> trending(MediaType.TV, cutoff, count, genres)
             "tmdb:popular_movies" -> pages("movie/popular?region=$region", MediaType.MOVIE, count)
             "tmdb:popular_tv" -> pages("tv/popular", MediaType.TV, count)
             "tmdb:now_playing" -> pages("movie/now_playing?region=$region", MediaType.MOVIE, count)
@@ -163,17 +162,24 @@ class TmdbCatalog(
     }
 
     /** Weekly trending + popular titles within the age limit, ranked by weighted rating (as TMDB.py). */
-    private fun trending(type: MediaType, cutoff: String?, count: Int): List<TitleRef> {
+    private fun trending(type: MediaType, cutoff: String?, count: Int, genres: GenreFilter = GenreFilter()): List<TitleRef> {
         val dates = cutoff?.let {
             if (type == MediaType.MOVIE) "&release_date.gte=$it&release_date.lte=$today" else "&first_air_date.gte=$it&first_air_date.lte=$today"
         }.orEmpty()
+        // Keep documentaries/animation out of generic trending, unless the user explicitly filtered for them
+        val allowDocs = genres.only && DOCUMENTARY_ID in genres.ids
+        val allowAnim = genres.only && (Genres.ANIMATION_ID in genres.ids || Genres.ANIME_ID in genres.ids)
+        val without = buildList {
+            if (!allowDocs) add(DOCUMENTARY_ID)
+            if (type == MediaType.TV && !allowAnim) add(Genres.ANIMATION_ID)
+        }.takeIf { it.isNotEmpty() }?.joinToString("|", prefix = "&without_genres=").orEmpty()
         val discover = if (type == MediaType.MOVIE) {
             "discover/movie?sort_by=popularity.desc&language=$language&include_adult=false" +
                 "&with_release_type=4|5|6&include_video=false&vote_average.gte=1&vote_count.gte=50" +
-                "&with_runtime.gte=15&without_genres=99$dates"
+                "&with_runtime.gte=15$without$dates"
         } else {
             "discover/tv?sort_by=popularity.desc&language=$language&include_adult=false" +
-                "&vote_average.gte=1&vote_count.gte=50&with_runtime.gte=15&without_genres=99|16$dates"
+                "&vote_average.gte=1&vote_count.gte=50&with_runtime.gte=15$without$dates"
         }
         val items = linkedMapOf<Int, JsonObject>()
         // Both sources overlap, so read about as many pages of each as the list needs (20 titles per page)
@@ -211,14 +217,15 @@ class TmdbCatalog(
     private fun exclusion(ref: TitleRef, cutoff: String?, filters: FilterValues, blocked: Set<TitleRef>): Exclusion? {
         // First, and without its TMDB details
         if (ref in blocked) return Exclusion.BLOCKED
-        val item = details(ref) ?: return null
+        val item = details(ref) ?: return Exclusion.NO_IMAGE
+        val animeOverride = filters.genres.only && Genres.ANIME_ID in filters.genres.ids && Genres.isAnime(item)
         return when {
-            filters.globalHits && isLocalMarket(item) -> Exclusion.LOCAL_MARKET
+            filters.globalHits && !animeOverride && isLocalMarket(item) -> Exclusion.LOCAL_MARKET
             isTooOld(ref.type, item, cutoff, Settings.isYear(filters.maxAgeMonths)) -> Exclusion.TOO_OLD
             profile.excludeAdult && isAdult(ref, item) -> Exclusion.ADULT
             // Unrated titles (mostly not released yet) pass
             profile.maxRatingAge > 0 && (Certifications.minimumAge(ref.type, item, region) ?: 0) > profile.maxRatingAge -> Exclusion.AGE_RATING
-            !filters.genres.allows(item.objects("genres").mapNotNull { it.int("id") }) -> Exclusion.GENRE
+            !filters.genres.allows(Genres.effectiveIds(item)) -> Exclusion.GENRE
             isLowRated(item, filters.minRating) -> Exclusion.LOW_RATING
             // Last: it costs an images request per title
             profile.requireLogo && logoPath(ref, item) == null -> Exclusion.NO_LOGO
@@ -275,7 +282,7 @@ class TmdbCatalog(
         val type = ref.type
         val item = details(ref) ?: return null
         if (item.str(titleKey(type)) == null) return null
-        val backdrop = textlessBackdrop(ref, item.str("backdrop_path")) ?: return null
+        val backdrop = textlessBackdrop(ref, item) ?: return null
 
         val extraInfo = if (type == MediaType.MOVIE) {
             val runtime = item.int("runtime") ?: 0
@@ -303,7 +310,7 @@ class TmdbCatalog(
             // The genres a list was filtered by first: TMDB's own order is arbitrary, so the ones shown
             // could otherwise be ones that played no part in it
             genres = item.objects("genres")
-                .sortedByDescending { it.int("id") in matchedGenres }
+                .sortedByDescending { id -> id.int("id").let { it in matchedGenres || (it == Genres.ANIMATION_ID && Genres.ANIME_ID in matchedGenres) } }
                 .mapNotNull { Languages.genreName(language, it.int("id"), it.str("name")) }
                 .take(2)
                 .joinToString(", "),
@@ -336,9 +343,18 @@ class TmdbCatalog(
         language,
     )
 
+    /** Single cached /images request per title, covering textless backdrops (null) and candidate logo languages. */
+    private fun images(ref: TitleRef, item: JsonObject): JsonObject? = images[ref] ?: run {
+        val originalLanguage = item.str("original_language").orEmpty()
+        val code = partsFor(ref, item).title?.let(Languages::code) ?: originalLanguage
+        val languages = listOf(code, originalLanguage, "en", "null").filter { it.isNotBlank() }.distinct().joinToString(",")
+        client.get("${ref.type.path}/${ref.tmdbId}/images?include_image_language=$languages")?.also { images[ref] = it }
+    }
+
     /** Prefer a backdrop without baked-in text, so it doesn't clash with the logo. */
-    private fun textlessBackdrop(ref: TitleRef, default: String?): String? {
-        val textless = client.get("${ref.type.path}/${ref.tmdbId}/images?include_image_language=null")
+    private fun textlessBackdrop(ref: TitleRef, item: JsonObject): String? {
+        val default = item.str("backdrop_path")
+        val textless = images(ref, item)
             ?.objects("backdrops")
             ?.filter { it.str("iso_639_1") == null && (it.int("width") ?: 0) >= 1920 }
             ?.mapNotNull { it.str("file_path") }
@@ -347,11 +363,8 @@ class TmdbCatalog(
     }
 
     private fun logoPath(ref: TitleRef, item: JsonObject): String? {
-        val originalLanguage = item.str("original_language").orEmpty()
         val title = partsFor(ref, item).title
-        val code = title?.let(Languages::code) ?: originalLanguage
-        val logos = client.get("${ref.type.path}/${ref.tmdbId}/images?include_image_language=$code,$originalLanguage,en")
-            ?.objects("logos").orEmpty()
+        val logos = images(ref, item)?.objects("logos").orEmpty()
         return pickLogo(logos, item, ref.type, { translations(ref) }, title, language, profile.logoFallback, englishOnly(ref, item))
     }
 
@@ -377,12 +390,12 @@ class TmdbCatalog(
         client.get("${ref.type.path}/${ref.tmdbId}/translations")?.objects("translations").orEmpty()
     }
 
-    /** Streaming services (not rent or buy) that have the title in the streaming country, TMDB's first. */
-    private fun providers(ref: TitleRef): List<JsonObject> =
-        client.get("${ref.type.path}/${ref.tmdbId}/watch/providers")
-            ?.obj("results")?.obj(region)?.objects("flatrate")
-            ?.sortedBy { it.int("display_priority") ?: 999 }
-            .orEmpty()
+    /** Streaming services (subscription, free and ad-supported, not rent or buy) in the streaming country. */
+    private fun providers(ref: TitleRef): List<JsonObject> {
+        val country = client.get("${ref.type.path}/${ref.tmdbId}/watch/providers")
+            ?.obj("results")?.obj(region) ?: return emptyList()
+        return combineProviders(country)
+    }
 
     private fun providerLogoPaths(providers: List<JsonObject>): List<String> {
         val logos = mutableListOf<String>()
@@ -401,6 +414,7 @@ class TmdbCatalog(
 
     companion object {
         private const val ENGLISH = "en-US"
+        private const val DOCUMENTARY_ID = 99
         private const val RANKING_MIN_VOTES = 300
         private const val RANKING_PRIOR = 6.5
         private const val MIN_VOTES_OTHER_LANGUAGES = 1000
@@ -446,6 +460,17 @@ class TmdbCatalog(
         }
         private val EXCLUDED_KEYWORDS = setOf("adult")
 
+        /** Combines flatrate, free and ad-supported watch providers (in that priority), deduplicated by provider_id. */
+        fun combineProviders(country: JsonObject): List<JsonObject> {
+            val seen = mutableSetOf<Int>()
+            return listOf("flatrate", "free", "ads").flatMap { bucket ->
+                country.objects(bucket).sortedBy { it.int("display_priority") ?: 999 }
+            }.filter { provider ->
+                val id = provider.int("provider_id") ?: return@filter true
+                seen.add(id)
+            }
+        }
+
         /**
          * When the title comes out in [country], "yyyy-MM-dd", if that's [today] or later (a past date says
          * nothing the year doesn't): a movie's first cinema release there (types 2, 3), else its digital one
@@ -456,7 +481,8 @@ class TmdbCatalog(
             val date = if (type == MediaType.TV) item.obj("next_episode_to_air")?.str("air_date") else {
                 val releases = item.obj("release_dates")?.objects("results")?.firstOrNull { it.str("iso_3166_1") == country }
                     ?.objects("release_dates").orEmpty()
-                fun first(types: Set<Int>) = releases.filter { it.int("type") in types }.mapNotNull { it.str("release_date")?.take(10) }.minOrNull()
+                fun first(types: Set<Int>) = releases.filter { it.int("type") in types }
+                    .mapNotNull { it.str("release_date")?.take(10)?.takeIf(DATE::matches) }.minOrNull()
                 first(setOf(2, 3))?.takeIf { it >= today } ?: first(setOf(4))
             }
             return date?.take(10)?.takeIf { DATE.matches(it) && it >= today }
@@ -497,6 +523,12 @@ class TmdbCatalog(
                 youTube.firstOrNull { it.isOfficialTrailer() && it.str("iso_639_1") == language }?.let { return it.str("key") }
             }
             if (!anyTrailer) return null
+            for (language in languages) {
+                youTube.firstOrNull { it.str("type") == "Trailer" && it.str("iso_639_1") == language }?.let { return it.str("key") }
+            }
+            for (language in languages) {
+                youTube.firstOrNull { it.str("type") == "Teaser" && it.str("iso_639_1") == language }?.let { return it.str("key") }
+            }
             return (youTube.firstOrNull { it.str("type") == "Trailer" } ?: youTube.firstOrNull { it.str("type") == "Teaser" })?.str("key")
         }
 
@@ -547,9 +579,7 @@ class TmdbCatalog(
             return when (locale) {
                 general -> title
                 null -> original
-                else -> translations()
-                    .firstOrNull { it.str("iso_639_1") == Languages.code(locale) && it.str("iso_3166_1") == Languages.regionOf(locale) }
-                    ?.obj("data")?.str(titleKey(type))?.takeIf(String::isNotBlank) ?: original
+                else -> translated(translations(), Languages.code(locale), Languages.regionOf(locale), titleKey(type)).ifBlank { original }
             }.ifBlank { title }
         }
 

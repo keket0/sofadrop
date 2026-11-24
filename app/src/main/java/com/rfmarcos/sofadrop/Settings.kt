@@ -83,6 +83,9 @@ object Settings {
     private const val KEY_BLOCKED = "blocked_titles"
     private const val KEY_MIX_LISTS = "mix_lists"
     private const val KEY_FOCUSED_CARD = "focused_card"
+    private const val KEY_FOCUSED_FALLBACK = "focused_fallback"
+    private const val KEY_FOCUSED_FALLBACK_SCOPE = "focused_fallback_scope"
+    private const val KEY_FOCUSED_FALLBACK_IMAGE_NAME = "focused_fallback_image_name"
     private const val KEY_WALLPAPER_FOLDER = "wallpaper_folder"
     private const val KEY_SCREENSAVER_SHUFFLE = "screensaver_shuffle"
     private const val KEY_ORDER_MOVED = "order_moved"
@@ -167,6 +170,21 @@ object Settings {
 
     /** The focused card's [mode] shows episodes. */
     fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SERIES_IMAGE
+
+    /**
+     * What Projectivy shows while [focusedCard] is on and focus is on something other than a movie or show
+     * (an app tile, a YouTube clip, an unmatched card); idle mode still rotates the set (issue #38).
+     */
+    const val FOCUSED_FALLBACK_SET = "set"
+    const val FOCUSED_FALLBACK_DIMMED = "dimmed"
+    const val FOCUSED_FALLBACK_DARK = "dark"
+    const val FOCUSED_FALLBACK_IMAGE = "image"
+    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_IMAGE)
+
+    /** Which non-media cards trigger [focusedFallback]: other channels only (default, apps keep rotating the set) or apps + other channels. */
+    const val FOCUSED_SCOPE_ALL = "all"
+    const val FOCUSED_SCOPE_CHANNELS = "channels"
+    val FOCUSED_SCOPE_OPTIONS = listOf(FOCUSED_SCOPE_CHANNELS, FOCUSED_SCOPE_ALL)
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"
@@ -240,6 +258,11 @@ object Settings {
     private const val KEY_PROJECTIVY_ASKED = "_projectivy_asked_at"
     private const val KEY_WIZARD_SHOWN = "_wizard_shown"
     private const val KEY_FRESH_INSTALL = "_fresh_install"
+    private const val KEY_FIRST_SEEN = "_first_seen_at"
+    private const val KEY_SETTINGS_OPENS = "_settings_opens"
+    private const val KEY_GENERATION_COUNT = "_generation_count"
+    private const val KEY_SUPPORT_DISMISSED = "_support_dismissed"
+    private const val KEY_SUPPORT_SHOWN = "_support_shown"
     private const val KEY_UPDATE_APK = "_update_apk"
     private const val KEY_UPDATE_NOTES = "_update_notes"
     private const val KEY_UPDATE_CHECKED = "_update_checked_at"
@@ -280,10 +303,13 @@ object Settings {
     val DEFAULT_LISTS = setOf("tmdb:trending_movies", "tmdb:trending_tv")
 
     internal lateinit var preferences: SharedPreferences
+    @Volatile private var initialized = false
     private val json by lazy { Json { ignoreUnknownKeys = true; isLenient = true } }
 
     fun init(context: Context) {
-        if (!::preferences.isInitialized) {
+        if (initialized) return
+        synchronized(this) {
+            if (initialized) return
             preferences = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
             // A fresh install, whatever opens first (the settings or Projectivy's request): the guided setup is
             // due, and the cast is on. Someone updating keeps what they had
@@ -291,6 +317,10 @@ object Settings {
             if (fresh) {
                 preferences.edit { putBoolean(KEY_FRESH_INSTALL, true) }
                 Profile.WALLPAPER.showCast = true
+            }
+            if (!preferences.contains(KEY_FIRST_SEEN)) {
+                val last = preferences.getLong("_last_generation", 0L)
+                preferences.edit { putLong(KEY_FIRST_SEEN, if (last > 0L) last else System.currentTimeMillis()) }
             }
             // Until 1.2 the screensaver mixed its lists unless told otherwise; now that would follow the general order
             if (!preferences.contains(KEY_ORDER_MOVED)) {
@@ -302,6 +332,7 @@ object Settings {
             }
             // Scopes of earlier versions (replaced by per-list filters) and the dropped launcher guide
             preferences.edit { OLD_FILTER_KEYS.forEach(::remove) }
+            initialized = true
         }
     }
 
@@ -347,6 +378,21 @@ object Settings {
         get() = preferences.getString(KEY_FOCUSED_CARD, null)
             ?.let { if (it == FOCUSED_EPISODE_SHARP_OLD) FOCUSED_EPISODE else it }?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
         set(value) = preferences.edit { putString(KEY_FOCUSED_CARD, value) }
+
+    /** What Projectivy shows on non-media cards while [focusedCard] is on, see [FOCUSED_FALLBACK_OPTIONS]. */
+    var focusedFallback: String
+        get() = preferences.getString(KEY_FOCUSED_FALLBACK, null)?.takeIf { it in FOCUSED_FALLBACK_OPTIONS } ?: FOCUSED_FALLBACK_SET
+        set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK, value) }
+
+    /** Whether [focusedFallback] applies to other channels only (default) or apps and other channels (see [FOCUSED_SCOPE_OPTIONS]). */
+    var focusedFallbackScope: String
+        get() = preferences.getString(KEY_FOCUSED_FALLBACK_SCOPE, null)?.takeIf { it in FOCUSED_SCOPE_OPTIONS } ?: FOCUSED_SCOPE_CHANNELS
+        set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK_SCOPE, value) }
+
+    /** Display name of the user-picked image for [FOCUSED_FALLBACK_IMAGE], local to this TV. */
+    var focusedFallbackImageName: String
+        get() = string(KEY_FOCUSED_FALLBACK_IMAGE_NAME)
+        set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK_IMAGE_NAME, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */
     var wallpaperFolder: Boolean
@@ -614,6 +660,29 @@ object Settings {
 
     /** Installed from scratch, not updated (see [init]). */
     val freshInstall: Boolean get() = preferences.getBoolean(KEY_FRESH_INSTALL, false)
+
+    /** When this install was first seen, or its last generation before this was tracked (see [SupportPrompt]). */
+    val firstSeenAt: Long get() = preferences.getLong(KEY_FIRST_SEEN, 0L)
+
+    /** How many times the settings screen was opened (not returning from a sub-screen). */
+    var settingsOpens: Int
+        get() = preferences.getInt(KEY_SETTINGS_OPENS, 0)
+        set(value) = preferences.edit { putInt(KEY_SETTINGS_OPENS, value) }
+
+    /** How many wallpaper sets finished generating successfully. */
+    var generationCount: Int
+        get() = preferences.getInt(KEY_GENERATION_COUNT, 0)
+        set(value) = preferences.edit { putInt(KEY_GENERATION_COUNT, value) }
+
+    /** The user hid the top support prompt from the main screen (About still has it). */
+    var supportDismissed: Boolean
+        get() = preferences.getBoolean(KEY_SUPPORT_DISMISSED, false)
+        set(value) = preferences.edit { putBoolean(KEY_SUPPORT_DISMISSED, value) }
+
+    /** How many times the top support prompt was shown in main Settings. */
+    var supportShownCount: Int
+        get() = preferences.getInt(KEY_SUPPORT_SHOWN, 0)
+        set(value) = preferences.edit { putInt(KEY_SUPPORT_SHOWN, value) }
 
     /**
      * Latest release found by [Updater.check] ("1.0.1", empty until checked), its APK, its release notes
@@ -892,7 +961,8 @@ object Settings {
      * filling or emptying Pictures/Sofadrop (and may need a permission that device hasn't granted).
      */
     fun inBackup(key: String): Boolean = !key.startsWith("_") && key !in SECRET_KEYS &&
-        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER
+        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER && key != KEY_ORDER_MOVED &&
+        key != KEY_FOCUSED_FALLBACK_IMAGE_NAME
 
     fun export(): String = exportJson(preferences.all)
 
@@ -911,7 +981,7 @@ object Settings {
             if (values[KEY_WEATHER_PLACE] != stored[KEY_WEATHER_PLACE]) remove(KEY_WEATHER_COORDINATES)
             values.forEach { (key, imported) ->
                 // A value of another type than the stored one (an older or edited backup) would crash its getter
-                val value = matchingType(imported, stored[key]) ?: return@forEach
+                val value = matchingType(imported, stored[key], key) ?: return@forEach
                 @Suppress("UNCHECKED_CAST")
                 when (value) {
                     is Set<*> -> putStringSet(key, value as Set<String>)
@@ -926,8 +996,10 @@ object Settings {
         return true
     }
 
-    /** [imported] as the type of [stored] (any when nothing is stored); null when it can't be. */
-    fun matchingType(imported: Any, stored: Any?): Any? = when {
+    /** [imported] as the type of [stored] (and known float keys even on a fresh install); null when it can't be. */
+    fun matchingType(imported: Any, stored: Any?, key: String? = null): Any? = when {
+        key != null && (key == "min_rating" || key.endsWith("_min_rating")) ->
+            if (imported is Number) imported.toFloat() else null
         stored == null || stored::class == imported::class -> imported
         stored is Float && imported is Number -> imported.toFloat()
         stored is Long && imported is Int -> imported.toLong()

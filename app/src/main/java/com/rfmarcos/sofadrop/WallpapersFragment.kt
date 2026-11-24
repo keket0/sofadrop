@@ -45,11 +45,13 @@ class WallpapersFragment : OutputFragment() {
             action(ID_GET, R.drawable.ic_act_phone, getString(R.string.projectivy_get), getString(R.string.projectivy_get_desc)).build()
         }
         if (!WallpaperFolder.shown(context)) return listOf(launcher, folderRow())
-        return listOf(
+        return listOfNotNull(
             launcher,
             action(ID_VIEW, R.drawable.ic_act_preview, getString(R.string.action_preview), getString(R.string.action_preview_desc))
                 .enabled(hasWallpapers()).build(),
-        ) + (if (projectivy) focusedCardRows() else emptyList()) + folderRow() + setRows()
+            focusedCardRow().takeIf { projectivy },
+            folderRow(),
+        ) + setRows()
     }
 
     /** A copy in Pictures/Sofadrop for launchers that show a folder's images (Monet Launcher...). */
@@ -75,23 +77,12 @@ class WallpapersFragment : OutputFragment() {
         refresh()
     }
 
-    /** The focused card's wallpaper (beta); what it made of the last cards is in About, with the generation log. */
-    private fun focusedCardRows(): List<GuidedAction> {
+    /** Opens [FocusedCardFragment] for the focused card's mode, fallback and card log. */
+    private fun focusedCardRow(): GuidedAction {
         explanations[ID_FOCUSED_CARD] = getString(R.string.focused_card_explain)
-        val labels = Settings.FOCUSED_OPTIONS.map { focusedCardLabel(it) }
-        return listOf(
-            action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), focusedCardLabel(Settings.focusedCard))
-                .subActions(options(ID_FOCUSED_CARD, labels, focusedCardLabel(Settings.focusedCard),
-                    Settings.FOCUSED_OPTIONS.map { if (it == Settings.FOCUSED_EPISODE) getString(R.string.focused_card_episode_desc) else null })).build(),
-        )
+        return action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), FocusedCardFragment.summary(requireContext()))
+            .hasNext(true).build()
     }
-
-    private fun focusedCardLabel(mode: String) = getString(when (mode) {
-        Settings.FOCUSED_EPISODE -> R.string.focused_card_episode
-        Settings.FOCUSED_EPISODE_SERIES_IMAGE -> R.string.focused_card_episode_series_image
-        Settings.FOCUSED_SERIES -> R.string.focused_card_series
-        else -> R.string.focused_card_off
-    })
 
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
         if (action.id / SUB_ID_BASE == ID_FOLDER) {
@@ -101,10 +92,7 @@ class WallpapersFragment : OutputFragment() {
             else setFolder(on)
             return true
         }
-        if (action.id / SUB_ID_BASE != ID_FOCUSED_CARD) return super.onSubGuidedActionClicked(action)
-        Settings.focusedCard = Settings.FOCUSED_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
-        refresh()
-        return true
+        return super.onSubGuidedActionClicked(action)
     }
 
     private fun hasWallpapers() = WallpaperStore(requireContext(), profile).current().isNotEmpty()
@@ -121,6 +109,7 @@ class WallpapersFragment : OutputFragment() {
         when (action.id) {
             ID_USE -> Projectivy.openWallpaperSettings(requireContext())
             ID_VIEW -> startActivity(Intent(requireContext(), PreviewActivity::class.java).putExtra(PreviewActivity.EXTRA_PROFILE, profile.id))
+            ID_FOCUSED_CARD -> open(FocusedCardFragment())
             // The TV's store page; the QR of its site where there's no store that opens it
             ID_GET -> try {
                 startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=${Projectivy.PACKAGE}".toUri()))
