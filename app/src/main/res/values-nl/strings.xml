@@ -27,6 +27,14 @@
     <string name="focused_card_episode_series_image">Aflevering, afbeelding van de serie</string>
     <string name="focused_card_series">Serie of film</string>
     <string name="focused_card_explain">Terwijl je op een film, serie of aflevering in een kanaal van Projectivy staat, wordt de achtergrond die titel (op TMDB gezocht op de naam van de kaart). De eerste keer op een kaart duurt het een paar seconden; daarna is hij er meteen. Dit is nieuw: als een kaart een verkeerde titel toont, stuur dan het kaartenlogboek (in Over).</string>
+    <string name="focused_fallback_title">Op andere kaarten</string>
+    <string name="focused_fallback_set">Set blijven wisselen</string>
+    <string name="focused_fallback_dark">Donkere achtergrond</string>
+    <string name="focused_fallback_dimmed">Vervagende achtergrond</string>
+    <string name="focused_fallback_dimmed_desc">De huidige achtergrond vervaagd en gedimd als rustige achtergrond</string>
+    <string name="focused_fallback_card_color">Kleur van de kaart</string>
+    <string name="focused_fallback_card_color_desc">Een donker verloop in de tint van de geselecteerde app</string>
+    <string name="focused_fallback_explain">Wat te tonen wanneer de focus op een app, een YouTube-video of een andere kaart staat die geen film of serie is. In de inactieve modus wisselt Projectivy gewoon door je achtergronden.</string>
     <string name="focused_log_title">Kaartenlogboek</string>
     <string name="focused_log_none">Nog geen kaarten</string>
     <string name="focused_log_explain">De laatste kaarten waarop je stond, wat elke app erover zei en wat Sofadrop vond. Stuur het als een kaart niet de juiste achtergrond toont: zo werkt het met meer apps.</string>
@@ -165,6 +173,8 @@
     <string name="genres_title">Genres</string>
     <string name="genres_description">Vink de genres aan die je wilt overslaan, of kies om alleen de aangevinkte te gebruiken. Niets aangevinkt: alle genres.</string>
     <string name="genres_explain">Sla sommige genres over, of gebruik er alleen een paar</string>
+    <string name="genre_anime">Anime</string>
+    <string name="genre_anime_desc">Japanse animatie (los van overige animatie)</string>
     <string name="genres_all">Alle genres</string>
     <plurals name="genres_only">
         <item quantity="one">Alleen %d genre</item>

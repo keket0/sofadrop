@@ -26,6 +26,14 @@
     <string name="focused_card_episode_series_image">Episodio, con imagen de la serie</string>
     <string name="focused_card_series">Serie o película</string>
     <string name="focused_card_explain">Mientras estás sobre una película, serie o episodio en un canal de Projectivy, el fondo pasa a ser ese título (se busca en TMDB por el nombre de la tarjeta). La primera vez en una tarjeta tarda unos segundos; después sale al momento. Es nuevo: si una tarjeta muestra otro título, envía el registro de tarjetas (en Acerca de).</string>
+    <string name="focused_fallback_title">En otras tarjetas</string>
+    <string name="focused_fallback_set">Seguir rotando el conjunto</string>
+    <string name="focused_fallback_dark">Fondo oscuro</string>
+    <string name="focused_fallback_dimmed">Fondo difuminado</string>
+    <string name="focused_fallback_dimmed_desc">El fondo actual suavizado y oscurecido para que no distraiga</string>
+    <string name="focused_fallback_card_color">Color de la tarjeta</string>
+    <string name="focused_fallback_card_color_desc">Un degradado oscuro con el tono de la app enfocada</string>
+    <string name="focused_fallback_explain">Qué mostrar cuando el foco está en una app, un vídeo de YouTube o una tarjeta que no es película ni serie. En modo inactivo Projectivy sigue rotando tus fondos con normalidad.</string>
     <string name="focused_log_title">Registro de tarjetas</string>
     <string name="focused_log_none">Aún no hay tarjetas</string>
     <string name="focused_log_explain">Las últimas tarjetas en las que has estado, qué decía de ellas cada app y qué encontró Sofadrop. Envíalo si una tarjeta no muestra el fondo correcto: ayuda a que funcione con más apps.</string>
@@ -157,6 +165,8 @@
     <string name="genres_title">Géneros</string>
     <string name="genres_description">Marca los géneros que quieres descartar, o elige usar solo los marcados. Sin nada marcado: todos los géneros.</string>
     <string name="genres_explain">Descarta algunos géneros, o usa solo algunos</string>
+    <string name="genre_anime">Anime</string>
+    <string name="genre_anime_desc">Animación japonesa (aparte del resto de animación)</string>
     <string name="genres_all">Todos los géneros</string>
     <plurals name="genres_only">
         <item quantity="one">Solo %d género</item>

@@ -218,7 +218,7 @@ class TmdbCatalog(
             profile.excludeAdult && isAdult(ref, item) -> Exclusion.ADULT
             // Unrated titles (mostly not released yet) pass
             profile.maxRatingAge > 0 && (Certifications.minimumAge(ref.type, item, region) ?: 0) > profile.maxRatingAge -> Exclusion.AGE_RATING
-            !filters.genres.allows(item.objects("genres").mapNotNull { it.int("id") }) -> Exclusion.GENRE
+            !filters.genres.allows(Genres.effectiveIds(item)) -> Exclusion.GENRE
             isLowRated(item, filters.minRating) -> Exclusion.LOW_RATING
             // Last: it costs an images request per title
             profile.requireLogo && logoPath(ref, item) == null -> Exclusion.NO_LOGO
@@ -303,7 +303,7 @@ class TmdbCatalog(
             // The genres a list was filtered by first: TMDB's own order is arbitrary, so the ones shown
             // could otherwise be ones that played no part in it
             genres = item.objects("genres")
-                .sortedByDescending { it.int("id") in matchedGenres }
+                .sortedByDescending { id -> id.int("id").let { it in matchedGenres || (it == Genres.ANIMATION_ID && Genres.ANIME_ID in matchedGenres) } }
                 .mapNotNull { Languages.genreName(language, it.int("id"), it.str("name")) }
                 .take(2)
                 .joinToString(", "),
