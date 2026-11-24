@@ -34,6 +34,12 @@
     <string name="focused_fallback_card_color">Color de la tarjeta</string>
     <string name="focused_fallback_card_color_desc">Un degradado oscuro con el tono de la app enfocada</string>
     <string name="focused_fallback_explain">Qué mostrar cuando el foco está en una app, un vídeo de YouTube o una tarjeta que no es película ni serie. En modo inactivo Projectivy sigue rotando tus fondos con normalidad.</string>
+    <string name="focused_scope_title">Aplicar a</string>
+    <string name="focused_scope_all">Apps y otros canales</string>
+    <string name="focused_scope_all_desc">Apps, vídeos de YouTube y tarjetas no reconocidas</string>
+    <string name="focused_scope_channels">Solo otros canales</string>
+    <string name="focused_scope_channels_desc">En las filas de apps siguen rotando tus fondos</string>
+    <string name="focused_scope_explain">Elige si el fondo alternativo se aplica también en las filas de apps, o solo en canales que no sean películas ni series (como YouTube o tarjetas no reconocidas).</string>
     <string name="focused_log_title">Registro de tarjetas</string>
     <string name="focused_log_none">Aún no hay tarjetas</string>
     <string name="focused_log_explain">Las últimas tarjetas en las que has estado, qué decía de ellas cada app y qué encontró Sofadrop. Envíalo si una tarjeta no muestra el fondo correcto: ayuda a que funcione con más apps.</string>

@@ -35,6 +35,12 @@
     <string name="focused_fallback_card_color">Kleur van de kaart</string>
     <string name="focused_fallback_card_color_desc">Een donker verloop in de tint van de geselecteerde app</string>
     <string name="focused_fallback_explain">Wat te tonen wanneer de focus op een app, een YouTube-video of een andere kaart staat die geen film of serie is. In de inactieve modus wisselt Projectivy gewoon door je achtergronden.</string>
+    <string name="focused_scope_title">Toepassen op</string>
+    <string name="focused_scope_all">Apps en andere kanalen</string>
+    <string name="focused_scope_all_desc">Apps, YouTube-video\'s en niet-herkende kaarten</string>
+    <string name="focused_scope_channels">Alleen andere kanalen</string>
+    <string name="focused_scope_channels_desc">Op app-rijen blijven je achtergronden wisselen</string>
+    <string name="focused_scope_explain">Kies of de alternatieve achtergrond ook op app-rijen geldt, of alleen op kanalen die geen films of series zijn (zoals YouTube of niet-herkende kaarten).</string>
     <string name="focused_log_title">Kaartenlogboek</string>
     <string name="focused_log_none">Nog geen kaarten</string>
     <string name="focused_log_explain">De laatste kaarten waarop je stond, wat elke app erover zei en wat Sofadrop vond. Stuur het als een kaart niet de juiste achtergrond toont: zo werkt het met meer apps.</string>

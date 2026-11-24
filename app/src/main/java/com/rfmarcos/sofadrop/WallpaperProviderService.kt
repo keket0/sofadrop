@@ -80,7 +80,7 @@ class WallpaperProviderService : Service() {
                     focusedCard = null
                     val color = event.darkColor.takeIf { it != 0 } ?: event.lightColor
                     lastCardColor = color
-                    if (fallback != Settings.FOCUSED_FALLBACK_SET) {
+                    if (fallback != Settings.FOCUSED_FALLBACK_SET && Settings.focusedFallbackScope == Settings.FOCUSED_SCOPE_ALL) {
                         onOtherCard = true
                         return otherCardAnswer(fallback, color)
                     }

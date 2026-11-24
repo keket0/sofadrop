@@ -37,6 +37,12 @@
     <string name="focused_fallback_card_color">Card colour</string>
     <string name="focused_fallback_card_color_desc">A dark gradient tinted with the focused app\'s colour</string>
     <string name="focused_fallback_explain">What to show when the focus is on an app, a YouTube video or a card that isn\'t a movie or show. In idle mode Projectivy still rotates your wallpapers as usual.</string>
+    <string name="focused_scope_title">Apply to</string>
+    <string name="focused_scope_all">Apps and other channels</string>
+    <string name="focused_scope_all_desc">Apps, YouTube videos and unrecognized cards</string>
+    <string name="focused_scope_channels">Other channels only</string>
+    <string name="focused_scope_channels_desc">App tiles keep rotating your wallpapers</string>
+    <string name="focused_scope_explain">Choose whether the fallback also applies on app rows, or only on non-movie/show channels (such as YouTube or unrecognized cards).</string>
     <string name="focused_log_title">Card log</string>
     <string name="focused_log_none">No cards yet</string>
     <string name="focused_log_explain">The last cards you were on, what each app said about them and what Sofadrop found. Send it if a card doesn\'t show the right wallpaper: it helps make this work with more apps.</string>
