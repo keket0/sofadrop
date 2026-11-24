@@ -3,6 +3,13 @@ package com.rfmarcos.sofadrop
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RadialGradient
+import android.graphics.Rect
+import android.graphics.Shader
 import android.net.Uri
 import android.util.Log
 import kotlinx.serialization.encodeToString
@@ -341,11 +348,187 @@ object FocusedWallpapers {
     private fun prune(context: Context) {
         val now = System.currentTimeMillis()
         val files = dir(context).listFiles().orEmpty()
-        files.filter { it.extension == "jpg" && !it.name.endsWith(PATCH) }.sortedByDescending { it.lastModified() }.forEachIndexed { index, file ->
-            if (index < MAX_FILES && now - file.lastModified() <= MAX_AGE_MILLIS) return@forEachIndexed
-            file.delete()
-            listOf(VIDEO, SCROLL, PATCH, STRIP).forEach { companion(file, it).delete() }
+        files.filter { it.extension == "jpg" && !it.name.endsWith(PATCH) && !it.name.startsWith(FALLBACK_PREFIX) }
+            .sortedByDescending { it.lastModified() }.forEachIndexed { index, file ->
+                if (index < MAX_FILES && now - file.lastModified() <= MAX_AGE_MILLIS) return@forEachIndexed
+                file.delete()
+                listOf(VIDEO, SCROLL, PATCH, STRIP).forEach { companion(file, it).delete() }
+            }
+    }
+
+    // --- Fallback wallpaper for non-media cards (issue #38) ---
+
+    private const val FALLBACK_PREFIX = "fallback-"
+    private const val FALLBACK_WIDTH = 640
+    private const val FALLBACK_HEIGHT = 360
+    private const val BLUR_WIDTH = 96
+    private const val BLUR_HEIGHT = 54
+    private const val BLUR_RADIUS = 4
+    private const val MAX_FALLBACK_FILES = 16
+    private val fallbackLock = Any()
+
+    /**
+     * Neutral wallpaper shown on non-media cards (app tiles, YouTube clips, unmatched cards) when
+     * [Settings.focusedFallback] isn't [Settings.FOCUSED_FALLBACK_SET]. Served from [DIR], so
+     * [WallpaperContentProvider.lastShown] keeps pointing at the real set's wallpaper.
+     */
+    fun otherCardWallpaper(context: Context, fallback: String, cardColor: Int, lastShownPath: String?): Wallpaper? {
+        val file = synchronized(fallbackLock) {
+            when (fallback) {
+                Settings.FOCUSED_FALLBACK_DARK -> darkFallbackFile(context, 0)
+                Settings.FOCUSED_FALLBACK_CARD_COLOR -> darkFallbackFile(context, cardColor)
+                Settings.FOCUSED_FALLBACK_DIMMED -> dimmedFallbackFile(context, lastShownPath) ?: darkFallbackFile(context, 0)
+                else -> return null
+            }
+        } ?: return null
+        val uri = Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
+            .appendPath(DIR).appendPath(file.name).build()
+        return wallpaper(uri.toString(), "")
+    }
+
+    /** Dark charcoal gradient, optionally tinted softly with [cardColor] (0 = neutral). */
+    private fun darkFallbackFile(context: Context, cardColor: Int): File? {
+        val rgb = cardColor and 0x00FFFFFF
+        val name = if (rgb == 0) "${FALLBACK_PREFIX}dark.jpg" else "${FALLBACK_PREFIX}color-%06x.jpg".format(rgb)
+        val file = File(dir(context), name)
+        if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            return file
         }
+        val bitmap = Bitmap.createBitmap(FALLBACK_WIDTH, FALLBACK_HEIGHT, Bitmap.Config.ARGB_8888)
+        return try {
+            val canvas = Canvas(bitmap)
+            val baseTop = Color.rgb(24, 28, 38)
+            val baseBottom = Color.rgb(10, 12, 18)
+            val top = if (rgb == 0) baseTop else blend(baseTop, cardColor, 0.28f)
+            val bottom = if (rgb == 0) baseBottom else blend(baseBottom, cardColor, 0.10f)
+            val linear = Paint(Paint.DITHER_FLAG).apply {
+                shader = LinearGradient(0f, 0f, 0f, FALLBACK_HEIGHT.toFloat(), top, bottom, Shader.TileMode.CLAMP)
+            }
+            canvas.drawRect(0f, 0f, FALLBACK_WIDTH.toFloat(), FALLBACK_HEIGHT.toFloat(), linear)
+            if (rgb != 0) {
+                val glow = Paint(Paint.DITHER_FLAG).apply {
+                    shader = RadialGradient(
+                        FALLBACK_WIDTH * 0.5f, FALLBACK_HEIGHT * 0.2f, FALLBACK_WIDTH * 0.75f,
+                        Color.argb(64, Color.red(cardColor), Color.green(cardColor), Color.blue(cardColor)),
+                        Color.TRANSPARENT, Shader.TileMode.CLAMP,
+                    )
+                }
+                canvas.drawRect(0f, 0f, FALLBACK_WIDTH.toFloat(), FALLBACK_HEIGHT.toFloat(), glow)
+            }
+            saveFallback(file, bitmap)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /** Current (or first) set wallpaper heavily blurred and dimmed into a calm ambient backdrop. */
+    private fun dimmedFallbackFile(context: Context, lastShownPath: String?): File? {
+        val source = resolveSetImage(context, lastShownPath) ?: return null
+        val key = Integer.toHexString("${source.path}:${source.lastModified()}".hashCode())
+        val file = File(dir(context), "${FALLBACK_PREFIX}dimmed-$key.jpg")
+        if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            return file
+        }
+        val opts = BitmapFactory.Options().apply { inSampleSize = 8 }
+        val decoded = BitmapFactory.decodeFile(source.path, opts) ?: return null
+        var tiny: Bitmap? = null
+        var output: Bitmap? = null
+        return try {
+            tiny = Bitmap.createScaledBitmap(decoded, BLUR_WIDTH, BLUR_HEIGHT, true)
+            boxBlur(tiny, BLUR_RADIUS)
+            boxBlur(tiny, BLUR_RADIUS)
+            output = Bitmap.createBitmap(FALLBACK_WIDTH, FALLBACK_HEIGHT, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(output)
+            canvas.drawBitmap(tiny, null, Rect(0, 0, FALLBACK_WIDTH, FALLBACK_HEIGHT), Paint(Paint.FILTER_BITMAP_FLAG))
+            canvas.drawColor(Color.argb(150, 8, 10, 14))
+            saveFallback(file, output)
+        } catch (e: Throwable) {
+            Log.w(TAG, "Could not render dimmed fallback from ${source.name}", e)
+            null
+        } finally {
+            decoded.recycle()
+            tiny?.recycle()
+            output?.recycle()
+        }
+    }
+
+    /** The JPEG of [lastShownPath] (swapping a scrolling video for its companion JPEG), else the first wallpaper in the set. */
+    private fun resolveSetImage(context: Context, lastShownPath: String?): File? {
+        val root = File(context.filesDir, WallpaperStore.DIR)
+        lastShownPath?.let { path ->
+            val jpgPath = if (path.endsWith(".mp4")) path.removeSuffix(".mp4") + ".jpg" else path
+            WallpaperContentProvider.resolve(root, jpgPath)?.takeIf { it.extension == "jpg" }?.let { return it }
+        }
+        val store = WallpaperStore(context, Profile.WALLPAPER)
+        val gen = store.currentDir() ?: return null
+        val first = store.current(gen).firstOrNull() ?: return null
+        return File(gen, first.file).takeIf { it.isFile }
+    }
+
+    private fun saveFallback(file: File, bitmap: Bitmap): File? {
+        file.parentFile?.mkdirs()
+        val tmp = File(file.path + ".tmp")
+        return try {
+            FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+            tmp.renameTo(file)
+            pruneFallbacks(file.parentFile!!)
+            file
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not save ${file.name}", e)
+            tmp.delete()
+            null
+        }
+    }
+
+    private fun pruneFallbacks(folder: File) {
+        folder.listFiles().orEmpty()
+            .filter { it.name.startsWith(FALLBACK_PREFIX) && it.name != "${FALLBACK_PREFIX}dark.jpg" && it.extension == "jpg" }
+            .sortedByDescending { it.lastModified() }
+            .drop(MAX_FALLBACK_FILES)
+            .forEach { it.delete() }
+    }
+
+    private fun blend(base: Int, tint: Int, ratio: Float): Int {
+        val inv = 1f - ratio
+        return Color.rgb(
+            (Color.red(base) * inv + Color.red(tint) * ratio).toInt().coerceIn(0, 255),
+            (Color.green(base) * inv + Color.green(tint) * ratio).toInt().coerceIn(0, 255),
+            (Color.blue(base) * inv + Color.blue(tint) * ratio).toInt().coerceIn(0, 255),
+        )
+    }
+
+    /** Separable box blur in place on a tiny bitmap (fast, no RenderScript needed). */
+    private fun boxBlur(bitmap: Bitmap, radius: Int) {
+        val w = bitmap.width
+        val h = bitmap.height
+        val src = IntArray(w * h)
+        val tmp = IntArray(w * h)
+        bitmap.getPixels(src, 0, w, 0, 0, w, h)
+        val div = radius * 2 + 1
+        for (y in 0 until h) {
+            val row = y * w
+            for (x in 0 until w) {
+                var r = 0; var g = 0; var b = 0
+                for (dx in -radius..radius) {
+                    val c = src[row + (x + dx).coerceIn(0, w - 1)]
+                    r += Color.red(c); g += Color.green(c); b += Color.blue(c)
+                }
+                tmp[row + x] = Color.rgb(r / div, g / div, b / div)
+            }
+        }
+        for (x in 0 until w) {
+            for (y in 0 until h) {
+                var r = 0; var g = 0; var b = 0
+                for (dy in -radius..radius) {
+                    val c = tmp[(y + dy).coerceIn(0, h - 1) * w + x]
+                    r += Color.red(c); g += Color.green(c); b += Color.blue(c)
+                }
+                src[y * w + x] = Color.rgb(r / div, g / div, b / div)
+            }
+        }
+        bitmap.setPixels(src, 0, w, 0, 0, w, h)
     }
 
     /** What [card] is; logged once drawn, or here when it's nothing TMDB has (with what it found instead). */

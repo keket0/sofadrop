@@ -83,6 +83,7 @@ object Settings {
     private const val KEY_BLOCKED = "blocked_titles"
     private const val KEY_MIX_LISTS = "mix_lists"
     private const val KEY_FOCUSED_CARD = "focused_card"
+    private const val KEY_FOCUSED_FALLBACK = "focused_fallback"
     private const val KEY_WALLPAPER_FOLDER = "wallpaper_folder"
     private const val KEY_SCREENSAVER_SHUFFLE = "screensaver_shuffle"
     private const val KEY_ORDER_MOVED = "order_moved"
@@ -167,6 +168,16 @@ object Settings {
 
     /** The focused card's [mode] shows episodes. */
     fun showsEpisodes(mode: String) = mode == FOCUSED_EPISODE || mode == FOCUSED_EPISODE_SERIES_IMAGE
+
+    /**
+     * What Projectivy shows while [focusedCard] is on and focus is on something other than a movie or show
+     * (an app tile, a YouTube clip, an unmatched card); idle mode still rotates the set (issue #38).
+     */
+    const val FOCUSED_FALLBACK_SET = "set"
+    const val FOCUSED_FALLBACK_DARK = "dark"
+    const val FOCUSED_FALLBACK_DIMMED = "dimmed"
+    const val FOCUSED_FALLBACK_CARD_COLOR = "card_color"
+    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_CARD_COLOR)
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"
@@ -356,6 +367,11 @@ object Settings {
         get() = preferences.getString(KEY_FOCUSED_CARD, null)
             ?.let { if (it == FOCUSED_EPISODE_SHARP_OLD) FOCUSED_EPISODE else it }?.takeIf { it in FOCUSED_OPTIONS } ?: FOCUSED_OFF
         set(value) = preferences.edit { putString(KEY_FOCUSED_CARD, value) }
+
+    /** What Projectivy shows on non-media cards while [focusedCard] is on, see [FOCUSED_FALLBACK_OPTIONS]. */
+    var focusedFallback: String
+        get() = preferences.getString(KEY_FOCUSED_FALLBACK, null)?.takeIf { it in FOCUSED_FALLBACK_OPTIONS } ?: FOCUSED_FALLBACK_SET
+        set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */
     var wallpaperFolder: Boolean

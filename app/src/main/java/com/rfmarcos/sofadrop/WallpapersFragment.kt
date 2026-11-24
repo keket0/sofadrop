@@ -79,11 +79,17 @@ class WallpapersFragment : OutputFragment() {
     private fun focusedCardRows(): List<GuidedAction> {
         explanations[ID_FOCUSED_CARD] = getString(R.string.focused_card_explain)
         val labels = Settings.FOCUSED_OPTIONS.map { focusedCardLabel(it) }
-        return listOf(
-            action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), focusedCardLabel(Settings.focusedCard))
-                .subActions(options(ID_FOCUSED_CARD, labels, focusedCardLabel(Settings.focusedCard),
-                    Settings.FOCUSED_OPTIONS.map { if (it == Settings.FOCUSED_EPISODE) getString(R.string.focused_card_episode_desc) else null })).build(),
-        )
+        val main = action(ID_FOCUSED_CARD, R.drawable.ic_act_play, getString(R.string.focused_card_title), focusedCardLabel(Settings.focusedCard))
+            .subActions(options(ID_FOCUSED_CARD, labels, focusedCardLabel(Settings.focusedCard),
+                Settings.FOCUSED_OPTIONS.map { if (it == Settings.FOCUSED_EPISODE) getString(R.string.focused_card_episode_desc) else null })).build()
+        if (Settings.focusedCard == Settings.FOCUSED_OFF) return listOf(main)
+        explanations[ID_FOCUSED_FALLBACK] = getString(R.string.focused_fallback_explain)
+        val fallbackLabels = Settings.FOCUSED_FALLBACK_OPTIONS.map { focusedFallbackLabel(it) }
+        val currentFallback = focusedFallbackLabel(Settings.focusedFallback)
+        val fallback = action(ID_FOCUSED_FALLBACK, R.drawable.ic_act_layout, getString(R.string.focused_fallback_title), currentFallback)
+            .subActions(options(ID_FOCUSED_FALLBACK, fallbackLabels, currentFallback,
+                Settings.FOCUSED_FALLBACK_OPTIONS.map { focusedFallbackDesc(it) })).build()
+        return listOf(main, fallback)
     }
 
     private fun focusedCardLabel(mode: String) = getString(when (mode) {
@@ -93,6 +99,19 @@ class WallpapersFragment : OutputFragment() {
         else -> R.string.focused_card_off
     })
 
+    private fun focusedFallbackLabel(mode: String) = getString(when (mode) {
+        Settings.FOCUSED_FALLBACK_DARK -> R.string.focused_fallback_dark
+        Settings.FOCUSED_FALLBACK_DIMMED -> R.string.focused_fallback_dimmed
+        Settings.FOCUSED_FALLBACK_CARD_COLOR -> R.string.focused_fallback_card_color
+        else -> R.string.focused_fallback_set
+    })
+
+    private fun focusedFallbackDesc(mode: String): String? = when (mode) {
+        Settings.FOCUSED_FALLBACK_DIMMED -> getString(R.string.focused_fallback_dimmed_desc)
+        Settings.FOCUSED_FALLBACK_CARD_COLOR -> getString(R.string.focused_fallback_card_color_desc)
+        else -> null
+    }
+
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
         if (action.id / SUB_ID_BASE == ID_FOLDER) {
             val on = action.id % SUB_ID_BASE == 1L
@@ -101,10 +120,20 @@ class WallpapersFragment : OutputFragment() {
             else setFolder(on)
             return true
         }
-        if (action.id / SUB_ID_BASE != ID_FOCUSED_CARD) return super.onSubGuidedActionClicked(action)
-        Settings.focusedCard = Settings.FOCUSED_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
-        refresh()
-        return true
+        when (action.id / SUB_ID_BASE) {
+            ID_FOCUSED_CARD -> {
+                Settings.focusedCard = Settings.FOCUSED_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
+                collapseSubActions()
+                refresh()
+                return true
+            }
+            ID_FOCUSED_FALLBACK -> {
+                Settings.focusedFallback = Settings.FOCUSED_FALLBACK_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
+                refresh()
+                return true
+            }
+        }
+        return super.onSubGuidedActionClicked(action)
     }
 
     private fun hasWallpapers() = WallpaperStore(requireContext(), profile).current().isNotEmpty()
@@ -137,6 +166,7 @@ class WallpapersFragment : OutputFragment() {
         private const val ID_GET = 4L
         private const val ID_VIEW = 5L
         private const val ID_FOCUSED_CARD = 6L
+        private const val ID_FOCUSED_FALLBACK = 7L
         private const val ID_FOLDER = 8L
 
         private fun folderLabel(context: Context, on: Boolean) =
