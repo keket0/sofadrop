@@ -46,7 +46,7 @@ enum class Platform(
             WikidataId("P7595", series = false) { "https://www.disneyplus.com/movies/wd/$it" },
             WikidataId("P7596", movies = false) { "https://www.disneyplus.com/series/wp/$it" },
         )),
-    MAX("max", "HBO Max", setOf(384, 1899), listOf("com.wbd.stream"),
+    MAX("max", "HBO Max", setOf(384, 1899), listOf("com.wbd.stream", "com.wbd.hbomax"),
         listOf(WikidataId("P8298") { "https://play.hbomax.com/$it" })),
     APPLE("apple", "Apple TV", setOf(350), listOf("com.apple.atve.androidtv.appletv"),
         listOf(
