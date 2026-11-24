@@ -228,7 +228,6 @@
     <string name="about_support">Support the project</string>
     <string name="about_support_desc">If you like Sofadrop, you can buy me a coffee on Ko-fi</string>
     <string name="about_support_scan">Scan it with your phone to open the Ko-fi page. Thank you!</string>
-    <string name="support_prompt_kofi">Open Ko-fi</string>
     <string name="support_prompt_supporter">Become a Supporter</string>
     <string name="support_prompt_hide">Hide from here</string>
     <string name="support_prompt_hidden">Hidden — always available in About</string>

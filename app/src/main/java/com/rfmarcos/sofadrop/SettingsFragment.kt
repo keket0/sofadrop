@@ -42,6 +42,7 @@ class SettingsFragment : PreviewSettingsFragment() {
         super.onCreate(savedInstanceState)
         // Delivered on the way back from the notes, before onResume resets the update row: install after it
         parentFragmentManager.setFragmentResultListener(UpdateFragment.RESULT_INSTALL, this) { _, _ -> handler.post { installUpdate() } }
+        parentFragmentManager.setFragmentResultListener(RESULT_HIDE_SUPPORT, this) { _, _ -> hideSupportPrompt() }
     }
 
     override fun onCreateActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
@@ -152,6 +153,12 @@ class SettingsFragment : PreviewSettingsFragment() {
             }
             // What's new first, when the release says
             ID_APP_UPDATE -> if (hasNotes()) open(UpdateFragment()) else installUpdate()
+            ID_SUPPORT_PROMPT -> if (!BuildConfig.PLAY && BuildConfig.SUPPORT_URL.isNotBlank()) {
+                LinkQrDialog.newInstance(
+                    BuildConfig.SUPPORT_URL, R.string.about_support, R.string.about_support_scan,
+                    secondaryButton = R.string.support_prompt_hide, resultKey = RESULT_HIDE_SUPPORT,
+                ).show(parentFragmentManager, "support")
+            }
             ID_LISTS -> open(ListsFragment())
             ID_DETAILS -> open(DetailsFragment())
             ID_WALLPAPERS -> add(parentFragmentManager, WallpapersFragment().forProfile(Profile.WALLPAPER))
@@ -175,17 +182,8 @@ class SettingsFragment : PreviewSettingsFragment() {
                 refreshStatus()
             }
             ID_SUPPORT_PROMPT -> {
-                if (index == 0) {
-                    if (supporter != null) supporter?.buy(requireActivity())
-                    else if (BuildConfig.SUPPORT_URL.isNotBlank()) {
-                        LinkQrDialog.newInstance(BuildConfig.SUPPORT_URL, R.string.about_support, R.string.about_support_scan)
-                            .show(parentFragmentManager, "support")
-                    }
-                } else {
-                    Settings.supportDismissed = true
-                    Toast.makeText(requireContext(), R.string.support_prompt_hidden, Toast.LENGTH_SHORT).show()
-                    handler.post { if (isAdded) removeSupportPrompt() }
-                }
+                if (index == 0) supporter?.buy(requireActivity())
+                else hideSupportPrompt()
             }
         }
         return true
@@ -227,14 +225,23 @@ class SettingsFragment : PreviewSettingsFragment() {
     private fun supportAction(): GuidedAction {
         val context = requireContext()
         val description = getString(if (BuildConfig.PLAY) R.string.supporter_desc else R.string.about_support_desc)
-        val openLabel = getString(if (BuildConfig.PLAY) R.string.support_prompt_supporter else R.string.support_prompt_kofi)
-        val hideLabel = getString(R.string.support_prompt_hide)
-        return action(ID_SUPPORT_PROMPT, R.drawable.ic_act_heart, getString(R.string.about_support), description)
+        val builder = action(ID_SUPPORT_PROMPT, R.drawable.ic_act_heart, getString(R.string.about_support), description)
             .multilineDescription(true)
-            .subActions(listOf(
-                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE).title(openLabel).build(),
-                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE + 1).title(hideLabel).build(),
-            )).build()
+        // Play launches Play Billing's own sheet, so offer "Hide from here" in sub-actions; GitHub opens the QR with both buttons
+        if (BuildConfig.PLAY) {
+            builder.subActions(listOf(
+                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE).title(getString(R.string.support_prompt_supporter)).build(),
+                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE + 1).title(getString(R.string.support_prompt_hide)).build(),
+            ))
+        }
+        return builder.build()
+    }
+
+    private fun hideSupportPrompt() {
+        Settings.supportDismissed = true
+        if (!isAdded) return
+        Toast.makeText(requireContext(), R.string.support_prompt_hidden, Toast.LENGTH_SHORT).show()
+        handler.post { if (isAdded) removeSupportPrompt() }
     }
 
     private fun countSupportShown() {
@@ -374,6 +381,7 @@ class SettingsFragment : PreviewSettingsFragment() {
         private const val ID_WALLPAPERS = 28L
         private const val ID_ORDER = 29L
         private const val ID_SUPPORT_PROMPT = 30L
+        private const val RESULT_HIDE_SUPPORT = "hide_support_prompt"
         /** Android's install confirmation takes a moment on a slow TV; not up by then, it didn't come. */
         private const val CONFIRM_WAIT_MILLIS = 10_000L
     }

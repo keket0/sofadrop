@@ -226,7 +226,6 @@
     <string name="about_support">Steun het project</string>
     <string name="about_support_desc">Vind je Sofadrop fijn, dan kun je me een kop koffie geven op Ko-fi</string>
     <string name="about_support_scan">Scan met je telefoon om de Ko-fi-pagina te openen. Bedankt!</string>
-    <string name="support_prompt_kofi">Ko-fi openen</string>
     <string name="support_prompt_supporter">Supporter worden</string>
     <string name="support_prompt_hide">Hier verbergen</string>
     <string name="support_prompt_hidden">Verborgen — altijd beschikbaar in Over</string>

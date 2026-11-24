@@ -218,7 +218,6 @@
     <string name="about_support">Apoyar el proyecto</string>
     <string name="about_support_desc">Si te gusta Sofadrop, puedes invitarme a un café en Ko-fi</string>
     <string name="about_support_scan">Escanéalo con el móvil para abrir la página de Ko-fi. ¡Gracias!</string>
-    <string name="support_prompt_kofi">Abrir Ko-fi</string>
     <string name="support_prompt_supporter">Hacerme Supporter</string>
     <string name="support_prompt_hide">Ocultar de aquí</string>
     <string name="support_prompt_hidden">Ocultado — siempre disponible en Acerca de</string>
