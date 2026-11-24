@@ -1,7 +1,7 @@
 <resources>
     <string name="plugin_description">Achtergronden van films en series uit je lijsten van TMDB, Trakt, Simkl, MDBList, Plex of Jellyfin, gemaakt op dit apparaat, en een schermbeveiliging ermee.</string>
 
-    <string name="projectivy_not_installed">Let op: deze plug-in heeft Projectivy Launcher nodig, en die lijkt niet geïnstalleerd te zijn.</string>
+    <string name="projectivy_not_installed">Projectivy Launcher lijkt niet geïnstalleerd te zijn.</string>
     <string name="settings">Instellingen</string>
     <string name="not_set">Niet ingesteld</string>
     <string name="cancel">Annuleren</string>
@@ -30,7 +30,7 @@
     <string name="focused_fallback_title">Op andere kaarten</string>
     <string name="focused_fallback_set">Set blijven wisselen</string>
     <string name="focused_fallback_dark">Donkere achtergrond</string>
-    <string name="focused_fallback_dimmed">Vervagende achtergrond</string>
+    <string name="focused_fallback_dimmed">Vervaagde achtergrond</string>
     <string name="focused_fallback_dimmed_desc">De huidige achtergrond vervaagd en gedimd als rustige achtergrond</string>
     <string name="focused_fallback_card_color">Kleur van de kaart</string>
     <string name="focused_fallback_card_color_desc">Een donker verloop in de tint van de geselecteerde app</string>
@@ -123,7 +123,7 @@
     <string name="mdblist_refresh">Mijn lijsten opnieuw laden</string>
     <string name="mdblist_add">Openbare lijst toevoegen</string>
     <string name="mdblist_add_desc">Typ gebruiker/lijst of de URL van de lijst</string>
-    <string name="mdblist_screen_description">Voeg een openbare MDBList-lijst toe, zonder account: vink een voorgestelde lijst aan of typ gebruiker/lijst (of de URL). Verbind je account (bij Accounts) om ook je eigen lijsten te laden. Met een verbonden account komen er ook scores van Rotten Tomatoes, Metacritic en Letterboxd op de achtergronden (Achtergronddetails → Kopregel).</string>
+    <string name="mdblist_screen_description">Voeg een openbare MDBList-lijst toe, zonder account: vink een voorgestelde lijst aan of typ gebruiker/lijst (of de URL). Verbind je account (bij Accounts) om ook je eigen lijsten te laden. Met een verbonden account komen er ook scores van Rotten Tomatoes, Metacritic, Letterboxd en MyAnimeList op de achtergronden (Achtergronddetails → Kopregel).</string>
     <string name="mdblist_account_title">Je MDBList-account</string>
     <string name="mdblist_account_hint">Optioneel · verbind het bij Accounts voor je eigen lijsten en meer scores</string>
     <string name="mdblist_summary_empty">Optioneel. Voeg openbare lijsten toe of verbind je account</string>
@@ -225,7 +225,7 @@
     <string name="setting_about_desc">Versie %1$s · begeleide installatie, broncode en vermeldingen</string>
     <string name="about_version">Versie</string>
     <string name="about_support">Steun het project</string>
-    <string name="about_support_desc">Vind je de plug-in fijn, dan kun je me een kop koffie geven op Ko-fi</string>
+    <string name="about_support_desc">Vind je Sofadrop fijn, dan kun je me een kop koffie geven op Ko-fi</string>
     <string name="about_support_scan">Scan met je telefoon om de Ko-fi-pagina te openen. Bedankt!</string>
     <string name="support_prompt_kofi">Ko-fi openen</string>
     <string name="support_prompt_supporter">Supporter worden</string>
@@ -242,7 +242,7 @@
     <string name="about_beta_desc">Sofadrop komt naar Google Play en zoekt testers met Google TV of Android TV</string>
     <string name="about_beta_scan">Scan met je telefoon: de pagina heeft de twee stappen om mee te doen, met hetzelfde Google-account als op je tv.</string>
     <string name="about_credits">Vermeldingen</string>
-    <string name="about_credits_desc">Dit product gebruikt de TMDB API, maar is niet goedgekeurd of gecertificeerd door TMDB (themoviedb.org). Waar te bekijken: gegevens van JustWatch. Sofadrop gebruikt Trakt, maar is niet goedgekeurd of gecertificeerd door Trakt. Lijsten en kijkgeschiedenis van Simkl (simkl.com). De namen en logo\'s van Trakt, Simkl en MDBList zijn eigendom van hun eigenaars. Lijsten van MDBList. Achtergronden voor Projectivy Launcher. Scores van MDBList en Trakt. Informatie met dank aan IMDb (imdb.com), gebruikt met toestemming; de namen en logo\'s van IMDb, Rotten Tomatoes, Metacritic, Letterboxd en MyAnimeList zijn eigendom van hun eigenaars. Sofascreen, de screensaver, door schumi2004, met dank aan Sofadrop Screensaver van ilee; weer van Open-Meteo (open-meteo.com).</string>
+    <string name="about_credits_desc">Dit product gebruikt de TMDB API, maar is niet goedgekeurd of gecertificeerd door TMDB (themoviedb.org). Waar te bekijken: gegevens van JustWatch. Sofadrop gebruikt Trakt, maar is niet goedgekeurd of gecertificeerd door Trakt. Lijsten en kijkgeschiedenis van Simkl (simkl.com), Plex en Jellyfin. De namen en logo\'s van Trakt, Simkl, MDBList, Plex en Jellyfin zijn eigendom van hun eigenaars. Lijsten van MDBList. Achtergronden voor Projectivy Launcher. Scores van MDBList en Trakt. Informatie met dank aan IMDb (imdb.com), gebruikt met toestemming; de namen en logo\'s van IMDb, Rotten Tomatoes, Metacritic, Letterboxd en MyAnimeList zijn eigendom van hun eigenaars. De Sofadrop-screensaver begon bij het werk van schumi2004, met dank aan Sofadrop Screensaver van ilee; weer van Open-Meteo (open-meteo.com).</string>
     <string name="qr_link_hint">Scan de code met je telefoon</string>
     <string name="setting_accounts_title">Accounts</string>
     <string name="accounts_description">Verbind diensten door met je telefoon een QR-code te scannen. Geen enkele is verplicht: de TMDB-lijsten en de scores van TMDB, IMDb en Trakt werken zonder account. Als je de verbinding met een dienst verbreekt, worden ook de lijsten uitgevinkt die hem nodig hebben.</string>
@@ -252,7 +252,7 @@
     <string name="accounts_api_key">Verbonden met een API-sleutel</string>
     <string name="enables_tmdb">TMDB-account: voegt je kijklijst en favorieten toe als lijsten. De lijsten en scores van TMDB werken ook zonder.</string>
     <string name="enables_trakt">Trakt-account: je aanbevelingen en kijklijst als lijsten, en je kijkgeschiedenis voor het label bekeken / bezig en om te verbergen wat je al gezien hebt. De Trakt-score werkt ook zonder.</string>
-    <string name="enables_simkl">Simkl-account: je lijsten Plan to watch en Watching, je aanbevelingen (PRO of VIP) en je kijkgeschiedenis voor het label bekeken / bezig en om te verbergen wat je al gezien hebt.</string>
+    <string name="enables_simkl">Simkl-account: je lijsten Wil ik zien en Aan het kijken, je aanbevelingen (PRO of VIP) en je kijkgeschiedenis voor het label bekeken / bezig en om te verbergen wat je al gezien hebt.</string>
     <string name="enables_mdblist">MDBList-account: je eigen lijsten, en de scores van Rotten Tomatoes (critici en publiek), Metacritic, Letterboxd en MyAnimeList. Gratis accounts mogen 1.000 verzoeken per dag doen; Sofadrop gebruikt er één per lijst bij elke keer maken.</string>
     <string name="enables_imdb">IMDb-scores zonder MDBList komen uit de officiële dataset van IMDb (ongeveer 9 MB). Die wordt gedownload zodra hij nodig is, daarna elke week opnieuw, en eerder (hoogstens dagelijks) als een nieuwe titel ontbreekt. Druk om hem nu te downloaden.</string>
     <string name="setting_details_title">Achtergronddetails</string>
@@ -278,7 +278,7 @@
     <string name="position_center_right">Rechts in het midden</string>
     <string name="position_bottom_right">Rechtsonder</string>
     <string name="position_rows_note">De app-rijen van Projectivy kunnen het bedekken, afhankelijk van je indeling</string>
-    <string name="details_description">Hoe elke achtergrond eruitziet: stijl (alles, alleen het logo of alleen de afbeelding), positie, taal, lengte van de samenvatting, cast, wat de voettekst toont (de lijst waar hij uit komt, de streamingdiensten) en de resolutie. Met een kortere samenvatting blijft de tekst vrij van de rijen van de launcher. Kopregel bepaalt wat er onder de titel staat: scores, jaar, speelduur, genres. Taal per onderdeel zet het logo of de samenvatting in een andere taal.</string>
+    <string name="details_description">Hoe elke achtergrond eruitziet. Stijl, positie en resolutie hier; de rest per onderdeel: taal, kopregel (de regel onder de titel), samenvatting en cast, en de voettekst (streamingdiensten en bronlijst).</string>
 
     <string name="header_title">Kopregel</string>
     <string name="header_fit_desc">Past de regel niet, dan vallen eerst de scores boven het minimum weg, daarna wat het meest rechts staat (genres één voor één). Zet vooraan wat je niet wilt kwijtraken: het eerste onderdeel en de scores die altijd getoond worden vallen nooit weg.</string>
@@ -292,7 +292,7 @@
     <string name="header_genres_short">genres</string>
     <string name="header_watched_short">bekeken</string>
     <string name="header_empty">Niets</string>
-    <string name="header_watched_needs">Heeft kijkgeschiedenis van Trakt of Simkl nodig</string>
+    <string name="header_watched_needs">Heeft een kijkgeschiedenis nodig</string>
     <string name="header_certification">Leeftijdsclassificatie</string>
     <string name="header_certification_short">leeftijd</string>
     <string name="header_certification_desc">Die van %1$s, het streamingland · niet getoond als die er niet is</string>
@@ -335,7 +335,7 @@
     <string name="account_title_trakt">Je Trakt-account</string>
     <string name="account_not_connected">Niet verbonden · scan een QR-code</string>
     <string name="tmdb_lists_description">Lijsten van TMDB. Verbind je TMDB-account om ook je kijklijst en favorieten te gebruiken.</string>
-    <string name="trakt_lists_description">Lijsten van Trakt. Verbind je account voor je aanbevelingen en kijklijst; met de geschiedenis kun je markeren of verbergen wat je al gezien hebt (Kijkgeschiedenis, bij Filters &amp; lijsten verkennen).</string>
+    <string name="trakt_lists_description">Lijsten van Trakt en elke openbare lijst van gebruikers. Verbind je account voor je aanbevelingen en kijklijst; met de geschiedenis kun je markeren of verbergen wat je al gezien hebt (Kijkgeschiedenis, bij Filters &amp; lijsten verkennen).</string>
     <string name="list_needs_account">Verbind je account om deze lijst te gebruiken</string>
     <string name="mdblist_own_list">Jouw lijst</string>
     <plurals name="lists_count">
@@ -395,7 +395,7 @@
     <string name="cast_summary_names">cast</string>
     <string name="cast_summary_photos">cast met foto\'s</string>
     <string name="footer_desc">De onderste regel: de streamingdiensten die elke titel hebben, in het land dat je kiest, en de lijst waar hij vandaan komt.</string>
-    <string name="click_action_desc">In Projectivy opent het ▶-pictogram in de statusbalk (of “Over deze achtergrond”) de titel die je ziet; in Sofascreen de OK-knop.</string>
+    <string name="click_action_desc">In Projectivy opent het ▶-pictogram in de statusbalk (of “Over deze achtergrond”) de titel die je ziet; in de screensaver de OK-knop.</string>
     <string name="click_target_title">Wat het opent</string>
     <string name="click_open_app">Openen in %1$s</string>
     <string name="click_app_missing">Openen in %1$s (niet geïnstalleerd: de trailer opent)</string>
@@ -440,7 +440,7 @@
     <string name="list_simkl_premium">Met Simkl PRO of VIP</string>
     <string name="list_needs_simkl_premium">Verbind een Simkl PRO- of VIP-account om deze te gebruiken</string>
     <string name="error_simkl_premium">De aanbevelingen van Simkl vereisen een PRO- of VIP-account</string>
-    <string name="simkl_lists_description">Lijsten van Simkl, de tracker voor series, films en anime. Verbind je account voor je lijsten Plan to watch en Watching, en met PRO of VIP je aanbevelingen; met de geschiedenis kun je markeren of verbergen wat je al gezien hebt (Kijkgeschiedenis, bij Filters &amp; lijsten verkennen).</string>
+    <string name="simkl_lists_description">Lijsten van Simkl, de tracker voor series, films en anime. Verbind je account voor je lijsten Wil ik zien en Aan het kijken, en met PRO of VIP je aanbevelingen; met de geschiedenis kun je markeren of verbergen wat je al gezien hebt (Kijkgeschiedenis, bij Filters &amp; lijsten verkennen).</string>
     <string name="simkl_login_ok">Simkl verbonden als %1$s</string>
     <string name="simkl_failed">Simkl-fout: %1$s</string>
     <string name="watched_summary_hidden">bekeken verborgen</string>
@@ -458,7 +458,7 @@
     <string name="footer_source">Bronlijst</string>
     <string name="footer_streaming">Streamingdiensten</string>
     <string name="explore_empty_title">Geen lijsten gekozen</string>
-    <string name="explore_empty_desc">Kies lijsten van TMDB, Trakt, Simkl of MDBList</string>
+    <string name="explore_empty_desc">Kies lijsten van TMDB, Trakt, Simkl, MDBList, Plex of Jellyfin</string>
     <string name="viewer_browse">Bladeren</string>
     <string name="viewer_use">Gebruiken in voorbeeld</string>
     <string name="viewer_unpin">Losmaken</string>
@@ -505,8 +505,8 @@
     <string name="time_just_now">zojuist</string>
     <string name="filters_automatic_note">Standaard geldt dit alleen voor trending, populaire en vergelijkbare lijsten, zodat je kijklijsten en favorieten niet leeg raken.</string>
     <string name="explore_titles_header">Titels · %1$d</string>
-    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList</string>
-    <string name="part_languages_desc">Het logo en de samenvatting kunnen een andere taal gebruiken dan de rest van de achtergrond. Automatisch volgt de Taal van de achtergrond: %1$s. Bij elk staat wat er moet gebeuren als TMDB niets in die taal heeft.</string>
+    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList · Plex · Jellyfin</string>
+    <string name="part_languages_desc">De algemene taal van de tekst op de achtergrond. Het logo en de samenvatting kunnen een andere taal gebruiken: Automatisch volgt de algemene taal: %1$s. Bij elk staat wat er moet gebeuren als TMDB niets in die taal heeft.</string>
     <string name="part_summary_logo">Logo: %1$s</string>
     <string name="part_summary_synopsis">Samenvatting: %1$s</string>
     <string name="part_summary_skips">slaat titels over</string>
@@ -565,7 +565,7 @@
     <string name="use_in_projectivy_desc">Opent de instellingen van Projectivy: Weergave › Achtergrond › Launcher achtergrond › 🔌 Sofadrop</string>
     <string name="use_in_projectivy_path">In Projectivy: Weergave › Achtergrond › Launcher achtergrond › 🔌 Sofadrop</string>
     <string name="resolution_low_memory">Deze tv heeft misschien niet genoeg geheugen voor 4K</string>
-    <string name="about_log">Logboek van de laatste generatie</string>
+    <string name="about_log">Logboek van de laatste update</string>
     <string name="about_log_none">Nog geen achtergronden gemaakt</string>
     <string name="log_desc">Wat de laatste update deed: lijsten, fouten en hoe lang het duurde.</string>
     <string name="filters_min_rating_title">Minimale score</string>
@@ -584,7 +584,7 @@
     </plurals>
     <string name="filters_blocked_unblock">Deblokkeren</string>
     <string name="filters_blocked_clear">Alles wissen</string>
-    <string name="filters_blocked_desc">Titels die je blokkeert op de pagina van een lijst (open een lijst en dan een titel) of in Wallpapers bekijken (▼) komen nooit meer terug, uit welke lijst ze ook komen. Kies er hier een om hem te deblokkeren.</string>
+    <string name="filters_blocked_desc">Titels die je blokkeert op de pagina van een lijst (open een lijst en dan een titel) of in Achtergronden bekijken (▼) komen nooit meer terug, uit welke lijst ze ook komen. Kies er hier een om hem te deblokkeren.</string>
     <string name="exclusion_blocked">Overgeslagen: geblokkeerd</string>
     <string name="explore_block">Deze titel blokkeren</string>
     <string name="explore_unblock">Deze titel deblokkeren</string>
@@ -629,13 +629,13 @@
     <string name="accounts_reconnect">Instellingen geïmporteerd. Verbind opnieuw wat de andere tv had: %1$s. Accounts staan niet in het instellingenbestand.</string>
     <string name="wallpapers_title">Achtergronden</string>
     <string name="main_more_header">App</string>
-    <string name="projectivy_description">Achtergronden voor het startscherm van Projectivy Launcher (achtergrondplug-ins zijn een Premium-functie), of van een andere launcher via een map. De screensaver heeft geen van beide nodig.</string>
+    <string name="projectivy_description">Achtergronden voor het startscherm van Projectivy Launcher (externe achtergrondproviders zijn een Premium-functie), of van een andere launcher via een map. De screensaver heeft geen van beide nodig.</string>
     <string name="projectivy_status_in_use">In gebruik in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy geïnstalleerd: kies Sofadrop</string>
     <string name="projectivy_get">Projectivy downloaden</string>
     <string name="projectivy_get_desc">Om deze achtergronden ook op het startscherm van de tv te zien</string>
     <string name="projectivy_get_scan">Scan met je telefoon om de pagina van Projectivy te openen.</string>
-    <string name="click_action_desc_alone">In Sofascreen opent de OK-knop de titel die je ziet.</string>
+    <string name="click_action_desc_alone">In de screensaver opent de OK-knop de titel die je ziet.</string>
     <string name="general_header">Gedeelde instellingen</string>
     <string name="projectivy_status_optional">Voor Projectivy Launcher Premium of een map</string>
     <string name="wallpaper_folder_title">Opslaan in een map</string>

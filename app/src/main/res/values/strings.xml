@@ -3,7 +3,7 @@
     <string name="plugin_description">Wallpapers of movies and TV shows from your TMDB, Trakt, Simkl, MDBList, Plex or Jellyfin lists, made on this device, and a screensaver with them.</string>
     <string name="plugin_uuid" translatable="false">9b151d4e-9849-4ae0-8495-3347b7c47150</string>
 
-    <string name="projectivy_not_installed">Warning, this plugin requires Projectivy Launcher which does not seem to be installed.</string>
+    <string name="projectivy_not_installed">Projectivy Launcher does not seem to be installed.</string>
     <string name="settings">Settings</string>
     <string name="not_set">Not set</string>
     <string name="cancel">Cancel</string>
@@ -125,7 +125,7 @@
     <string name="mdblist_refresh">Reload my lists</string>
     <string name="mdblist_add">Add a public list</string>
     <string name="mdblist_add_desc">Type user/list or the list URL</string>
-    <string name="mdblist_screen_description">Add any public MDBList list, no account needed: tick a suggested one or type user/list (or its URL). Connect your account (in Accounts) to also load your own lists. Connecting it also adds Rotten Tomatoes, Metacritic and Letterboxd scores to the wallpapers (Wallpaper details → Header).</string>
+    <string name="mdblist_screen_description">Add any public MDBList list, no account needed: tick a suggested one or type user/list (or its URL). Connect your account (in Accounts) to also load your own lists. Connecting it also adds Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList scores to the wallpapers (Wallpaper details → Header).</string>
     <string name="mdblist_account_title">Your MDBList account</string>
     <string name="mdblist_account_hint">Optional · connect it in Accounts for your own lists and more ratings</string>
     <string name="mdblist_summary_empty">Optional. Add public lists or connect your account</string>
@@ -227,7 +227,7 @@
     <string name="setting_about_desc">Version %1$s · guided setup, source code and credits</string>
     <string name="about_version">Version</string>
     <string name="about_support">Support the project</string>
-    <string name="about_support_desc">If you like the plugin, you can buy me a coffee on Ko-fi</string>
+    <string name="about_support_desc">If you like Sofadrop, you can buy me a coffee on Ko-fi</string>
     <string name="about_support_scan">Scan it with your phone to open the Ko-fi page. Thank you!</string>
     <string name="support_prompt_kofi">Open Ko-fi</string>
     <string name="support_prompt_supporter">Become a Supporter</string>
@@ -244,7 +244,7 @@
     <string name="about_beta_desc">Sofadrop is coming to Google Play and needs testers with Google TV or Android TV</string>
     <string name="about_beta_scan">Scan it with your phone: the page has the two steps to join, with the same Google account as your TV.</string>
     <string name="about_credits">Credits</string>
-    <string name="about_credits_desc">This product uses the TMDB API but is not endorsed or certified by TMDB (themoviedb.org). Where to watch data by JustWatch. Sofadrop uses Trakt but is not endorsed or certified by Trakt. Lists and watch history from Simkl (simkl.com). Trakt, Simkl and MDBList names and logos belong to their owners. Lists from MDBList. Wallpapers for Projectivy Launcher. Scores from MDBList and Trakt. Information courtesy of IMDb (imdb.com), used with permission; IMDb, Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList names and logos belong to their owners. Sofascreen, the screensaver, by schumi2004, with thanks to ilee\'s Sofadrop Screensaver; weather by Open-Meteo (open-meteo.com).</string>
+    <string name="about_credits_desc">This product uses the TMDB API but is not endorsed or certified by TMDB (themoviedb.org). Where to watch data by JustWatch. Sofadrop uses Trakt but is not endorsed or certified by Trakt. Lists and watch history from Simkl (simkl.com), Plex and Jellyfin. Trakt, Simkl, MDBList, Plex and Jellyfin names and logos belong to their owners. Lists from MDBList. Wallpapers for Projectivy Launcher. Scores from MDBList and Trakt. Information courtesy of IMDb (imdb.com), used with permission; IMDb, Rotten Tomatoes, Metacritic, Letterboxd and MyAnimeList names and logos belong to their owners. The Sofadrop screensaver started from schumi2004\'s work, with thanks to ilee\'s Sofadrop Screensaver; weather by Open-Meteo (open-meteo.com).</string>
     <string name="qr_link_hint">Scan the code with your phone</string>
     <string name="setting_accounts_title">Accounts</string>
     <string name="accounts_description">Connect services by scanning a QR code with your phone. None is required: TMDB lists and the TMDB, IMDb and Trakt ratings work without an account. Disconnecting a service also unticks the lists that need it.</string>
@@ -300,7 +300,7 @@
     <string name="header_genres_short">genres</string>
     <string name="header_watched_short">watched</string>
     <string name="header_empty">Nothing</string>
-    <string name="header_watched_needs">Needs Trakt or Simkl history</string>
+    <string name="header_watched_needs">Needs a watch history</string>
     <string name="header_certification">Age rating</string>
     <string name="header_certification_short">age rating</string>
     <string name="header_certification_desc">The one for %1$s, the streaming country · not shown when it has none</string>
@@ -405,7 +405,7 @@
     <string name="cast_summary_names">cast</string>
     <string name="cast_summary_photos">cast with photos</string>
     <string name="footer_desc">The bottom line: the streaming services that have each title, in the country you choose, and the list it came from.</string>
-    <string name="click_action_desc">In Projectivy, the ▶ icon in the status bar (or “About this wallpaper”) opens the title on screen; in Sofascreen, the OK button.</string>
+    <string name="click_action_desc">In Projectivy, the ▶ icon in the status bar (or “About this wallpaper”) opens the title on screen; in the screensaver, the OK button.</string>
     <string name="click_target_title">What it opens</string>
     <string name="click_open_app">Open in %1$s</string>
     <string name="click_app_missing">Open in %1$s (not installed: the trailer opens)</string>
@@ -468,7 +468,7 @@
     <string name="footer_source">List source</string>
     <string name="footer_streaming">Streaming services</string>
     <string name="explore_empty_title">No lists selected</string>
-    <string name="explore_empty_desc">Pick lists from TMDB, Trakt, Simkl or MDBList</string>
+    <string name="explore_empty_desc">Pick lists from TMDB, Trakt, Simkl, MDBList, Plex or Jellyfin</string>
     <string name="viewer_browse">Browse</string>
     <string name="viewer_use">Use in preview</string>
     <string name="viewer_unpin">Unpin</string>
@@ -515,7 +515,7 @@
     <string name="time_just_now">just now</string>
     <string name="filters_automatic_note">By default this only applies to trending, popular and similar lists, so your watchlists and favourites aren\'t emptied.</string>
     <string name="explore_titles_header">Titles · %1$d</string>
-    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList</string>
+    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList · Plex · Jellyfin</string>
     <string name="part_languages_desc">The general language of the wallpaper\'s text. The logo and the synopsis can use another one: Automatic follows the general one: %1$s. Each one says what to do when TMDB has nothing in its language.</string>
     <string name="part_summary_logo">Logo: %1$s</string>
     <string name="part_summary_synopsis">Synopsis: %1$s</string>
@@ -639,13 +639,13 @@
     <string name="accounts_reconnect">Settings imported. Connect again what the other TV had: %1$s. Accounts aren\'t in the settings file.</string>
     <string name="wallpapers_title">Wallpapers</string>
     <string name="main_more_header">App</string>
-    <string name="projectivy_description">Wallpapers for the home screen of Projectivy Launcher (wallpaper plugins are one of its Premium features), or of another launcher through a folder. The screensaver doesn\'t need either.</string>
+    <string name="projectivy_description">Wallpapers for the home screen of Projectivy Launcher (third-party wallpaper providers are a Premium feature there), or of another launcher through a folder. The screensaver doesn\'t need either.</string>
     <string name="projectivy_status_in_use">In use in Projectivy</string>
     <string name="projectivy_status_pick">Projectivy installed: choose Sofadrop</string>
     <string name="projectivy_get">Get Projectivy</string>
     <string name="projectivy_get_desc">To have these wallpapers on the TV\'s home screen too</string>
     <string name="projectivy_get_scan">Scan with your phone to open Projectivy\'s page.</string>
-    <string name="click_action_desc_alone">In Sofascreen, the OK button opens the title on screen.</string>
+    <string name="click_action_desc_alone">In the screensaver, the OK button opens the title on screen.</string>
     <string name="general_header">Shared settings</string>
     <string name="projectivy_status_optional">For Projectivy Launcher Premium or a folder</string>
     <string name="wallpaper_folder_title">Save in a folder</string>

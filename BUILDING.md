@@ -57,29 +57,32 @@ Release builds are minified with R8 (full mode): smoke-test them on a device or 
 ./gradlew :app:testGithubDebugUnitTest
 ```
 
-Instrumented tests (`connectedDebugAndroidTest`) uninstall the app when they finish, so point them at an emulator, e.g. `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest`.
+Instrumented tests (`connectedGithubDebugAndroidTest`) uninstall the app when they finish, so point them at an emulator, e.g. `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedGithubDebugAndroidTest`.
 
 ## How refreshing works
 
-* A periodic **WorkManager** job regenerates the set every *Update every* hours. The app does not need to stay open: Android wakes it up when the job is due, and the job survives reboots. Only *Force stop* cancels it until the plugin is opened again.
-* Projectivy asks the plugin for its list every 10 minutes (`itemsCacheDurationMillis`; a cheap call that returns the files already generated). That is when a new set shows up; if the set is older than the interval, the plugin regenerates it right away as a safety net.
-* After each generation the plugin broadcasts `WALLPAPER_PROVIDER_UPDATED`. Tested with Projectivy 4.72 on a Chromecast with Google TV, this does not trigger an immediate reload, so new wallpapers appear at Projectivy's next request.
+* A periodic **WorkManager** job regenerates the set every *Update every* hours. The app does not need to stay open: Android wakes it up when the job is due, and the job survives reboots. Only *Force stop* cancels it until the app is opened again.
+* Projectivy asks Sofadrop for its list every 10 minutes (`itemsCacheDurationMillis`; a cheap call that returns the files already generated). That is when a new set shows up; if the set is older than the interval, Sofadrop regenerates it right away as a safety net.
+* After each generation Sofadrop broadcasts `WALLPAPER_PROVIDER_UPDATED`. Tested with Projectivy 4.72 on a Chromecast with Google TV, this does not trigger an immediate reload, so new wallpapers appear at Projectivy's next request.
 * Wallpapers are served read-only by `WallpaperContentProvider` (no per-URI grants, which Android drops when the app is updated), and the set Projectivy was last given is kept until it asks again.
 
 ## Project structure
 
 ```
-api/                     # Projectivy plugin API (AIDL), unchanged from the official template
+api/                     # Projectivy wallpaper provider API (AIDL), unchanged from the official template
 app/src/main/java/com/rfmarcos/sofadrop/
   WallpaperProviderService.kt  # Service called by Projectivy
   WallpaperContentProvider.kt  # Read-only access to the generated images
   GenerateWallpapersWorker.kt  # Background generation + scheduling
+  Sofascreen.kt                # Built-in Android TV screensaver (DreamService + standalone activity)
   TmdbClient.kt / TmdbCatalog.kt  # TMDB API, TMDB lists and wallpaper data
-  TraktClient.kt / SimklClient.kt / MdbListClient.kt / Sources.kt  # optional list providers
+  TraktClient.kt / SimklClient.kt / MdbListClient.kt / PlexClient.kt / JellyfinClient.kt / Sources.kt  # list providers
+  Platform.kt / ClickTargets.kt  # Streaming platform links (JustWatch + Wikidata) and click actions
   WallpaperFactory.kt          # download + render pipeline (generation and preview)
-  WallpaperRenderer.kt         # Canvas rendering of the wallpaper
-  WallpaperStore.kt            # Generated sets and their index
-  Updater.kt                   # In-app updates from the GitHub releases
-  SettingsFragment.kt (main) / ListsFragment.kt, ProviderListsFragment.kt, MdbListFragment.kt,
-  ListExplorerFragment.kt (lists and filters) / DetailsFragment.kt / AboutFragment.kt / PreviewActivity.kt
+  WallpaperRenderer.kt / ScrollVideo.kt  # Canvas rendering and scrolling-synopsis video encoding
+  FocusedWallpapers.kt         # On-demand wallpapers for Projectivy's focused card
+  WallpaperStore.kt / WallpaperFolder.kt  # Generated sets, index and optional folder export
+  Updater.kt                   # In-app updates from the GitHub releases (github flavor)
+  SettingsFragment.kt (main) / WallpapersFragment.kt / ScreensaverFragment.kt / ListsFragment.kt /
+  DetailsFragment.kt / ClickActionFragment.kt / AboutFragment.kt / Wizard.kt / PreviewActivity.kt
 ```

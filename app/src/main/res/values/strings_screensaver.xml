@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Sofascreen, the screensaver (after PR #13 by schumi2004) -->
 <resources>
-    <string name="screensaver_name" translatable="false">Sofascreen</string>
+    <string name="screensaver_name" translatable="false">Sofadrop</string>
     <string name="screensaver_title">Screensaver</string>
-    <string name="screensaver_description">Sofascreen shows your wallpapers as the TV\'s screensaver, no Projectivy needed. It uses the shared settings, or you can customize them.</string>
+    <string name="screensaver_description">Shows your wallpapers as the TV\'s screensaver, no Projectivy needed. It uses the shared settings, or you can customize them.</string>
     <string name="screensaver_empty">No wallpapers yet: choose your lists in Sofadrop</string>
     <string name="screensaver_preparing">Preparing the first wallpapers…</string>
     <string name="sofascreen_start">Start screensaver</string>
@@ -14,7 +14,7 @@
     <string name="sofascreen_switch_on">Use as the TV\'s screensaver</string>
     <string name="screensaver_try_desc">OK opens the title, ◀ ▶ go to the previous or next wallpaper, any other button closes it</string>
     <string name="screensaver_system_off">Not on yet</string>
-    <string name="screensaver_system_on">On: Sofascreen is the TV\'s screensaver</string>
+    <string name="screensaver_system_on">On: Sofadrop is the TV\'s screensaver</string>
     <string name="screensaver_system_opens_settings">opens Android\'s screensaver settings</string>
     <string name="screensaver_system_opens_steps">how to switch it on</string>
     <string name="screensaver_system_opens_path">opens Android\'s settings: Device Preferences → Screen saver</string>
@@ -90,11 +90,11 @@
     <string name="screensaver_summary_manual">Started by hand</string>
     <string name="screensaver_summary_clock">clock</string>
     <string name="screensaver_summary_weather">weather</string>
-    <string name="screensaver_system_explain">Choose Sofascreen in Android\'s screensaver settings.</string>
+    <string name="screensaver_system_explain">Choose Sofadrop in Android\'s screensaver settings.</string>
     <string name="screensaver_system_explain_steps">Google TV doesn\'t list other apps\' screensavers in its settings: it\'s switched on once from a computer. Press OK for the steps. Without a computer, “Start screensaver” shows it whenever you want.</string>
-    <string name="screensaver_system_fire_tv">From Fire OS 8.1 on, Fire TV only allows its own screensavers, so Sofascreen is started from here.</string>
+    <string name="screensaver_system_fire_tv">From Fire OS 8.1 on, Fire TV only allows its own screensavers, so the screensaver is started from here.</string>
     <string name="screensaver_system_fire_tv_old">To start on its own on this Fire OS it needs a computer: the steps are on Sofadrop\'s GitHub page. Otherwise, it\'s started from here.</string>
-    <string name="screensaver_system_explain_path">In Android\'s settings, go to Device Preferences → Screen saver and choose Sofascreen. The names can change with the TV\'s brand.</string>
+    <string name="screensaver_system_explain_path">In Android\'s settings, go to Device Preferences → Screen saver and choose Sofadrop. The names can change with the TV\'s brand.</string>
     <string name="screensaver_summary_on">On</string>
     <plurals name="sofascreen_ready">
         <item quantity="one">%d wallpaper ready</item>

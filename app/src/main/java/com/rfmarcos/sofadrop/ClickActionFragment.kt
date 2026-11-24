@@ -101,9 +101,10 @@ class ClickActionFragment : PreviewSettingsFragment() {
     /** The trailer's settings are one for all: from an own screen, they say so. */
     private fun shared(text: String) = if (profile.isGeneral) text else getString(R.string.trailer_shared, text)
 
-    /** A row's explanation, followed by where Projectivy opens it from: the explanation replaces the guidance. */
+    /** A row's explanation, followed by where it opens from: the explanation replaces the guidance. */
     private fun explain(id: Long, text: String) {
-        explanations[id] = text + "\n\n" + getString(R.string.click_action_desc)
+        val where = getString(if (Projectivy.isInstalled(requireContext())) R.string.click_action_desc else R.string.click_action_desc_alone)
+        explanations[id] = "$text\n\n$where"
     }
 
     private fun step(position: Int, label: String) = getString(R.string.click_step, position, label)

@@ -2,7 +2,7 @@
     <string name="plugin_name">Sofadrop</string>
     <string name="plugin_description">Fondos de pantalla de películas y series de tus listas de TMDB, Trakt, Simkl, MDBList, Plex o Jellyfin, generados en este dispositivo, y un salvapantallas con ellos.</string>
 
-    <string name="projectivy_not_installed">Atención: este plugin necesita Projectivy Launcher, que no parece estar instalado.</string>
+    <string name="projectivy_not_installed">Projectivy Launcher no parece estar instalado.</string>
     <string name="settings">Ajustes</string>
     <string name="not_set">Sin configurar</string>
     <string name="cancel">Cancelar</string>
@@ -116,7 +116,7 @@
     <string name="mdblist_refresh">Recargar mis listas</string>
     <string name="mdblist_add">Añadir una lista pública</string>
     <string name="mdblist_add_desc">Escribe usuario/lista o la URL de la lista</string>
-    <string name="mdblist_screen_description">Añade cualquier lista pública de MDBList sin cuenta: marca una sugerida o escribe usuario/lista (o su URL). Conecta tu cuenta (en Cuentas) para cargar también tus propias listas. Al conectarla, los fondos pueden mostrar además las notas de Rotten Tomatoes, Metacritic y Letterboxd (Detalles del fondo → Cabecera).</string>
+    <string name="mdblist_screen_description">Añade cualquier lista pública de MDBList sin cuenta: marca una sugerida o escribe usuario/lista (o su URL). Conecta tu cuenta (en Cuentas) para cargar también tus propias listas. Al conectarla, los fondos pueden mostrar además las notas de Rotten Tomatoes, Metacritic, Letterboxd y MyAnimeList (Detalles del fondo → Cabecera).</string>
     <string name="mdblist_account_title">Tu cuenta de MDBList</string>
     <string name="mdblist_account_hint">Opcional · conéctala en Cuentas para tus listas y más notas</string>
     <string name="mdblist_summary_empty">Opcional. Añade listas públicas o conecta tu cuenta</string>
@@ -217,7 +217,7 @@
     <string name="setting_about_desc">Versión %1$s · configuración guiada, código y créditos</string>
     <string name="about_version">Versión</string>
     <string name="about_support">Apoyar el proyecto</string>
-    <string name="about_support_desc">Si te gusta el plugin, puedes invitarme a un café en Ko-fi</string>
+    <string name="about_support_desc">Si te gusta Sofadrop, puedes invitarme a un café en Ko-fi</string>
     <string name="about_support_scan">Escanéalo con el móvil para abrir la página de Ko-fi. ¡Gracias!</string>
     <string name="support_prompt_kofi">Abrir Ko-fi</string>
     <string name="support_prompt_supporter">Hacerme Supporter</string>
@@ -234,7 +234,7 @@
     <string name="about_beta_desc">Sofadrop llega a Google Play y busca testers con Google TV o Android TV</string>
     <string name="about_beta_scan">Escanéalo con el móvil: la página tiene los dos pasos para unirte, con la misma cuenta de Google que tienes en la TV.</string>
     <string name="about_credits">Créditos</string>
-    <string name="about_credits_desc">Este producto usa la API de TMDB pero no está respaldado ni certificado por TMDB (themoviedb.org). Dónde verlo: datos de JustWatch. Sofadrop usa Trakt pero no está respaldado ni certificado por Trakt. Listas e historial de Simkl (simkl.com). Los nombres y logotipos de Trakt, Simkl y MDBList pertenecen a sus propietarios. Listas de MDBList. Fondos para Projectivy Launcher. Notas de MDBList y Trakt. Information courtesy of IMDb (imdb.com), used with permission; los nombres y logotipos de IMDb, Rotten Tomatoes, Metacritic, Letterboxd y MyAnimeList pertenecen a sus propietarios. Sofascreen, el salvapantallas, de schumi2004, con gracias a Sofadrop Screensaver de ilee; el tiempo, de Open-Meteo (open-meteo.com).</string>
+    <string name="about_credits_desc">Este producto usa la API de TMDB pero no está respaldado ni certificado por TMDB (themoviedb.org). Dónde verlo: datos de JustWatch. Sofadrop usa Trakt pero no está respaldado ni certificado por Trakt. Listas e historial de Simkl (simkl.com), Plex y Jellyfin. Los nombres y logotipos de Trakt, Simkl, MDBList, Plex y Jellyfin pertenecen a sus propietarios. Listas de MDBList. Fondos para Projectivy Launcher. Notas de MDBList y Trakt. Information courtesy of IMDb (imdb.com), used with permission; los nombres y logotipos de IMDb, Rotten Tomatoes, Metacritic, Letterboxd y MyAnimeList pertenecen a sus propietarios. El salvapantallas de Sofadrop nació del trabajo de schumi2004, con gracias a Sofadrop Screensaver de ilee; el tiempo, de Open-Meteo (open-meteo.com).</string>
     <string name="qr_link_hint">Escanea el código con el móvil</string>
     <string name="setting_accounts_title">Cuentas</string>
     <string name="accounts_description">Conecta servicios escaneando un QR con el móvil. Ninguno es obligatorio: las listas de TMDB y las notas de TMDB, IMDb y Trakt funcionan sin cuenta. Al desconectar un servicio se desmarcan también las listas que lo necesitan.</string>
@@ -244,7 +244,7 @@
     <string name="accounts_api_key">Conectado con clave de API</string>
     <string name="enables_tmdb">Cuenta de TMDB: añade tu lista de seguimiento y tus favoritos como listas. Las listas y la nota de TMDB funcionan sin ella.</string>
     <string name="enables_trakt">Cuenta de Trakt: tus recomendaciones y tu watchlist como listas, y tu historial para la marca de visto / viendo y para ocultar lo que has visto. La nota de Trakt funciona sin ella.</string>
-    <string name="enables_simkl">Cuenta de Simkl: tus listas Plan to watch y Watching, tus recomendaciones (PRO o VIP) y tu historial para la marca de visto / viendo y para ocultar lo que has visto.</string>
+    <string name="enables_simkl">Cuenta de Simkl: tus listas Pendientes y Viendo, tus recomendaciones (PRO o VIP) y tu historial para la marca de visto / viendo y para ocultar lo que has visto.</string>
     <string name="enables_mdblist">Cuenta de MDBList: tus propias listas y las notas de Rotten Tomatoes (crítica y público), Metacritic, Letterboxd y MyAnimeList. Las cuentas gratuitas permiten 1.000 peticiones al día; Sofadrop usa una por lista cada vez que genera.</string>
     <string name="enables_imdb">Sin MDBList, las notas de IMDb salen del dataset oficial de IMDb (unos 9 MB). Se descarga la primera vez que hace falta, de nuevo cada semana y antes (como mucho a diario) si falta un título nuevo. Pulsa para descargarlo ya.</string>
     <string name="setting_details_title">Detalles del fondo</string>
@@ -284,7 +284,7 @@
     <string name="header_genres_short">géneros</string>
     <string name="header_watched_short">visto</string>
     <string name="header_empty">Nada</string>
-    <string name="header_watched_needs">Requiere el historial de Trakt o Simkl</string>
+    <string name="header_watched_needs">Requiere historial de vistos</string>
     <string name="header_certification">Clasificación por edades</string>
     <string name="header_certification_short">edad</string>
     <string name="header_certification_desc">La de %1$s, el país de streaming · no se muestra si no la tiene</string>
@@ -387,7 +387,7 @@
     <string name="cast_summary_names">reparto</string>
     <string name="cast_summary_photos">reparto con fotos</string>
     <string name="footer_desc">La línea de abajo: las plataformas donde está cada título, en el país que elijas, y la lista de la que sale.</string>
-    <string name="click_action_desc">En Projectivy, el icono ▶ de la barra de estado (o «Acerca de este fondo») abre el título que se ve; en Sofascreen, el botón OK.</string>
+    <string name="click_action_desc">En Projectivy, el icono ▶ de la barra de estado (o «Acerca de este fondo») abre el título que se ve; en el salvapantallas, el botón OK.</string>
     <string name="click_target_title">Qué abre</string>
     <string name="click_open_app">Abrir en %1$s</string>
     <string name="click_app_missing">Abrir en %1$s (no está instalada: se abre el tráiler)</string>
@@ -401,7 +401,7 @@
     <string name="trailer_fallback_none">Ninguno</string>
     <string name="trailer_fallback_then_any">Y si tampoco lo hay, cualquier tráiler</string>
     <string name="trailer_fallback_none_desc">El fondo no abre nada</string>
-    <string name="trailer_app_title">Reproductor de trailers</string>
+    <string name="trailer_app_title">Reproductor de tráileres</string>
     <string name="trailer_app_explanation">YouTube, u otra app de YouTube que haya en esta TV. No todas abren el vídeo que se les da: si la tuya se queda en su inicio, vuelve a YouTube.</string>
     <string name="preview_label_pinned">Vista previa · %1$s · fijada</string>
     <string name="preview_pinned">Se mostrará en la vista previa de los ajustes · cámbialo en Detalles del fondo</string>
@@ -450,7 +450,7 @@
     <string name="footer_source">Lista de origen</string>
     <string name="footer_streaming">Plataformas de streaming</string>
     <string name="explore_empty_title">No hay listas elegidas</string>
-    <string name="explore_empty_desc">Elige listas de TMDB, Trakt, Simkl o MDBList</string>
+    <string name="explore_empty_desc">Elige listas de TMDB, Trakt, Simkl, MDBList, Plex o Jellyfin</string>
     <string name="viewer_browse">Navegar</string>
     <string name="viewer_use">Usar en la vista previa</string>
     <string name="viewer_unpin">Quitar</string>
@@ -497,7 +497,7 @@
     <string name="time_just_now">ahora mismo</string>
     <string name="filters_automatic_note">Por defecto solo se aplica a tendencias, populares y similares, para no vaciar tus watchlists y favoritos.</string>
     <string name="explore_titles_header">Títulos · %1$d</string>
-    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList</string>
+    <string name="about_credits_short">TMDB · Trakt · Simkl · MDBList · Plex · Jellyfin</string>
     <string name="part_languages_desc">El idioma general de los textos del fondo. El logo y la sinopsis pueden ir en otro: Automático sigue el general: %1$s. Cada uno dice qué hacer cuando TMDB no tiene nada en ese idioma.</string>
     <string name="part_summary_logo">Logo: %1$s</string>
     <string name="part_summary_synopsis">Sinopsis: %1$s</string>
@@ -621,13 +621,13 @@
     <string name="accounts_reconnect">Ajustes importados. Conecta de nuevo lo que tenía la otra TV: %1$s. Las cuentas no van en el archivo de ajustes.</string>
     <string name="wallpapers_title">Fondos de pantalla</string>
     <string name="main_more_header">Aplicación</string>
-    <string name="projectivy_description">Fondos para la pantalla de inicio de Projectivy Launcher (los plugins de fondos son una función de su versión Premium), o de otro launcher mediante una carpeta. El salvapantallas no necesita ninguno de los dos.</string>
+    <string name="projectivy_description">Fondos para la pantalla de inicio de Projectivy Launcher (los proveedores de fondos externos son una función de su versión Premium), o de otro launcher mediante una carpeta. El salvapantallas no necesita ninguno de los dos.</string>
     <string name="projectivy_status_in_use">En uso en Projectivy</string>
     <string name="projectivy_status_pick">Projectivy instalado: elige Sofadrop</string>
     <string name="projectivy_get">Conseguir Projectivy</string>
     <string name="projectivy_get_desc">Para ver estos fondos también en el inicio de la TV</string>
     <string name="projectivy_get_scan">Escanéalo con el móvil para abrir la página de Projectivy.</string>
-    <string name="click_action_desc_alone">En Sofascreen, el botón OK abre el título que se ve.</string>
+    <string name="click_action_desc_alone">En el salvapantallas, el botón OK abre el título que se ve.</string>
     <string name="general_header">Ajustes comunes</string>
     <string name="projectivy_status_optional">Para Projectivy Launcher Premium o una carpeta</string>
     <string name="wallpaper_folder_title">Guardar en una carpeta</string>
