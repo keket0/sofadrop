@@ -2,6 +2,7 @@ package com.rfmarcos.sofadrop
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.leanback.widget.GuidanceStylist.Guidance
 import androidx.leanback.widget.GuidedAction
@@ -11,6 +12,22 @@ import androidx.leanback.widget.GuidedAction
  * what to show on other cards (apps, YouTube, unmatched), and whether that applies to app rows too.
  */
 class FocusedCardFragment : BaseSettingsFragment() {
+
+    private val pickImage = registerForActivityResult(SettingsFile.Pick("image/*")) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val app = requireContext().applicationContext
+        background({ FocusedWallpapers.saveCustomFallback(app, uri) }) { result ->
+            if (!isAdded) return@background
+            val name = result.getOrNull()
+            if (name != null) {
+                Settings.focusedFallbackImageName = name
+                Toast.makeText(requireContext(), R.string.focused_fallback_image_saved, Toast.LENGTH_SHORT).show()
+                refreshActions(rows())
+            } else {
+                Toast.makeText(requireContext(), R.string.focused_fallback_image_failed, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     override fun onCreateGuidance(savedInstanceState: Bundle?) = Guidance(
         getString(R.string.focused_card_title),
@@ -46,6 +63,20 @@ class FocusedCardFragment : BaseSettingsFragment() {
                 .subActions(options(ID_FALLBACK, fallbackLabels, currentFallback,
                     Settings.FOCUSED_FALLBACK_OPTIONS.map { fallbackDesc(it) })).build()
 
+            if (Settings.focusedFallback == Settings.FOCUSED_FALLBACK_IMAGE) {
+                val canPick = SettingsFile.canPick(context, "image/*")
+                val hasFile = FocusedWallpapers.customFallbackFile(context) != null
+                val name = Settings.focusedFallbackImageName
+                val desc = when {
+                    hasFile && name.isNotBlank() && canPick -> getString(R.string.focused_fallback_image_chosen, name)
+                    hasFile && name.isNotBlank() -> name
+                    canPick -> getString(R.string.focused_fallback_image_pick)
+                    else -> getString(R.string.focused_fallback_image_no_picker)
+                }
+                list += action(ID_IMAGE, R.drawable.ic_act_preview, getString(R.string.focused_fallback_image_title), desc)
+                    .multilineDescription(true).focusable(canPick).build()
+            }
+
             if (Settings.focusedFallback != Settings.FOCUSED_FALLBACK_SET) {
                 explanations[ID_SCOPE] = getString(R.string.focused_scope_explain)
                 val scopeLabels = Settings.FOCUSED_SCOPE_OPTIONS.map { scopeLabel(it) }
@@ -68,6 +99,7 @@ class FocusedCardFragment : BaseSettingsFragment() {
 
     private fun fallbackDesc(mode: String): String? = when (mode) {
         Settings.FOCUSED_FALLBACK_DIMMED -> getString(R.string.focused_fallback_dimmed_desc)
+        Settings.FOCUSED_FALLBACK_IMAGE -> getString(R.string.focused_fallback_image_desc)
         else -> null
     }
 
@@ -82,7 +114,10 @@ class FocusedCardFragment : BaseSettingsFragment() {
     })
 
     override fun onGuidedActionClicked(action: GuidedAction) {
-        if (action.id == ID_CARD_LOG) open(FocusedLogFragment())
+        when (action.id) {
+            ID_IMAGE -> runCatching { pickImage.launch(arrayOf("image/*")) }
+            ID_CARD_LOG -> open(FocusedLogFragment())
+        }
     }
 
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
@@ -94,9 +129,15 @@ class FocusedCardFragment : BaseSettingsFragment() {
                 return true
             }
             ID_FALLBACK -> {
-                Settings.focusedFallback = Settings.FOCUSED_FALLBACK_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
+                val chosen = Settings.FOCUSED_FALLBACK_OPTIONS[(action.id % SUB_ID_BASE).toInt()]
+                Settings.focusedFallback = chosen
                 collapseSubActions()
                 refreshActions(rows())
+                if (chosen == Settings.FOCUSED_FALLBACK_IMAGE && FocusedWallpapers.customFallbackFile(requireContext()) == null &&
+                    SettingsFile.canPick(requireContext(), "image/*")
+                ) {
+                    runCatching { pickImage.launch(arrayOf("image/*")) }
+                }
                 return true
             }
             ID_SCOPE -> {
@@ -113,6 +154,7 @@ class FocusedCardFragment : BaseSettingsFragment() {
         private const val ID_FALLBACK = 2L
         private const val ID_SCOPE = 3L
         private const val ID_CARD_LOG = 4L
+        private const val ID_IMAGE = 5L
 
         private fun modeLabel(context: Context, mode: String) = context.getString(when (mode) {
             Settings.FOCUSED_EPISODE -> R.string.focused_card_episode
@@ -124,6 +166,7 @@ class FocusedCardFragment : BaseSettingsFragment() {
         private fun fallbackLabel(context: Context, mode: String) = context.getString(when (mode) {
             Settings.FOCUSED_FALLBACK_DARK -> R.string.focused_fallback_dark
             Settings.FOCUSED_FALLBACK_DIMMED -> R.string.focused_fallback_dimmed
+            Settings.FOCUSED_FALLBACK_IMAGE -> R.string.focused_fallback_image
             else -> R.string.focused_fallback_set
         })
 

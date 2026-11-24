@@ -32,6 +32,14 @@
     <string name="focused_fallback_dark">Fondo oscuro</string>
     <string name="focused_fallback_dimmed">Fondo difuminado</string>
     <string name="focused_fallback_dimmed_desc">El fondo actual suavizado y oscurecido para que no distraiga</string>
+    <string name="focused_fallback_image">Imagen propia</string>
+    <string name="focused_fallback_image_desc">Una imagen tuya elegida con un gestor de archivos</string>
+    <string name="focused_fallback_image_title">Imagen</string>
+    <string name="focused_fallback_image_pick">Pulsa para elegir una imagen</string>
+    <string name="focused_fallback_image_chosen">%1$s · pulsa para cambiar</string>
+    <string name="focused_fallback_image_no_picker">Google TV no tiene selector de archivos: instala un gestor (como File Manager+) para elegir una imagen</string>
+    <string name="focused_fallback_image_saved">Imagen guardada</string>
+    <string name="focused_fallback_image_failed">No se pudo leer esa imagen</string>
     <string name="focused_fallback_explain">Qué mostrar cuando el foco está en una app, un vídeo de YouTube o una tarjeta que no es película ni serie. En modo inactivo Projectivy sigue rotando tus fondos con normalidad.</string>
     <string name="focused_scope_title">Aplicar a</string>
     <string name="focused_scope_all">Apps y otros canales</string>

@@ -33,6 +33,14 @@
     <string name="focused_fallback_dark">Donkere achtergrond</string>
     <string name="focused_fallback_dimmed">Vervaagde achtergrond</string>
     <string name="focused_fallback_dimmed_desc">De huidige achtergrond vervaagd en gedimd als rustige achtergrond</string>
+    <string name="focused_fallback_image">Eigen afbeelding</string>
+    <string name="focused_fallback_image_desc">Een eigen afbeelding, gekozen met een bestandsbeheerder</string>
+    <string name="focused_fallback_image_title">Afbeelding</string>
+    <string name="focused_fallback_image_pick">Druk om een afbeelding te kiezen</string>
+    <string name="focused_fallback_image_chosen">%1$s · druk om te wijzigen</string>
+    <string name="focused_fallback_image_no_picker">Google TV heeft geen bestandskeuze: installeer een bestandsbeheerder (zoals File Manager+) om een afbeelding te kiezen</string>
+    <string name="focused_fallback_image_saved">Afbeelding opgeslagen</string>
+    <string name="focused_fallback_image_failed">Kon die afbeelding niet lezen</string>
     <string name="focused_fallback_explain">Wat te tonen wanneer de focus op een app, een YouTube-video of een andere kaart staat die geen film of serie is. In de inactieve modus wisselt Projectivy gewoon door je achtergronden.</string>
     <string name="focused_scope_title">Toepassen op</string>
     <string name="focused_scope_all">Apps en andere kanalen</string>

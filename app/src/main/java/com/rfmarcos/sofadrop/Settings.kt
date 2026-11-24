@@ -85,6 +85,7 @@ object Settings {
     private const val KEY_FOCUSED_CARD = "focused_card"
     private const val KEY_FOCUSED_FALLBACK = "focused_fallback"
     private const val KEY_FOCUSED_FALLBACK_SCOPE = "focused_fallback_scope"
+    private const val KEY_FOCUSED_FALLBACK_IMAGE_NAME = "focused_fallback_image_name"
     private const val KEY_WALLPAPER_FOLDER = "wallpaper_folder"
     private const val KEY_SCREENSAVER_SHUFFLE = "screensaver_shuffle"
     private const val KEY_ORDER_MOVED = "order_moved"
@@ -177,7 +178,8 @@ object Settings {
     const val FOCUSED_FALLBACK_SET = "set"
     const val FOCUSED_FALLBACK_DIMMED = "dimmed"
     const val FOCUSED_FALLBACK_DARK = "dark"
-    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_DARK)
+    const val FOCUSED_FALLBACK_IMAGE = "image"
+    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_IMAGE)
 
     /** Which non-media cards trigger [focusedFallback]: other channels only (default, apps keep rotating the set) or apps + other channels. */
     const val FOCUSED_SCOPE_ALL = "all"
@@ -386,6 +388,11 @@ object Settings {
     var focusedFallbackScope: String
         get() = preferences.getString(KEY_FOCUSED_FALLBACK_SCOPE, null)?.takeIf { it in FOCUSED_SCOPE_OPTIONS } ?: FOCUSED_SCOPE_CHANNELS
         set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK_SCOPE, value) }
+
+    /** Display name of the user-picked image for [FOCUSED_FALLBACK_IMAGE], local to this TV. */
+    var focusedFallbackImageName: String
+        get() = string(KEY_FOCUSED_FALLBACK_IMAGE_NAME)
+        set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK_IMAGE_NAME, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */
     var wallpaperFolder: Boolean
@@ -954,7 +961,8 @@ object Settings {
      * filling or emptying Pictures/Sofadrop (and may need a permission that device hasn't granted).
      */
     fun inBackup(key: String): Boolean = !key.startsWith("_") && key !in SECRET_KEYS &&
-        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER && key != KEY_ORDER_MOVED
+        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER && key != KEY_ORDER_MOVED &&
+        key != KEY_FOCUSED_FALLBACK_IMAGE_NAME
 
     fun export(): String = exportJson(preferences.all)
 

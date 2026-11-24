@@ -363,6 +363,7 @@ object FocusedWallpapers {
     // --- Fallback wallpaper for non-media cards (issue #38) ---
 
     private const val FALLBACK_PREFIX = "fallback-"
+    private const val CUSTOM_PREFIX = "fallback-custom-"
     private const val FALLBACK_WIDTH = 960
     private const val FALLBACK_HEIGHT = 540
     private const val BLUR_WIDTH = 240
@@ -381,12 +382,65 @@ object FocusedWallpapers {
             when (fallback) {
                 Settings.FOCUSED_FALLBACK_DARK -> darkFallbackFile(context)
                 Settings.FOCUSED_FALLBACK_DIMMED -> dimmedFallbackFile(context, lastShownPath) ?: darkFallbackFile(context)
+                Settings.FOCUSED_FALLBACK_IMAGE -> customFallbackFile(context) ?: darkFallbackFile(context)
                 else -> return null
             }
         } ?: return null
         val uri = Uri.Builder().scheme("content").authority("${context.packageName}.wallpapers")
             .appendPath(DIR).appendPath(file.name).build()
         return wallpaper(uri.toString(), "")
+    }
+
+    /** The user-picked fallback image, if one has been saved on this TV. */
+    fun customFallbackFile(context: Context): File? = synchronized(fallbackLock) {
+        dir(context).listFiles().orEmpty()
+            .filter { it.name.startsWith(CUSTOM_PREFIX) && it.extension == "jpg" && it.isFile }
+            .maxByOrNull { it.lastModified() }
+    }
+
+    /**
+     * Copies a user-picked image from [uri] into [DIR] (scaled to at most [MAX_WIDTH] px on its longest side
+     * so large photos don't OOM the TV), returning its display name or null if it couldn't be decoded.
+     */
+    fun saveCustomFallback(context: Context, uri: Uri): String? = synchronized(fallbackLock) {
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching { resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@synchronized null
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_WIDTH * 2) sample *= 2
+        val decoded = runCatching {
+            resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
+        }.getOrNull() ?: return@synchronized null
+        val maxSide = maxOf(decoded.width, decoded.height)
+        val bitmap = if (maxSide > MAX_WIDTH) {
+            val scale = MAX_WIDTH.toFloat() / maxSide
+            Bitmap.createScaledBitmap(decoded, (decoded.width * scale).toInt().coerceAtLeast(1), (decoded.height * scale).toInt().coerceAtLeast(1), true)
+                .also { if (it !== decoded) decoded.recycle() }
+        } else decoded
+        val folder = dir(context).apply { mkdirs() }
+        // Timestamped name so Projectivy drops any cached copy of the previous custom image
+        val file = File(folder, "$CUSTOM_PREFIX${System.currentTimeMillis()}.jpg")
+        val tmp = File(file.path + ".tmp")
+        return@synchronized try {
+            FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
+            if (!tmp.renameTo(file)) {
+                tmp.delete()
+                return@synchronized null
+            }
+            folder.listFiles().orEmpty()
+                .filter { it.name.startsWith(CUSTOM_PREFIX) && it.name != file.name }
+                .forEach { it.delete() }
+            SettingsFile.displayName(context, uri) ?: "image.jpg"
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not save custom fallback image", e)
+            tmp.delete()
+            null
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     /** Neutral dark charcoal gradient. */
@@ -482,7 +536,10 @@ object FocusedWallpapers {
 
     private fun pruneFallbacks(folder: File) {
         folder.listFiles().orEmpty()
-            .filter { it.name.startsWith(FALLBACK_PREFIX) && it.name != "${FALLBACK_PREFIX}dark.jpg" && it.extension == "jpg" }
+            .filter {
+                it.name.startsWith(FALLBACK_PREFIX) && it.name != "${FALLBACK_PREFIX}dark.jpg" &&
+                    !it.name.startsWith(CUSTOM_PREFIX) && it.extension == "jpg"
+            }
             .sortedByDescending { it.lastModified() }
             .drop(MAX_FALLBACK_FILES)
             .forEach { it.delete() }

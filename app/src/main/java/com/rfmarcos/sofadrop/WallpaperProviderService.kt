@@ -29,9 +29,9 @@ class WallpaperProviderService : Service() {
     /** Focus is on a non-media card (app tile, YouTube clip, unmatched card) while not idle (issue #38). */
     @Volatile private var onOtherCard = false
 
-    /** Projectivy currently shows the non-media fallback wallpaper (its mode). */
-    @Volatile private var showingFallbackMode: String? = null
-    private val showingFallback get() = showingFallbackMode != null
+    /** URI of the non-media fallback wallpaper currently on screen (null when showing the set or a focused card). */
+    @Volatile private var showingFallbackUri: String? = null
+    private val showingFallback get() = showingFallbackUri != null
     @Volatile private var launcherIdle = false
 
     /**
@@ -95,7 +95,7 @@ class WallpaperProviderService : Service() {
                         onOtherCard = false
                         val wasShowing = showingCard || showingFallback
                         showingCard = false
-                        showingFallbackMode = null
+                        showingFallbackUri = null
                         if (wasShowing || !servedSet) return wallpapers()
                         return emptyList()
                     }
@@ -128,7 +128,7 @@ class WallpaperProviderService : Service() {
             if (event !is Event.TimeElapsed && !showingCard && !showingFallback && servedSet) return emptyList()
             val leftCard = showingCard || showingFallback
             showingCard = false
-            showingFallbackMode = null
+            showingFallbackUri = null
             // Given the set, Projectivy would show any of it: back to the one the card's replaced, and the
             // set again on the next TimeElapsed
             return wallpapers().let { set -> if (leftCard) shownBefore(set, WallpaperContentProvider.lastShown) else set }
@@ -136,13 +136,13 @@ class WallpaperProviderService : Service() {
 
         /** Serves the non-media fallback wallpaper, avoiding redundant reloads when it's already on screen. */
         private fun otherCardAnswer(fallback: String): List<Wallpaper> {
-            if (showingFallbackMode == fallback && servedSet) return emptyList()
             GenerateWallpapersWorker.schedule(this@WallpaperProviderService)
             val wallpaper = FocusedWallpapers.otherCardWallpaper(
                 this@WallpaperProviderService, fallback, WallpaperContentProvider.lastShown,
             ) ?: return if (servedSet) emptyList() else wallpapers()
+            if (showingFallbackUri == wallpaper.uri && servedSet) return emptyList()
             showingCard = false
-            showingFallbackMode = fallback
+            showingFallbackUri = wallpaper.uri
             servedSet = true
             return listOf(wallpaper)
         }
@@ -158,7 +158,7 @@ class WallpaperProviderService : Service() {
             } ?: return null
             if (focusedCard !== card) return null
             showingCard = true
-            showingFallbackMode = null
+            showingFallbackUri = null
             return listOf(wallpaper)
         }
 

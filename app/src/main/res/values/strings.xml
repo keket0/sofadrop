@@ -35,6 +35,14 @@
     <string name="focused_fallback_dark">Dark background</string>
     <string name="focused_fallback_dimmed">Blurred wallpaper</string>
     <string name="focused_fallback_dimmed_desc">The current wallpaper softened and dimmed so it reads as a background</string>
+    <string name="focused_fallback_image">Custom image</string>
+    <string name="focused_fallback_image_desc">A picture of your own, chosen with a file manager</string>
+    <string name="focused_fallback_image_title">Image</string>
+    <string name="focused_fallback_image_pick">Press to pick an image</string>
+    <string name="focused_fallback_image_chosen">%1$s · press to change</string>
+    <string name="focused_fallback_image_no_picker">Google TV has no file picker: install a file manager (File Manager+, for instance) to pick an image</string>
+    <string name="focused_fallback_image_saved">Image saved</string>
+    <string name="focused_fallback_image_failed">Couldn\'t read that image</string>
     <string name="focused_fallback_explain">What to show when the focus is on an app, a YouTube video or a card that isn\'t a movie or show. In idle mode Projectivy still rotates your wallpapers as usual.</string>
     <string name="focused_scope_title">Apply to</string>
     <string name="focused_scope_all">Apps and other channels</string>
