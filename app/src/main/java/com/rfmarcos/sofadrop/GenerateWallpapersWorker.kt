@@ -105,6 +105,7 @@ class GenerateWallpapersWorker(context: Context, params: WorkerParameters) : Wor
             }
             store.publish(generation, stored)
             profile.lastGeneration = System.currentTimeMillis()
+            Settings.generationCount += 1
             profile.lastSignature = signature
             profile.lastError = ""
             // A deleted or private Trakt list doesn't fail the generation, but the status says which one it was

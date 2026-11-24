@@ -20,6 +20,9 @@ class SettingsFragment : PreviewSettingsFragment() {
     override val showsProjectivyNotice get() = Projectivy.isInstalled(requireContext()) && Projectivy.inUse(requireContext())
 
     private var startPlaced = false
+    private var supportCounted = false
+    /** Created only in Google Play builds while the top support prompt is shown. */
+    private var supporter: Supporter? = null
 
     private val statusRefresher = object : Runnable {
         override fun run() {
@@ -46,6 +49,14 @@ class SettingsFragment : PreviewSettingsFragment() {
         Settings.init(context)
 
         if (Updater.available) actions += updateAction()
+        else if (SupportPrompt.shouldShow(updateAvailable = false)) {
+            if (BuildConfig.PLAY && supporter == null) supporter = createSupporter(context, ::showSupporter)
+            if (!supportCounted) {
+                supportCounted = true
+                Settings.supportShownCount += 1
+            }
+            actions += supportAction()
+        }
         // "Update now" also carries the status, so there is a single place to look
         actions += action(ID_GENERATE, R.drawable.ic_act_refresh, getString(R.string.action_generate_now), topStatus())
             .multilineDescription(true).build()
@@ -106,6 +117,16 @@ class SettingsFragment : PreviewSettingsFragment() {
         Updater.installListener = installListener
         Updater.unheardFailure?.let { Updater.unheardFailure = null; installListener.failed(it) }
         background({ Updater.check() }) { showUpdate() }
+        if (findActionById(ID_SUPPORT_PROMPT) != null) {
+            if (Settings.supportDismissed || (BuildConfig.PLAY && Settings.supporterBought)) removeSupportPrompt()
+            else supporter?.refresh()
+        }
+    }
+
+    override fun onDestroy() {
+        supporter?.close()
+        supporter = null
+        super.onDestroy()
     }
 
     override fun onPause() {
@@ -154,6 +175,19 @@ class SettingsFragment : PreviewSettingsFragment() {
                 updateDescription(ID_REFRESH, refreshLabel(Settings.refreshHours))
                 refreshStatus()
             }
+            ID_SUPPORT_PROMPT -> {
+                if (index == 0) {
+                    if (supporter != null) supporter?.buy(requireActivity())
+                    else if (BuildConfig.SUPPORT_URL.isNotBlank()) {
+                        LinkQrDialog.newInstance(BuildConfig.SUPPORT_URL, R.string.about_support, R.string.about_support_scan)
+                            .show(parentFragmentManager, "support")
+                    }
+                } else {
+                    Settings.supportDismissed = true
+                    Toast.makeText(requireContext(), R.string.support_prompt_hidden, Toast.LENGTH_SHORT).show()
+                    handler.post { if (isAdded) removeSupportPrompt() }
+                }
+            }
         }
         return true
     }
@@ -191,10 +225,40 @@ class SettingsFragment : PreviewSettingsFragment() {
     private fun updateAction(): GuidedAction =
         action(ID_APP_UPDATE, R.drawable.ic_act_refresh, getString(R.string.update_title), updateText()).multilineDescription(true).build()
 
+    private fun supportAction(): GuidedAction {
+        val context = requireContext()
+        val description = getString(if (BuildConfig.PLAY) R.string.supporter_desc else R.string.about_support_desc)
+        val openLabel = getString(if (BuildConfig.PLAY) R.string.support_prompt_supporter else R.string.support_prompt_kofi)
+        val hideLabel = getString(R.string.support_prompt_hide)
+        return action(ID_SUPPORT_PROMPT, R.drawable.ic_act_heart, getString(R.string.about_support), description)
+            .multilineDescription(true)
+            .subActions(listOf(
+                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE).title(openLabel).build(),
+                GuidedAction.Builder(context).id(ID_SUPPORT_PROMPT * SUB_ID_BASE + 1).title(hideLabel).build(),
+            )).build()
+    }
+
+    private fun removeSupportPrompt() {
+        if (findActionById(ID_SUPPORT_PROMPT) == null) return
+        actions = actions.filterNot { it.id == ID_SUPPORT_PROMPT }
+    }
+
+    private fun showSupporter(state: Supporter.State) {
+        if (state == Supporter.State.UNAVAILABLE) {
+            if (isAdded) Toast.makeText(requireContext(), R.string.supporter_unavailable, Toast.LENGTH_LONG).show()
+            return
+        }
+        Supporter.remember(state)
+        if (!isAdded) return
+        if (state == Supporter.State.BOUGHT || state == Supporter.State.PENDING) {
+            removeSupportPrompt()
+        }
+    }
+
     /** Offer an update found after the screen opened, on top, without reopening the screen. */
     private fun showUpdate() {
         if (!isAdded || !Updater.available || findActionById(ID_APP_UPDATE) != null) return
-        actions = actions.toMutableList().apply { add(0, updateAction()) }
+        actions = actions.filterNot { it.id == ID_SUPPORT_PROMPT }.toMutableList().apply { add(0, updateAction()) }
     }
 
     /**
@@ -286,6 +350,7 @@ class SettingsFragment : PreviewSettingsFragment() {
         private const val ID_HEADER_MORE = 27L
         private const val ID_WALLPAPERS = 28L
         private const val ID_ORDER = 29L
+        private const val ID_SUPPORT_PROMPT = 30L
         /** Android's install confirmation takes a moment on a slow TV; not up by then, it didn't come. */
         private const val CONFIRM_WAIT_MILLIS = 10_000L
     }

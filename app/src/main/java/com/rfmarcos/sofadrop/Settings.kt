@@ -240,6 +240,11 @@ object Settings {
     private const val KEY_PROJECTIVY_ASKED = "_projectivy_asked_at"
     private const val KEY_WIZARD_SHOWN = "_wizard_shown"
     private const val KEY_FRESH_INSTALL = "_fresh_install"
+    private const val KEY_FIRST_SEEN = "_first_seen_at"
+    private const val KEY_SETTINGS_OPENS = "_settings_opens"
+    private const val KEY_GENERATION_COUNT = "_generation_count"
+    private const val KEY_SUPPORT_DISMISSED = "_support_dismissed"
+    private const val KEY_SUPPORT_SHOWN = "_support_shown"
     private const val KEY_UPDATE_APK = "_update_apk"
     private const val KEY_UPDATE_NOTES = "_update_notes"
     private const val KEY_UPDATE_CHECKED = "_update_checked_at"
@@ -291,6 +296,10 @@ object Settings {
             if (fresh) {
                 preferences.edit { putBoolean(KEY_FRESH_INSTALL, true) }
                 Profile.WALLPAPER.showCast = true
+            }
+            if (!preferences.contains(KEY_FIRST_SEEN)) {
+                val last = preferences.getLong("_last_generation", 0L)
+                preferences.edit { putLong(KEY_FIRST_SEEN, if (last > 0L) last else System.currentTimeMillis()) }
             }
             // Until 1.2 the screensaver mixed its lists unless told otherwise; now that would follow the general order
             if (!preferences.contains(KEY_ORDER_MOVED)) {
@@ -614,6 +623,29 @@ object Settings {
 
     /** Installed from scratch, not updated (see [init]). */
     val freshInstall: Boolean get() = preferences.getBoolean(KEY_FRESH_INSTALL, false)
+
+    /** When this install was first seen, or its last generation before this was tracked (see [SupportPrompt]). */
+    val firstSeenAt: Long get() = preferences.getLong(KEY_FIRST_SEEN, 0L)
+
+    /** How many times the settings screen was opened (not returning from a sub-screen). */
+    var settingsOpens: Int
+        get() = preferences.getInt(KEY_SETTINGS_OPENS, 0)
+        set(value) = preferences.edit { putInt(KEY_SETTINGS_OPENS, value) }
+
+    /** How many wallpaper sets finished generating successfully. */
+    var generationCount: Int
+        get() = preferences.getInt(KEY_GENERATION_COUNT, 0)
+        set(value) = preferences.edit { putInt(KEY_GENERATION_COUNT, value) }
+
+    /** The user hid the top support prompt from the main screen (About still has it). */
+    var supportDismissed: Boolean
+        get() = preferences.getBoolean(KEY_SUPPORT_DISMISSED, false)
+        set(value) = preferences.edit { putBoolean(KEY_SUPPORT_DISMISSED, value) }
+
+    /** How many times the top support prompt was shown in main Settings. */
+    var supportShownCount: Int
+        get() = preferences.getInt(KEY_SUPPORT_SHOWN, 0)
+        set(value) = preferences.edit { putInt(KEY_SUPPORT_SHOWN, value) }
 
     /**
      * Latest release found by [Updater.check] ("1.0.1", empty until checked), its APK, its release notes

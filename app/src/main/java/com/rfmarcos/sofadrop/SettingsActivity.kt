@@ -17,6 +17,7 @@ class SettingsActivity : FragmentActivity() {
         Settings.init(this)
 
         if (savedInstanceState == null) {
+            Settings.settingsOpens += 1
             GuidedStepSupportFragment.addAsRoot(this, SettingsFragment(), android.R.id.content)
             val file = settingsFile(intent)
             val reconnect = intent.getStringArrayExtra(EXTRA_RECONNECT).orEmpty()
