@@ -177,13 +177,12 @@ object Settings {
     const val FOCUSED_FALLBACK_SET = "set"
     const val FOCUSED_FALLBACK_DARK = "dark"
     const val FOCUSED_FALLBACK_DIMMED = "dimmed"
-    const val FOCUSED_FALLBACK_CARD_COLOR = "card_color"
-    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_DIMMED, FOCUSED_FALLBACK_CARD_COLOR)
+    val FOCUSED_FALLBACK_OPTIONS = listOf(FOCUSED_FALLBACK_SET, FOCUSED_FALLBACK_DARK, FOCUSED_FALLBACK_DIMMED)
 
-    /** Which non-media cards trigger [focusedFallback]: apps + other channels, or other channels only (apps keep rotating the set). */
+    /** Which non-media cards trigger [focusedFallback]: other channels only (default, apps keep rotating the set) or apps + other channels. */
     const val FOCUSED_SCOPE_ALL = "all"
     const val FOCUSED_SCOPE_CHANNELS = "channels"
-    val FOCUSED_SCOPE_OPTIONS = listOf(FOCUSED_SCOPE_ALL, FOCUSED_SCOPE_CHANNELS)
+    val FOCUSED_SCOPE_OPTIONS = listOf(FOCUSED_SCOPE_CHANNELS, FOCUSED_SCOPE_ALL)
     /** Language of the logo (and of the title written instead) and of the synopsis: the general one, the title's own or a locale. */
     const val LANGUAGE_AUTO = "auto"
     const val LANGUAGE_ORIGINAL = "original"
@@ -383,9 +382,9 @@ object Settings {
         get() = preferences.getString(KEY_FOCUSED_FALLBACK, null)?.takeIf { it in FOCUSED_FALLBACK_OPTIONS } ?: FOCUSED_FALLBACK_SET
         set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK, value) }
 
-    /** Whether [focusedFallback] applies to apps and other channels, or other channels only (see [FOCUSED_SCOPE_OPTIONS]). */
+    /** Whether [focusedFallback] applies to other channels only (default) or apps and other channels (see [FOCUSED_SCOPE_OPTIONS]). */
     var focusedFallbackScope: String
-        get() = preferences.getString(KEY_FOCUSED_FALLBACK_SCOPE, null)?.takeIf { it in FOCUSED_SCOPE_OPTIONS } ?: FOCUSED_SCOPE_ALL
+        get() = preferences.getString(KEY_FOCUSED_FALLBACK_SCOPE, null)?.takeIf { it in FOCUSED_SCOPE_OPTIONS } ?: FOCUSED_SCOPE_CHANNELS
         set(value) = preferences.edit { putString(KEY_FOCUSED_FALLBACK_SCOPE, value) }
 
     /** A copy of the wallpapers in Pictures/Sofadrop, for other launchers (see [WallpaperFolder]). */

@@ -29,11 +29,9 @@ class WallpaperProviderService : Service() {
     /** Focus is on a non-media card (app tile, YouTube clip, unmatched card) while not idle (issue #38). */
     @Volatile private var onOtherCard = false
 
-    /** Projectivy currently shows the non-media fallback wallpaper (its mode and card colour for card_color mode). */
+    /** Projectivy currently shows the non-media fallback wallpaper (its mode). */
     @Volatile private var showingFallbackMode: String? = null
     private val showingFallback get() = showingFallbackMode != null
-    @Volatile private var showingFallbackColor = 0
-    @Volatile private var lastCardColor = 0
     @Volatile private var launcherIdle = false
 
     /**
@@ -75,20 +73,17 @@ class WallpaperProviderService : Service() {
                     }
                     if (fallback != Settings.FOCUSED_FALLBACK_SET) {
                         onOtherCard = true
-                        lastCardColor = 0
-                        return otherCardAnswer(fallback, 0)
+                        return otherCardAnswer(fallback)
                     }
                     onOtherCard = false
                 }
                 is Event.CardFocused -> {
                     launcherIdle = false
                     focusedCard = null
-                    val color = event.darkColor.takeIf { it != 0 } ?: event.lightColor
-                    lastCardColor = color
-                    val onApps = fallback == Settings.FOCUSED_FALLBACK_CARD_COLOR || Settings.focusedFallbackScope == Settings.FOCUSED_SCOPE_ALL
+                    val onApps = Settings.focusedFallbackScope == Settings.FOCUSED_SCOPE_ALL
                     if (fallback != Settings.FOCUSED_FALLBACK_SET && onApps) {
                         onOtherCard = true
-                        return otherCardAnswer(fallback, color)
+                        return otherCardAnswer(fallback)
                     }
                     onOtherCard = false
                 }
@@ -118,13 +113,12 @@ class WallpaperProviderService : Service() {
                             if (FocusedWallpapers.matchesNothing(card) && fallback != Settings.FOCUSED_FALLBACK_SET) {
                                 focusedCard = null
                                 onOtherCard = true
-                                lastCardColor = 0
-                                return otherCardAnswer(fallback, 0)
+                                return otherCardAnswer(fallback)
                             }
                             if (!FocusedWallpapers.matchesNothing(card)) return if (servedSet) emptyList() else wallpapers()
                         }
                         if (focusedCard == null && onOtherCard && !launcherIdle && fallback != Settings.FOCUSED_FALLBACK_SET) {
-                            return otherCardAnswer(fallback, lastCardColor)
+                            return otherCardAnswer(fallback)
                         }
                     }
                 }
@@ -141,17 +135,14 @@ class WallpaperProviderService : Service() {
         }
 
         /** Serves the non-media fallback wallpaper, avoiding redundant reloads when it's already on screen. */
-        private fun otherCardAnswer(fallback: String, cardColor: Int): List<Wallpaper> {
-            val rgb = cardColor and 0x00FFFFFF
-            val unchanged = showingFallbackMode == fallback && (fallback != Settings.FOCUSED_FALLBACK_CARD_COLOR || showingFallbackColor == rgb)
-            if (unchanged && servedSet) return emptyList()
+        private fun otherCardAnswer(fallback: String): List<Wallpaper> {
+            if (showingFallbackMode == fallback && servedSet) return emptyList()
             GenerateWallpapersWorker.schedule(this@WallpaperProviderService)
             val wallpaper = FocusedWallpapers.otherCardWallpaper(
-                this@WallpaperProviderService, fallback, cardColor, WallpaperContentProvider.lastShown,
+                this@WallpaperProviderService, fallback, WallpaperContentProvider.lastShown,
             ) ?: return if (servedSet) emptyList() else wallpapers()
             showingCard = false
             showingFallbackMode = fallback
-            showingFallbackColor = rgb
             servedSet = true
             return listOf(wallpaper)
         }
