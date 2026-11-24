@@ -81,8 +81,8 @@ class SettingsActivity : FragmentActivity() {
     }
 
     private fun startScreensaver() {
-        // Not over a dialog (a QR code being scanned) or the keyboard: their buttons don't reach the activity
-        if (!hasWindowFocus() || currentFocus is EditText) return waitIdle()
+        // Not during the guided setup, over a dialog (a QR code being scanned) or the keyboard
+        if (Wizard.open || !hasWindowFocus() || currentFocus is EditText) return waitIdle()
         if (ScreensaverFragment.canStart(this)) startActivity(Intent(this, SofascreenActivity::class.java))
     }
 

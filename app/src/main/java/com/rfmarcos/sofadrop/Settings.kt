@@ -302,10 +302,13 @@ object Settings {
     val DEFAULT_LISTS = setOf("tmdb:trending_movies", "tmdb:trending_tv")
 
     internal lateinit var preferences: SharedPreferences
+    @Volatile private var initialized = false
     private val json by lazy { Json { ignoreUnknownKeys = true; isLenient = true } }
 
     fun init(context: Context) {
-        if (!::preferences.isInitialized) {
+        if (initialized) return
+        synchronized(this) {
+            if (initialized) return
             preferences = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
             // A fresh install, whatever opens first (the settings or Projectivy's request): the guided setup is
             // due, and the cast is on. Someone updating keeps what they had
@@ -328,6 +331,7 @@ object Settings {
             }
             // Scopes of earlier versions (replaced by per-list filters) and the dropped launcher guide
             preferences.edit { OLD_FILTER_KEYS.forEach(::remove) }
+            initialized = true
         }
     }
 
@@ -951,7 +955,7 @@ object Settings {
      * filling or emptying Pictures/Sofadrop (and may need a permission that device hasn't granted).
      */
     fun inBackup(key: String): Boolean = !key.startsWith("_") && key !in SECRET_KEYS &&
-        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER
+        key != KEY_WEATHER_COORDINATES && key != KEY_WALLPAPER_FOLDER && key != KEY_ORDER_MOVED
 
     fun export(): String = exportJson(preferences.all)
 
@@ -970,7 +974,7 @@ object Settings {
             if (values[KEY_WEATHER_PLACE] != stored[KEY_WEATHER_PLACE]) remove(KEY_WEATHER_COORDINATES)
             values.forEach { (key, imported) ->
                 // A value of another type than the stored one (an older or edited backup) would crash its getter
-                val value = matchingType(imported, stored[key]) ?: return@forEach
+                val value = matchingType(imported, stored[key], key) ?: return@forEach
                 @Suppress("UNCHECKED_CAST")
                 when (value) {
                     is Set<*> -> putStringSet(key, value as Set<String>)
@@ -985,8 +989,10 @@ object Settings {
         return true
     }
 
-    /** [imported] as the type of [stored] (any when nothing is stored); null when it can't be. */
-    fun matchingType(imported: Any, stored: Any?): Any? = when {
+    /** [imported] as the type of [stored] (and known float keys even on a fresh install); null when it can't be. */
+    fun matchingType(imported: Any, stored: Any?, key: String? = null): Any? = when {
+        key != null && (key == KEY_MIN_RATING || key.endsWith("_$KEY_MIN_RATING")) ->
+            if (imported is Number) imported.toFloat() else null
         stored == null || stored::class == imported::class -> imported
         stored is Float && imported is Number -> imported.toFloat()
         stored is Long && imported is Int -> imported.toLong()

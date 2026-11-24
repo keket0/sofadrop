@@ -72,8 +72,8 @@ object ScrollVideo {
     private fun vbr(name: String) = avcEncoders().first { it.name == name }.getCapabilitiesForType(MediaFormat.MIMETYPE_VIDEO_AVC)
         .encoderCapabilities.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
 
-    /** [synopsis] scrolling over [wallpaper] (its JPEG, the synopsis cut) into [file]; returns the encoder's name. */
-    fun encode(synopsis: ScrollingSynopsis, wallpaper: Bitmap, file: File): String {
+    /** [synopsis] scrolling over [wallpaper] (its JPEG, optionally subsampled from [sourceWidth]) into [file]; returns the encoder's name. */
+    fun encode(synopsis: ScrollingSynopsis, wallpaper: Bitmap, file: File, sourceWidth: Int = wallpaper.width): String {
         val scale = min(1f, VIDEO_WIDTH / wallpaper.width.toFloat())
         val (name, width, height) = encoderFor((wallpaper.width * scale).roundToInt(), (wallpaper.height * scale).roundToInt())
         val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height).apply {
@@ -84,25 +84,30 @@ object ScrollVideo {
             if (vbr(name)) setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
         }
         val codec = MediaCodec.createByCodecName(name)
-        val muxer = MediaMuxer(file.path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        var muxer: MediaMuxer? = null
         try {
+            muxer = MediaMuxer(file.path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             val input = codec.createInputSurface()
             codec.start()
             var drainError: Throwable? = null
+            @Volatile var abort = false
             val drain = Thread {
                 try {
-                    drain(codec, muxer)
+                    drain(codec, muxer) { abort }
                 } catch (e: Throwable) {
                     drainError = e
                 }
             }.apply { start() }
+            var eosSignalled = false
             try {
-                Frames(input, width, height, wallpaper, synopsis).use { gl ->
+                Frames(input, width, height, wallpaper, synopsis, sourceWidth).use { gl ->
                     for ((offset, millis) in frames(synopsis)) gl.draw(offset, millis * 1_000_000)
                 }
                 codec.signalEndOfInputStream()
+                eosSignalled = true
             } finally {
+                if (!eosSignalled) abort = true
                 drain.join(DRAIN_TIMEOUT_MILLIS)
                 input.release()
             }
@@ -111,16 +116,16 @@ object ScrollVideo {
             codec.stop()
             muxer.stop()
         } finally {
-            codec.release()
-            runCatching { muxer.release() }
+            runCatching { codec.release() }
+            runCatching { muxer?.release() }
         }
         return name
     }
 
-    private fun drain(codec: MediaCodec, muxer: MediaMuxer) {
+    private fun drain(codec: MediaCodec, muxer: MediaMuxer, aborted: () -> Boolean) {
         val info = MediaCodec.BufferInfo()
         var track = -1
-        while (true) {
+        while (!aborted()) {
             val index = codec.dequeueOutputBuffer(info, 10_000)
             if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 track = muxer.addTrack(codec.outputFormat)
@@ -129,7 +134,7 @@ object ScrollVideo {
             if (index < 0) continue
             val buffer = codec.getOutputBuffer(index)!!
             if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) info.size = 0
-            if (info.size > 0) muxer.writeSampleData(track, buffer, info)
+            if (info.size > 0 && track >= 0) muxer.writeSampleData(track, buffer, info)
             codec.releaseOutputBuffer(index, false)
             if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
         }
@@ -137,51 +142,61 @@ object ScrollVideo {
 
     /**
      * OpenGL on [surface]: the wallpaper, the patch and the strip as textures, drawn as [ScrollingSynopsis.draw]
-     * does (the fades in the shader). Coordinates are the wallpaper's pixels, scaled to the video.
+     * does (the fades in the shader). Coordinates are in [sourceWidth] pixels, scaled to the video.
      */
     private class Frames(
-        surface: Surface, private val width: Int, private val height: Int, wallpaper: Bitmap, private val synopsis: ScrollingSynopsis,
+        surface: Surface, private val width: Int, private val height: Int, wallpaper: Bitmap,
+        private val synopsis: ScrollingSynopsis, sourceWidth: Int,
     ) : AutoCloseable {
         private val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
-        private val config: EGLConfig
-        private val context: android.opengl.EGLContext
-        private val eglSurface: android.opengl.EGLSurface
-        private val program: Int
+        private var context: android.opengl.EGLContext = EGL14.EGL_NO_CONTEXT
+        private var eglSurface: android.opengl.EGLSurface = EGL14.EGL_NO_SURFACE
+        private var program: Int = 0
         private val textures = IntArray(3)
-        private val imageWidth = wallpaper.width.toFloat()
-        private val imageHeight = wallpaper.height.toFloat()
+        private val imageWidth = sourceWidth.toFloat()
+        private val imageHeight = if (sourceWidth == wallpaper.width) wallpaper.height.toFloat()
+            else wallpaper.height.toFloat() * sourceWidth / wallpaper.width
         private val quad = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
 
         init {
-            val version = IntArray(2)
-            check(EGL14.eglInitialize(display, version, 0, version, 1)) { "eglInitialize" }
-            val attributes = intArrayOf(
-                EGL14.EGL_RED_SIZE, 8, EGL14.EGL_GREEN_SIZE, 8, EGL14.EGL_BLUE_SIZE, 8,
-                EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT, EGL_RECORDABLE_ANDROID, 1, EGL14.EGL_NONE,
-            )
-            val configs = arrayOfNulls<EGLConfig>(1)
-            val count = IntArray(1)
-            check(EGL14.eglChooseConfig(display, attributes, 0, configs, 0, 1, count, 0) && count[0] > 0) { "No recordable EGL config" }
-            config = configs[0]!!
-            context = EGL14.eglCreateContext(display, config, EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0)
-            check(context != EGL14.EGL_NO_CONTEXT) { "eglCreateContext" }
-            eglSurface = EGL14.eglCreateWindowSurface(display, config, surface, intArrayOf(EGL14.EGL_NONE), 0)
-            check(EGL14.eglMakeCurrent(display, eglSurface, eglSurface, context)) { "eglMakeCurrent" }
+            try {
+                val version = IntArray(2)
+                check(EGL14.eglInitialize(display, version, 0, version, 1)) { "eglInitialize" }
+                val attributes = intArrayOf(
+                    EGL14.EGL_RED_SIZE, 8, EGL14.EGL_GREEN_SIZE, 8, EGL14.EGL_BLUE_SIZE, 8,
+                    EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT, EGL_RECORDABLE_ANDROID, 1, EGL14.EGL_NONE,
+                )
+                val configs = arrayOfNulls<EGLConfig>(1)
+                val count = IntArray(1)
+                check(EGL14.eglChooseConfig(display, attributes, 0, configs, 0, 1, count, 0) && count[0] > 0) { "No recordable EGL config" }
+                val config = configs[0]!!
+                context = EGL14.eglCreateContext(display, config, EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0)
+                check(context != EGL14.EGL_NO_CONTEXT) { "eglCreateContext" }
+                eglSurface = EGL14.eglCreateWindowSurface(display, config, surface, intArrayOf(EGL14.EGL_NONE), 0)
+                check(eglSurface != EGL14.EGL_NO_SURFACE) { "eglCreateWindowSurface" }
+                check(EGL14.eglMakeCurrent(display, eglSurface, eglSurface, context)) { "eglMakeCurrent" }
 
-            program = program(VERTEX, FRAGMENT)
-            GLES20.glGenTextures(3, textures, 0)
-            // The wallpaper at the video's size; the patch and the strip as they are (they're small)
-            val scaled = if (wallpaper.width > width) Bitmap.createScaledBitmap(wallpaper, width, height, true) else wallpaper
-            upload(textures[0], scaled)
-            if (scaled !== wallpaper) scaled.recycle()
-            upload(textures[1], synopsis.patch)
-            upload(textures[2], synopsis.strip)
-            GLES20.glViewport(0, 0, width, height)
-            GLES20.glEnable(GLES20.GL_BLEND)
-            // Android's bitmaps are premultiplied
-            GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-            GLES20.glUseProgram(program)
-            GLES20.glUniform1f(GLES20.glGetUniformLocation(program, "uViewHeight"), height.toFloat())
+                program = program(VERTEX, FRAGMENT)
+                GLES20.glGenTextures(3, textures, 0)
+                // The wallpaper at the video's size; the patch and the strip as they are (they're small)
+                val scaled = if (wallpaper.width > width) Bitmap.createScaledBitmap(wallpaper, width, height, true) else wallpaper
+                try {
+                    upload(textures[0], scaled)
+                } finally {
+                    if (scaled !== wallpaper) scaled.recycle()
+                }
+                upload(textures[1], synopsis.patch)
+                upload(textures[2], synopsis.strip)
+                GLES20.glViewport(0, 0, width, height)
+                GLES20.glEnable(GLES20.GL_BLEND)
+                // Android's bitmaps are premultiplied
+                GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+                GLES20.glUseProgram(program)
+                GLES20.glUniform1f(GLES20.glGetUniformLocation(program, "uViewHeight"), height.toFloat())
+            } catch (e: Throwable) {
+                close()
+                throw e
+            }
         }
 
         private fun upload(texture: Int, bitmap: Bitmap) {
@@ -247,11 +262,13 @@ object ScrollVideo {
         }
 
         override fun close() {
-            GLES20.glDeleteTextures(3, textures, 0)
-            GLES20.glDeleteProgram(program)
-            EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
-            EGL14.eglDestroySurface(display, eglSurface)
-            EGL14.eglDestroyContext(display, context)
+            if (textures.any { it != 0 }) GLES20.glDeleteTextures(3, textures, 0)
+            if (program != 0) GLES20.glDeleteProgram(program)
+            if (display != EGL14.EGL_NO_DISPLAY) {
+                EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
+                if (eglSurface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(display, eglSurface)
+                if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
+            }
             // No eglTerminate: the display is the app's, and its UI may be drawing with it
             EGL14.eglReleaseThread()
         }

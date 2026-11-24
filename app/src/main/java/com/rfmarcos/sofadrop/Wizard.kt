@@ -53,9 +53,9 @@ object Wizard {
         Step.entries.getOrNull(from.step.ordinal + 1)?.let { GuidedStepSupportFragment.add(from.parentFragmentManager, fragment(it)) }
     }
 
-    /** Back to the screen the wizard was opened from, and make the set with the answers. */
-    fun finish(from: WizardStepFragment) {
-        generate(from.requireContext())
+    /** Back to the screen the wizard was opened from, generating the set unless [apply] is false. */
+    fun finish(from: WizardStepFragment, apply: Boolean = true) {
+        if (apply) generate(from.requireContext())
         from.popBackStackToGuidedStepSupportFragment(WizardWelcomeFragment::class.java, FragmentManager.POP_BACK_STACK_INCLUSIVE)
     }
 
@@ -173,7 +173,7 @@ class WizardWelcomeFragment : WizardStepFragment() {
     override fun onGuidedActionClicked(action: GuidedAction) {
         when (action.id) {
             ID_START -> Wizard.next(this)
-            ID_SKIP -> Wizard.finish(this)
+            ID_SKIP -> Wizard.finish(this, apply = !Wizard.reopened)
             ID_IMPORT -> runCatching { pick.launch(arrayOf("*/*")) }
         }
     }

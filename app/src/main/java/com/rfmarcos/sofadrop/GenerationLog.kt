@@ -4,8 +4,9 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
@@ -18,7 +19,8 @@ class GenerationLog(private val context: Context, private val profile: Profile =
     private val lines = mutableListOf<String>()
 
     init {
-        add("Sofadrop ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · ${DATE.format(Date(started))}")
+        val timestamp = DATE.format(Instant.ofEpochMilli(started).atZone(ZoneId.systemDefault()))
+        add("Sofadrop ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · $timestamp")
         add("${Build.MANUFACTURER} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
         add(DeviceMemory.describe(context))
         add("${"Screensaver · ".takeIf { profile.isScreensaver }.orEmpty()}${profile.outputWidth} px · ${Settings.language} · ${profile.titlesPerList} per list")
@@ -47,7 +49,7 @@ class GenerationLog(private val context: Context, private val profile: Profile =
     fun text(): String = lines.joinToString("\n")
 
     companion object {
-        private val DATE = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+        private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.US)
 
         /** One per set, so the screensaver's generation doesn't replace the wallpapers' log. */
         private fun file(context: Context, profile: Profile) =
