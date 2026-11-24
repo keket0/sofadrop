@@ -87,16 +87,7 @@ class DetailsFragment : PreviewSettingsFragment() {
         }
     }
 
-    private fun positionNote(position: String): String? {
-        val rows = getString(R.string.position_rows_note).takeIf {
-            !Settings.onTop(position) && !profile.isScreensaver && Projectivy.isInstalled(requireContext())
-        }
-        return when {
-            position == Settings.POSITION_ROTATE -> getString(R.string.position_rotate_desc)
-            position == CUSTOM -> getString(R.string.position_custom_desc)
-            else -> rows
-        }
-    }
+    private fun positionNote(position: String): String? = positionNote(requireContext(), profile, position)
 
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
         val index = (action.id % SUB_ID_BASE).toInt()
@@ -129,8 +120,19 @@ class DetailsFragment : PreviewSettingsFragment() {
         private const val ID_PREVIEW_PIN = 9L
         private const val ID_ROTATION = 20L
         /** Opens [PositionActivity]; a custom position shows as this one. */
-        private const val CUSTOM = "custom"
-        private val POSITIONS = listOf(Settings.POSITION_ROTATE) + Settings.POSITIONS + CUSTOM
+        internal const val CUSTOM = "custom"
+        internal val POSITIONS = listOf(Settings.POSITION_ROTATE) + Settings.POSITIONS + CUSTOM
+
+        internal fun positionNote(context: Context, profile: Profile, position: String): String? {
+            val rows = context.getString(R.string.position_rows_note).takeIf {
+                !Settings.onTop(position) && !profile.isScreensaver && Projectivy.isInstalled(context)
+            }
+            return when {
+                position == Settings.POSITION_ROTATE -> context.getString(R.string.position_rotate_desc)
+                position == CUSTOM -> context.getString(R.string.position_custom_desc)
+                else -> rows
+            }
+        }
         private const val ID_STYLE = 11L
         private const val ID_SYNOPSIS_CAST = 14L
         private const val ID_POSITION = 15L

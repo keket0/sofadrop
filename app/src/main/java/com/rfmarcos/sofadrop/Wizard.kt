@@ -213,20 +213,35 @@ class WizardStyleFragment : WizardStepFragment() {
         actions += rows()
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshActions(rows())
+        schedulePreview(300)
+    }
+
     private fun rows(): List<GuidedAction> {
         val context = requireContext()
         val position = DetailsFragment.positionLabel(context, profile.position)
-        return Settings.STYLES.mapIndexed { index, style ->
+        val styles = Settings.STYLES.mapIndexed { index, style ->
             // "As set below" means the Details screen: here, that it can be set later
             val description = if (style == Settings.STYLE_FULL) getString(R.string.wizard_style_full_desc) else DetailsFragment.styleDescription(context, style)
             radio(ID_STYLE_BASE + index, DetailsFragment.styleLabel(context, style), description, profile.style == style).build()
-        } + action(ID_POSITION, R.drawable.ic_act_place, getString(R.string.position_title), position)
-            .subActions(options(ID_POSITION, Settings.POSITIONS.map { DetailsFragment.positionLabel(context, it) }, position,
-                Settings.POSITIONS.map { if (it.startsWith("top") || !Projectivy.isInstalled(context)) null else getString(R.string.position_rows_note) }))
-            .build().hiddenBy(profile.drawsLogo) + nextRow()
+        }
+        val positionRow = action(ID_POSITION, R.drawable.ic_act_place, getString(R.string.position_title), position)
+            .subActions(options(ID_POSITION, DetailsFragment.POSITIONS.map { DetailsFragment.positionLabel(context, it) }, position,
+                DetailsFragment.POSITIONS.map { DetailsFragment.positionNote(context, profile, it) }))
+            .build().hiddenBy(profile.drawsLogo)
+        val rotationRow = action(ID_ROTATION, R.drawable.ic_act_place, getString(R.string.position_rotation_title),
+            getString(R.string.position_rotation_summary, profile.rotation.size)).hasNext(true).build()
+            .takeIf { profile.drawsLogo && profile.position == Settings.POSITION_ROTATE }
+        return styles + listOfNotNull(positionRow, rotationRow, nextRow())
     }
 
     override fun onGuidedActionClicked(action: GuidedAction) {
+        if (action.id == ID_ROTATION) {
+            open(RotationFragment())
+            return
+        }
         val style = Settings.STYLES.getOrNull((action.id - ID_STYLE_BASE).toInt())
         if (style == null) return super.onGuidedActionClicked(action)
         profile.style = style
@@ -236,7 +251,13 @@ class WizardStyleFragment : WizardStepFragment() {
 
     override fun onSubGuidedActionClicked(action: GuidedAction): Boolean {
         if (action.id / SUB_ID_BASE == ID_POSITION) {
-            profile.position = Settings.POSITIONS[(action.id % SUB_ID_BASE).toInt()]
+            val picked = DetailsFragment.POSITIONS[(action.id % SUB_ID_BASE).toInt()]
+            if (picked == DetailsFragment.CUSTOM) {
+                startActivity(Intent(requireContext(), PositionActivity::class.java).putExtra(PositionActivity.EXTRA_PROFILE, profile.id))
+                collapseSubActions()
+                return true
+            }
+            profile.position = picked
             refreshActions(rows())
             schedulePreview(300)
         }
@@ -246,6 +267,7 @@ class WizardStyleFragment : WizardStepFragment() {
     private companion object {
         const val ID_STYLE_BASE = 10L
         const val ID_POSITION = 20L
+        const val ID_ROTATION = 21L
     }
 }
 
@@ -274,11 +296,14 @@ class WizardListsFragment : WizardStepFragment() {
         setGuidanceText(text())
     }
 
-    /** The watchlist of the connected Trakt or Simkl account, if any. */
-    private fun ownKeys() = when {
-        Settings.traktConnected -> listOf("trakt:watchlist_movies", "trakt:watchlist_shows")
-        Settings.simklConnected -> listOf("simkl:plantowatch")
-        else -> emptyList()
+    /** Personal lists of the connected accounts (Plex, Jellyfin, Trakt, Simkl, TMDB, MDBList). */
+    private fun ownKeys(): List<String> = buildList {
+        if (Settings.plexConnected) addAll(listOf(PlexClient.LATEST_MOVIES, PlexClient.LATEST_SHOWS))
+        if (Settings.jellyfinConnected) addAll(listOf(JellyfinClient.LATEST_MOVIES, JellyfinClient.LATEST_SHOWS))
+        if (Settings.traktConnected) addAll(listOf("trakt:watchlist_movies", "trakt:watchlist_shows"))
+        if (Settings.simklConnected) add("simkl:plantowatch")
+        if (Settings.tmdbConnected) addAll(listOf("tmdb:watchlist_movies", "tmdb:watchlist_tv"))
+        if (Settings.mdbListConnected) addAll(Settings.mdbLists.filter { it.path.isEmpty() }.map { it.key })
     }
 
     private fun rows(): List<GuidedAction> {
